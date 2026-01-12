@@ -1,0 +1,5 @@
+" Test variables and assignments - version 0.2.0 "
+| x y |
+x := 10.
+y := 20.
+x + y

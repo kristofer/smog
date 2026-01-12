@@ -1,0 +1,6 @@
+" Test comparison operations - version 0.2.0 "
+| x y result |
+x := 10.
+y := 20.
+result := x < y.
+result
