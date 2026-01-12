@@ -1,0 +1,62 @@
+" Point class - a classic 2D point example "
+
+Object subclass: #Point [
+    | x y |
+    
+    " Constructor "
+    x: xValue y: yValue [
+        x := xValue.
+        y := yValue.
+    ]
+    
+    " Accessors "
+    x [
+        ^x
+    ]
+    
+    y [
+        ^y
+    ]
+    
+    " Add two points "
+    + aPoint [
+        ^Point x: (x + aPoint x) y: (y + aPoint y)
+    ]
+    
+    " Subtract two points "
+    - aPoint [
+        ^Point x: (x - aPoint x) y: (y - aPoint y)
+    ]
+    
+    " Distance from origin "
+    distance [
+        ^((x * x) + (y * y)) sqrt
+    ]
+    
+    " Print representation "
+    printOn: stream [
+        stream nextPutAll: 'Point('.
+        stream nextPutAll: x asString.
+        stream nextPutAll: ', '.
+        stream nextPutAll: y asString.
+        stream nextPutAll: ')'.
+    ]
+]
+
+" Create and manipulate points "
+| p1 p2 p3 |
+p1 := Point x: 3 y: 4.
+p2 := Point x: 1 y: 2.
+p3 := p1 + p2.
+
+'Point 1: ' print.
+p1 printOn: Stdout.
+'' println.
+
+'Point 2: ' print.
+p2 printOn: Stdout.
+'' println.
+
+'Sum: ' print.
+p3 printOn: Stdout.
+'' println.

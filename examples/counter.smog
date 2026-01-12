@@ -1,0 +1,46 @@
+" Counter class example in Smog "
+
+Object subclass: #Counter [
+    | count |
+    
+    " Initialize the counter "
+    initialize [
+        count := 0.
+    ]
+    
+    " Increment the counter "
+    increment [
+        count := count + 1.
+    ]
+    
+    " Decrement the counter "
+    decrement [
+        count := count - 1.
+    ]
+    
+    " Get current value "
+    value [
+        ^count
+    ]
+    
+    " Reset to zero "
+    reset [
+        count := 0.
+    ]
+]
+
+" Use the counter "
+| counter |
+counter := Counter new.
+counter initialize.
+
+counter increment.
+counter increment.
+counter increment.
+
+'Counter value: ' print.
+counter value println.  " Should print: 3 "
+
+counter decrement.
+'Counter value: ' print.
+counter value println.  " Should print: 2 "
