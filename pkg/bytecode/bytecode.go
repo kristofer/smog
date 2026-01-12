@@ -49,6 +49,14 @@ type Bytecode struct {
 	Constants    []interface{}
 }
 
+// Constants for encoding/decoding message send operands
+const (
+	// SelectorIndexShift is the number of bits to shift the selector index
+	SelectorIndexShift = 8
+	// ArgCountMask is the mask for extracting the argument count
+	ArgCountMask = 0xFF
+)
+
 // String returns a string representation of an opcode
 func (op Opcode) String() string {
 	switch op {

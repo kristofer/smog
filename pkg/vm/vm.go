@@ -28,6 +28,12 @@ func New() *VM {
 
 // Run executes bytecode on the virtual machine
 func (vm *VM) Run(bc *bytecode.Bytecode) error {
+	// Reset state for clean execution
+	vm.sp = 0
+	for i := range vm.locals {
+		vm.locals[i] = nil
+	}
+	
 	vm.constants = bc.Constants
 
 	for ip := 0; ip < len(bc.Instructions); ip++ {
@@ -119,9 +125,9 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			}
 
 		case bytecode.OpSend:
-			// Decode selector index and arg count from operand
-			selectorIdx := inst.Operand >> 8
-			argCount := inst.Operand & 0xFF
+			// Decode selector index and arg count from operand using shared constants
+			selectorIdx := inst.Operand >> bytecode.SelectorIndexShift
+			argCount := inst.Operand & bytecode.ArgCountMask
 
 			if selectorIdx < 0 || selectorIdx >= len(vm.constants) {
 				return fmt.Errorf("selector index out of bounds: %d", selectorIdx)

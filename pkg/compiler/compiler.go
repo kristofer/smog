@@ -133,8 +133,8 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		// Emit send instruction
 		selectorIdx := c.addConstant(e.Selector)
 		argCount := len(e.Args)
-		// Pack selector and arg count into operand
-		operand := (selectorIdx << 8) | argCount
+		// Pack selector and arg count into operand using shared constants
+		operand := (selectorIdx << bytecode.SelectorIndexShift) | argCount
 		c.emit(bytecode.OpSend, operand)
 		return nil
 
