@@ -1,0 +1,15 @@
+" Factorial calculation in Smog "
+
+Object subclass: #Math [
+    " Calculate factorial recursively "
+    factorial: n [
+        n <= 1 ifTrue: [ ^1 ].
+        ^n * (self factorial: (n - 1))
+    ]
+]
+
+" Create instance and calculate factorial of 5 "
+| math result |
+math := Math new.
+result := math factorial: 5.
+result println.  " Should print: 120 "

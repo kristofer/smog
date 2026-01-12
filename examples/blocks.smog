@@ -1,0 +1,48 @@
+" Block/closure examples "
+
+" Simple block "
+| greet |
+greet := [ 'Hello from a block!' println ].
+greet value.
+
+" Block with parameters "
+| square |
+square := [ :x | x * x ].
+'Square of 5: ' print.
+(square value: 5) println.  " Should print: 25 "
+
+" Block with multiple parameters "
+| add |
+add := [ :x :y | x + y ].
+'3 + 7 = ' print.
+(add value: 3 value: 7) println.  " Should print: 10 "
+
+" Blocks as higher-order functions "
+| applyTwice |
+applyTwice := [ :fn :value |
+    fn value: (fn value: value)
+].
+
+| increment |
+increment := [ :x | x + 1 ].
+'Apply increment twice to 5: ' print.
+(applyTwice value: increment value: 5) println.  " Should print: 7 "
+
+" Closure capturing variables "
+| makeCounter |
+makeCounter := [
+    | count |
+    count := 0.
+    [ count := count + 1. count ]
+].
+
+| counter1 counter2 |
+counter1 := makeCounter value.
+counter2 := makeCounter value.
+
+'Counter 1: ' print.
+counter1 value println.  " Should print: 1 "
+counter1 value println.  " Should print: 2 "
+
+'Counter 2: ' print.
+counter2 value println.  " Should print: 1 "

@@ -1,0 +1,41 @@
+" Array and collection examples "
+
+" Simple array iteration "
+| numbers sum |
+numbers := #(1 2 3 4 5).
+
+'Array elements:' println.
+numbers do: [ :each |
+    each println.
+].
+
+" Calculate sum using iteration "
+sum := 0.
+numbers do: [ :each |
+    sum := sum + each.
+].
+
+'Sum: ' print.
+sum println.  " Should print: 15 "
+
+" Transform array using collect "
+| doubled |
+doubled := numbers collect: [ :each |
+    each * 2
+].
+
+'Doubled array:' println.
+doubled do: [ :each |
+    each println.
+].
+
+" Filter array using select "
+| evens |
+evens := numbers select: [ :each |
+    (each \\ 2) = 0
+].
+
+'Even numbers:' println.
+evens do: [ :each |
+    each println.
+].
