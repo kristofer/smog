@@ -286,3 +286,225 @@ func TestParseWithComments(t *testing.T) {
 		t.Errorf("Expected value 42, got %d", intLit.Value)
 	}
 }
+
+func TestParseVariableDeclaration(t *testing.T) {
+	input := `| x y z |`
+
+	p := New(input)
+	program, err := p.Parse()
+
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+	}
+
+	varDecl, ok := program.Statements[0].(*ast.VariableDeclaration)
+	if !ok {
+		t.Fatalf("Expected VariableDeclaration, got %T", program.Statements[0])
+	}
+
+	if len(varDecl.Names) != 3 {
+		t.Fatalf("Expected 3 variable names, got %d", len(varDecl.Names))
+	}
+
+	expectedNames := []string{"x", "y", "z"}
+	for i, name := range expectedNames {
+		if varDecl.Names[i] != name {
+			t.Errorf("Expected variable name %s, got %s", name, varDecl.Names[i])
+		}
+	}
+}
+
+func TestParseAssignment(t *testing.T) {
+	input := `x := 42`
+
+	p := New(input)
+	program, err := p.Parse()
+
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+	}
+
+	assign, ok := stmt.Expression.(*ast.Assignment)
+	if !ok {
+		t.Fatalf("Expected Assignment, got %T", stmt.Expression)
+	}
+
+	if assign.Name != "x" {
+		t.Errorf("Expected variable name 'x', got %s", assign.Name)
+	}
+
+	intLit, ok := assign.Value.(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("Expected IntegerLiteral value, got %T", assign.Value)
+	}
+
+	if intLit.Value != 42 {
+		t.Errorf("Expected value 42, got %d", intLit.Value)
+	}
+}
+
+func TestParseUnaryMessageSend(t *testing.T) {
+	input := `'Hello' println`
+
+	p := New(input)
+	program, err := p.Parse()
+
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+	}
+
+	msg, ok := stmt.Expression.(*ast.MessageSend)
+	if !ok {
+		t.Fatalf("Expected MessageSend, got %T", stmt.Expression)
+	}
+
+	if msg.Selector != "println" {
+		t.Errorf("Expected selector 'println', got %s", msg.Selector)
+	}
+
+	strLit, ok := msg.Receiver.(*ast.StringLiteral)
+	if !ok {
+		t.Fatalf("Expected StringLiteral receiver, got %T", msg.Receiver)
+	}
+
+	if strLit.Value != "Hello" {
+		t.Errorf("Expected receiver 'Hello', got %s", strLit.Value)
+	}
+
+	if len(msg.Args) != 0 {
+		t.Errorf("Expected 0 arguments, got %d", len(msg.Args))
+	}
+}
+
+func TestParseBinaryMessageSend(t *testing.T) {
+	input := `3 + 4`
+
+	p := New(input)
+	program, err := p.Parse()
+
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+	}
+
+	msg, ok := stmt.Expression.(*ast.MessageSend)
+	if !ok {
+		t.Fatalf("Expected MessageSend, got %T", stmt.Expression)
+	}
+
+	if msg.Selector != "+" {
+		t.Errorf("Expected selector '+', got %s", msg.Selector)
+	}
+
+	receiver, ok := msg.Receiver.(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("Expected IntegerLiteral receiver, got %T", msg.Receiver)
+	}
+
+	if receiver.Value != 3 {
+		t.Errorf("Expected receiver value 3, got %d", receiver.Value)
+	}
+
+	if len(msg.Args) != 1 {
+		t.Fatalf("Expected 1 argument, got %d", len(msg.Args))
+	}
+
+	arg, ok := msg.Args[0].(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("Expected IntegerLiteral argument, got %T", msg.Args[0])
+	}
+
+	if arg.Value != 4 {
+		t.Errorf("Expected argument value 4, got %d", arg.Value)
+	}
+}
+
+func TestParseKeywordMessageSend(t *testing.T) {
+	input := `point x: 10 y: 20`
+
+	p := New(input)
+	program, err := p.Parse()
+
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+	}
+
+	msg, ok := stmt.Expression.(*ast.MessageSend)
+	if !ok {
+		t.Fatalf("Expected MessageSend, got %T", stmt.Expression)
+	}
+
+	if msg.Selector != "x:y:" {
+		t.Errorf("Expected selector 'x:y:', got %s", msg.Selector)
+	}
+
+	receiver, ok := msg.Receiver.(*ast.Identifier)
+	if !ok {
+		t.Fatalf("Expected Identifier receiver, got %T", msg.Receiver)
+	}
+
+	if receiver.Name != "point" {
+		t.Errorf("Expected receiver 'point', got %s", receiver.Name)
+	}
+
+	if len(msg.Args) != 2 {
+		t.Fatalf("Expected 2 arguments, got %d", len(msg.Args))
+	}
+
+	arg1, ok := msg.Args[0].(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("Expected IntegerLiteral first argument, got %T", msg.Args[0])
+	}
+
+	if arg1.Value != 10 {
+		t.Errorf("Expected first argument 10, got %d", arg1.Value)
+	}
+
+	arg2, ok := msg.Args[1].(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("Expected IntegerLiteral second argument, got %T", msg.Args[1])
+	}
+
+	if arg2.Value != 20 {
+		t.Errorf("Expected second argument 20, got %d", arg2.Value)
+	}
+}

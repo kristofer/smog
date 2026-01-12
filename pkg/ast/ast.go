@@ -42,6 +42,25 @@ func (es *ExpressionStatement) TokenLiteral() string {
 }
 func (es *ExpressionStatement) statementNode() {}
 
+// VariableDeclaration represents a variable declaration
+type VariableDeclaration struct {
+	Names []string
+}
+
+// TokenLiteral returns the token literal
+func (vd *VariableDeclaration) TokenLiteral() string { return "" }
+func (vd *VariableDeclaration) statementNode()       {}
+
+// Assignment represents a variable assignment
+type Assignment struct {
+	Name  string
+	Value Expression
+}
+
+// TokenLiteral returns the token literal
+func (a *Assignment) TokenLiteral() string { return a.Name }
+func (a *Assignment) expressionNode()      {}
+
 // IntegerLiteral represents an integer literal
 type IntegerLiteral struct {
 	Value int64
