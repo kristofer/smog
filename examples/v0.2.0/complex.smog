@@ -1,0 +1,7 @@
+" Complex example - version 0.2.0 "
+| a b c result |
+a := 15.
+b := 27.
+c := a + b.
+result := c.
+result

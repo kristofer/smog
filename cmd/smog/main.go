@@ -3,9 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/kristofer/smog/pkg/compiler"
+	"github.com/kristofer/smog/pkg/parser"
+	"github.com/kristofer/smog/pkg/vm"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -41,19 +45,34 @@ func printUsage() {
 }
 
 func runFile(filename string) {
-	// TODO: Implement file execution
-	// This will involve:
-	// 1. Reading the source file
-	// 2. Parsing it into an AST
-	// 3. Compiling the AST to bytecode
-	// 4. Running the bytecode on the VM
-	
+	// Read the source file
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
 	}
-	
-	fmt.Printf("TODO: Execute smog code from %s\n", filename)
-	fmt.Printf("Source length: %d bytes\n", len(data))
+
+	// Parse the source code into an AST
+	p := parser.New(string(data))
+	program, err := p.Parse()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Parse error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Compile the AST to bytecode
+	c := compiler.New()
+	bc, err := c.Compile(program)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Compile error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Run the bytecode on the VM
+	v := vm.New()
+	err = v.Run(bc)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Runtime error: %v\n", err)
+		os.Exit(1)
+	}
 }
