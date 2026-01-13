@@ -136,7 +136,28 @@ smog/
 
 ## Documentation
 
-- **[Language Specification](docs/spec/LANGUAGE_SPEC.md)** - Complete language reference
+### For Users and Learners
+
+Start here if you're new to Smog or want to learn how to use the language:
+
+- **[Learning Guide](docs/LEARNING_GUIDE.md)** - ⭐ **START HERE** - Beginner's mental model and learning path
+- **[User's Guide](docs/USERS_GUIDE.md)** - Practical guide with examples for common programming tasks
+- **[Language Specification](docs/spec/LANGUAGE_SPEC.md)** - Complete language reference and syntax guide
+- **[Example Programs](examples/)** - Working code examples you can run and study
+
+### For Language Implementers
+
+Deep-dive technical documentation for understanding how Smog works internally:
+
+- **[Lexer Documentation](docs/LEXER.md)** - How source code becomes tokens
+- **[Parser Documentation](docs/PARSER.md)** - How tokens become an Abstract Syntax Tree (AST)
+- **[Compiler Documentation](docs/COMPILER.md)** - How AST transforms into bytecode
+- **[Bytecode Generation Guide](docs/BYTECODE_GENERATION.md)** - Detailed bytecode format and generation
+- **[Virtual Machine Deep Dive](docs/VM_DEEP_DIVE.md)** - How the VM executes bytecode
+- **[VM Specification](pkg/vm/SPECIFICATION.md)** - Formal VM specification
+
+### Design and Planning
+
 - **[Architecture](docs/design/ARCHITECTURE.md)** - System architecture overview
 - **[Design Decisions](docs/design/DECISIONS.md)** - Key design decisions and rationale
 - **[Roadmap](docs/planning/ROADMAP.md)** - Development roadmap and milestones
@@ -202,6 +223,24 @@ See [LICENSE](LICENSE) file for details.
 
 ## Learn More
 
-- Read the [Language Specification](docs/spec/LANGUAGE_SPEC.md)
-- Explore [Example Programs](examples/)
+### New to Smog?
+
+1. **[Learning Guide](docs/LEARNING_GUIDE.md)** - Start with the mental model for beginners
+2. **[User's Guide](docs/USERS_GUIDE.md)** - Learn through practical examples
+3. **[Example Programs](examples/)** - Study working code
+4. **[Language Specification](docs/spec/LANGUAGE_SPEC.md)** - Deep dive into syntax
+
+### Want to Understand the Internals?
+
+The compilation pipeline: **Source Code** → **Lexer** → **Parser** → **Compiler** → **Bytecode** → **VM**
+
+- [Lexer](docs/LEXER.md) - Tokenization
+- [Parser](docs/PARSER.md) - AST construction
+- [Compiler](docs/COMPILER.md) - Bytecode generation
+- [VM Deep Dive](docs/VM_DEEP_DIVE.md) - Execution engine
+
+### Contributing?
+
 - Check out the [Development Roadmap](docs/planning/ROADMAP.md)
+- Read the [Architecture](docs/design/ARCHITECTURE.md) guide
+- Review [Design Decisions](docs/design/DECISIONS.md)
