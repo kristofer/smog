@@ -1,6 +1,6 @@
 # Smog Development Roadmap
 
-## Version 0.1.0 - Foundation (Current)
+## Version 0.1.0 - Foundation ✅
 
 ### Goals
 Establish the basic project structure and documentation foundation.
@@ -13,67 +13,76 @@ Establish the basic project structure and documentation foundation.
 - [x] Language specification document
 - [x] Architecture documentation
 - [x] Development roadmap
+- [x] Implement lexer for tokenization
+- [x] Implement parser for basic expressions
+- [x] Create AST node types for core language features
+- [x] Add example programs
 
-### Next Steps
-- [ ] Implement lexer for tokenization
-- [ ] Implement parser for basic expressions
-- [ ] Create AST node types for core language features
-- [ ] Add example programs
-
-## Version 0.2.0 - Core Language Features
+## Version 0.2.0 - Core Language Features ✅
 
 ### Goals
 Implement the minimum viable language interpreter with basic features.
 
 ### Parser
-- [ ] Literal parsing (numbers, strings, booleans, nil)
-- [ ] Variable declarations and assignments
-- [ ] Message send expressions (unary, binary, keyword)
-- [ ] Block/closure syntax
+- [x] Literal parsing (numbers, strings, booleans, nil)
+- [x] Variable declarations and assignments
+- [x] Message send expressions (unary, binary, keyword)
+- [ ] Block/closure syntax (completed in v0.3.0)
 - [ ] Class definitions
 - [ ] Method definitions
 
 ### Compiler
-- [ ] Compile literals to bytecode
-- [ ] Compile variable access/assignment
-- [ ] Compile message sends
-- [ ] Compile blocks
+- [x] Compile literals to bytecode
+- [x] Compile variable access/assignment
+- [x] Compile message sends
+- [ ] Compile blocks (completed in v0.3.0)
 - [ ] Compile class definitions
-- [ ] Symbol table management
-- [ ] Constant pool generation
+- [x] Symbol table management
+- [x] Constant pool generation
 
 ### Virtual Machine
-- [ ] Stack operations (push, pop, dup)
-- [ ] Local variable access
-- [ ] Message dispatch mechanism
-- [ ] Block evaluation
+- [x] Stack operations (push, pop, dup)
+- [x] Local variable access
+- [x] Message dispatch mechanism
+- [ ] Block evaluation (completed in v0.3.0)
 - [ ] Method invocation
-- [ ] Return handling
+- [x] Return handling
 
 ### Runtime
-- [ ] Object representation
+- [x] Object representation
 - [ ] Class representation
-- [ ] Basic type system (Integer, String, Boolean, Nil)
-- [ ] Message lookup and dispatch
+- [x] Basic type system (Integer, String, Boolean, Nil)
+- [x] Message lookup and dispatch (primitives)
 
-## Version 0.3.0 - Standard Library
+## Version 0.3.0 - Standard Library ✅
 
 ### Goals
 Implement core classes and methods for practical programming.
 
 ### Core Classes
-- [ ] Object class with basic methods
-- [ ] Integer class with arithmetic operations
+- [x] Object class with basic methods (partial)
+- [x] Integer class with arithmetic operations
 - [ ] Double class for floating-point numbers
-- [ ] String class with manipulation methods
-- [ ] Array class for collections
-- [ ] Boolean, True, False classes
-- [ ] Block class for closures
+- [x] String class with manipulation methods (partial)
+- [x] Array class for collections
+- [x] Boolean, True, False classes
+- [x] Block class for closures
 
 ### Control Flow
-- [ ] Conditional messages (ifTrue:, ifFalse:, ifTrue:ifFalse:)
-- [ ] Loop messages (whileTrue:, whileFalse:, timesRepeat:)
-- [ ] Collection iteration (do:, collect:, select:, reject:)
+- [x] Conditional messages (ifTrue:, ifFalse:)
+- [ ] ifTrue:ifFalse: (planned)
+- [ ] Loop messages (whileTrue:, whileFalse:) (planned)
+- [x] timesRepeat: for integers
+- [x] Collection iteration (do:)
+- [ ] collect:, select:, reject: (planned)
+
+### Additional Features
+- [x] Block/closure syntax and compilation
+- [x] Array literals (#(...))
+- [x] Return statements (^)
+- [x] Block parameter support
+- [x] Extensive teaching-quality documentation
+- [x] Comprehensive test suite (48+ tests)
 
 ## Version 0.4.0 - Enhanced Features
 
@@ -228,6 +237,6 @@ Smog compiler written in Smog (aspirational).
 
 ## Current Status
 
-**Version**: 0.1.0-dev  
-**Status**: Foundation phase  
-**Next Release**: 0.1.0 (documentation and structure complete)
+**Version**: 0.3.0  
+**Status**: Standard library foundation complete  
+**Next Release**: 0.4.0 (enhanced features)
