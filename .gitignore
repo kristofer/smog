@@ -34,3 +34,7 @@ dist/
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Compiled bytecode files (generated during testing)
+*.sg
+!examples/**/*.sg
