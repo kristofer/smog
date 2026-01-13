@@ -220,6 +220,24 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 				return err
 			}
 
+		case bytecode.OpDup:
+			// DUP: Duplicate the top value on the stack
+			// Operand: unused
+			//
+			// Creates a copy of the top stack value and pushes it.
+			// Stack before: [..., value]
+			// Stack after:  [..., value, value]
+			//
+			// This is used in cascading messages to keep the receiver
+			// available for multiple message sends.
+			if vm.sp == 0 {
+				return fmt.Errorf("stack underflow: cannot duplicate empty stack")
+			}
+			topValue := vm.stack[vm.sp-1]
+			if err := vm.push(topValue); err != nil {
+				return err
+			}
+
 		case bytecode.OpPushTrue:
 			// PUSH_TRUE: Push boolean true onto the stack
 			// Operand: unused
@@ -239,6 +257,19 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 		case bytecode.OpPushNil:
 			// PUSH_NIL: Push nil onto the stack
 			// Operand: unused
+			if err := vm.push(nil); err != nil {
+				return err
+			}
+
+		case bytecode.OpPushSelf:
+			// PUSH_SELF: Push the current receiver (self) onto the stack
+			// Operand: unused
+			//
+			// In the current implementation, we don't have a proper 'self'
+			// reference since we don't have full class instantiation yet.
+			// For now, we push nil as a placeholder.
+			//
+			// TODO: Implement proper self reference when class system is complete
 			if err := vm.push(nil); err != nil {
 				return err
 			}
@@ -383,6 +414,56 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 				return err
 			}
 
+		case bytecode.OpSuperSend:
+			// SUPER_SEND: Send a message to the superclass
+			// Operand: packed value with selector index and arg count
+			//
+			// Similar to OpSend, but looks up the method in the superclass.
+			// For now, we implement it the same as regular send since the
+			// class hierarchy system is not fully implemented yet.
+			//
+			// TODO: Implement proper superclass method lookup
+
+			// Decode operand (same as OpSend)
+			selectorIdx := inst.Operand >> bytecode.SelectorIndexShift
+			argCount := inst.Operand & bytecode.ArgCountMask
+
+			// Get the selector string from constants
+			if selectorIdx < 0 || selectorIdx >= len(vm.constants) {
+				return fmt.Errorf("selector index out of bounds: %d", selectorIdx)
+			}
+			selector, ok := vm.constants[selectorIdx].(string)
+			if !ok {
+				return fmt.Errorf("expected string constant for selector")
+			}
+
+			// Pop arguments in reverse order
+			args := make([]interface{}, argCount)
+			for i := argCount - 1; i >= 0; i-- {
+				arg, err := vm.pop()
+				if err != nil {
+					return err
+				}
+				args[i] = arg
+			}
+
+			// Pop receiver (self)
+			receiver, err := vm.pop()
+			if err != nil {
+				return err
+			}
+
+			// Dispatch the message (same as regular send for now)
+			result, err := vm.send(receiver, selector, args)
+			if err != nil {
+				return err
+			}
+
+			// Push result onto stack
+			if err := vm.push(result); err != nil {
+				return err
+			}
+
 		case bytecode.OpMakeClosure:
 			// MAKE_CLOSURE: Create a block (closure) object
 			// Operand: packed value with bytecode index and parameter count
@@ -448,6 +529,50 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 
 			// Push array onto stack
 			if err := vm.push(array); err != nil {
+				return err
+			}
+
+		case bytecode.OpMakeDictionary:
+			// MAKE_DICTIONARY: Create a dictionary from stack elements
+			// Operand: number of key-value pairs
+			//
+			// Process:
+			//   1. Pop 2N elements from stack (N key-value pairs)
+			//   2. Create a map/dictionary object containing them
+			//   3. Push the dictionary onto the stack
+			//
+			// Stack before: [key1, value1, key2, value2, ..., keyN, valueN]
+			// Stack after:  [dictionary]
+			//
+			// Note: In Go, map keys must be comparable types (no slices, maps, or functions).
+			// Using non-comparable types as dictionary keys will cause a runtime panic.
+			// This is a known limitation of the current implementation.
+
+			pairCount := inst.Operand
+
+			// Create the dictionary map
+			dict := make(map[interface{}]interface{})
+
+			// Pop key-value pairs (in reverse order)
+			for i := pairCount - 1; i >= 0; i-- {
+				// Pop value first, then key (they're pushed in key, value order)
+				value, err := vm.pop()
+				if err != nil {
+					return err
+				}
+				key, err := vm.pop()
+				if err != nil {
+					return err
+				}
+				
+				// Note: No validation of key type here. Using non-comparable types
+				// (slices, maps, functions) will cause a panic.
+				// TODO: Add key type validation or use a custom map implementation
+				dict[key] = value
+			}
+
+			// Push dictionary onto stack
+			if err := vm.push(dict); err != nil {
 				return err
 			}
 

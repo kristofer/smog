@@ -24,6 +24,16 @@ go build -o bin/smog ./cmd/smog
 go run ./cmd/smog [file.smog]
 ```
 
+### Interactive REPL
+
+```bash
+# Start the REPL (Read-Eval-Print Loop)
+./bin/smog
+
+# Or explicitly
+./bin/smog repl
+```
+
 ### Running Examples
 
 ```bash
@@ -142,6 +152,7 @@ Start here if you're new to Smog or want to learn how to use the language:
 
 - **[Learning Guide](docs/LEARNING_GUIDE.md)** - ⭐ **START HERE** - Beginner's mental model and learning path
 - **[User's Guide](docs/USERS_GUIDE.md)** - Practical guide with examples for common programming tasks
+- **[REPL Guide](docs/REPL.md)** - Interactive Read-Eval-Print Loop for experimentation
 - **[Language Specification](docs/spec/LANGUAGE_SPEC.md)** - Complete language reference and syntax guide
 - **[Example Programs](examples/)** - Working code examples you can run and study
 
@@ -164,23 +175,28 @@ Deep-dive technical documentation for understanding how Smog works internally:
 
 ## Development Status
 
-**Current Version**: 0.3.0
+**Current Version**: 0.4.0
 
-Smog has completed its foundational implementation. Current features:
+Smog has completed its enhanced features implementation. Current features:
 - ✅ Complete lexer and parser
 - ✅ AST-based intermediate representation
 - ✅ Bytecode compiler
 - ✅ Stack-based virtual machine
 - ✅ Blocks and closures
-- ✅ Arrays and literals
+- ✅ Arrays and dictionary literals
+- ✅ Super message sends
+- ✅ Cascading messages
+- ✅ Self keyword
 - ✅ Control flow primitives (ifTrue:, ifFalse:, timesRepeat:, do:)
+- ✅ Interactive REPL
 - ✅ Comprehensive documentation (teaching-quality comments)
-- ✅ Extensive test suite (48+ tests)
+- ✅ Extensive test suite (70+ tests, benchmarks)
 
 ### Version History
 - **v0.1.0**: Foundation - project structure and documentation
 - **v0.2.0**: Core language features - variables, message sends, primitives
 - **v0.3.0**: Blocks, arrays, control flow, extensive documentation
+- **v0.4.0**: Enhanced features - super, cascading, dictionaries, REPL
 
 See the [roadmap](docs/planning/ROADMAP.md) for planned features and timeline.
 

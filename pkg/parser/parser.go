@@ -433,7 +433,8 @@ func (p *Parser) parseMessageSend() ast.Expression {
 			
 			// Parse first argument (move to the argument position)
 			p.nextToken()
-			// TODO: Support unary/binary messages as arguments (precedence handling needed)
+			// Parse argument (primary expression only to avoid token stream issues)
+			// TODO: Support unary/binary messages as arguments (requires refactoring tokenizer for backtracking)
 			arg := p.parsePrimaryExpression()
 			if arg == nil {
 				p.addError("expected argument after keyword")
@@ -457,7 +458,8 @@ func (p *Parser) parseMessageSend() ast.Expression {
 					
 					// Parse the argument for this keyword part
 					p.nextToken()
-					// TODO: Support unary/binary messages as arguments (precedence handling needed)
+					// Parse argument (primary expression only to avoid token stream issues)
+					// TODO: Support unary/binary messages as arguments (requires refactoring tokenizer for backtracking)
 					arg := p.parsePrimaryExpression()
 					if arg == nil {
 						p.addError("expected argument after keyword")
