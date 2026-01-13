@@ -383,8 +383,6 @@ Demonstrates:
 
 ## Summary Across All Versions
 
-## Summary Across All Versions
-
 ### Total Implementation Statistics
 
 **Test Count Across All Versions:**
