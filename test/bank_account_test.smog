@@ -1,0 +1,52 @@
+" Comprehensive Class Test - Bank Account "
+
+Object subclass: #BankAccount [
+    | balance accountNumber |
+    
+    initialize: accNum [
+        accountNumber := accNum.
+        balance := 0.
+    ]
+    
+    deposit: amount [
+        balance := balance + amount.
+    ]
+    
+    withdraw: amount [
+        balance := balance - amount.
+    ]
+    
+    getBalance [
+        ^balance
+    ]
+    
+    getAccountNumber [
+        ^accountNumber
+    ]
+]
+
+" Create and test bank account "
+| account bal |
+account := BankAccount new.
+account initialize: 12345.
+
+'Initial balance: ' print.
+bal := account getBalance.
+bal println.
+
+account deposit: 1000.
+account deposit: 500.
+
+'After deposits: ' print.
+bal := account getBalance.
+bal println.
+
+account withdraw: 200.
+
+'After withdrawal: ' print.
+bal := account getBalance.
+bal println.
+
+'Account number: ' print.
+bal := account getAccountNumber.
+bal println.
