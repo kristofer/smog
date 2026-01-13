@@ -411,11 +411,15 @@ func TestEmptyBytecode(t *testing.T) {
 // TestLargeOperands tests encoding and decoding of instructions with
 // large operand values (both positive and negative).
 func TestLargeOperands(t *testing.T) {
+	// Test with large selector index and max argument count
+	const largeSelectorIndex = 50000
+	const maxArgCount = 255
+	
 	original := &Bytecode{
 		Instructions: []Instruction{
 			{Op: OpJump, Operand: 100000},
 			{Op: OpJump, Operand: -100000},
-			{Op: OpSend, Operand: (50000 << 8) | 255},
+			{Op: OpSend, Operand: (largeSelectorIndex << 8) | maxArgCount},
 			{Op: OpReturn, Operand: 0},
 		},
 		Constants: []interface{}{},
@@ -448,7 +452,7 @@ func TestLargeOperands(t *testing.T) {
 	}
 
 	// Verify packed operand
-	expectedPacked := (50000 << 8) | 255
+	expectedPacked := (largeSelectorIndex << 8) | maxArgCount
 	if decoded.Instructions[2].Operand != expectedPacked {
 		t.Errorf("Packed operand mismatch: got %d, want %d",
 			decoded.Instructions[2].Operand, expectedPacked)
