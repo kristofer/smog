@@ -108,13 +108,15 @@ import (
 //     - Contains literals and identifiers
 //     - Referenced by index in instructions
 type VM struct {
-	stack     []interface{}                     // Value stack for computation
-	sp        int                               // Stack pointer (index of next free slot)
-	locals    []interface{}                     // Local variable storage
-	globals   map[string]interface{}            // Global variable storage
-	constants []interface{}                     // Constant pool from bytecode
-	self      interface{}                       // Current receiver (self) for method execution
-	classes   map[string]*bytecode.ClassDefinition // Registered classes by name
+	stack        []interface{}                        // Value stack for computation
+	sp           int                                  // Stack pointer (index of next free slot)
+	locals       []interface{}                        // Local variable storage
+	globals      map[string]interface{}               // Global variable storage
+	constants    []interface{}                        // Constant pool from bytecode
+	self         interface{}                          // Current receiver (self) for method execution
+	currentClass *bytecode.ClassDefinition            // Current class context (for super sends)
+	fieldOffset  int                                  // Offset for field indices (for inheritance)
+	classes      map[string]*bytecode.ClassDefinition // Registered classes by name
 }
 
 // New creates a new virtual machine instance.
@@ -420,11 +422,8 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			// SUPER_SEND: Send a message to the superclass
 			// Operand: packed value with selector index and arg count
 			//
-			// Similar to OpSend, but looks up the method in the superclass.
-			// For now, we implement it the same as regular send since the
-			// class hierarchy system is not fully implemented yet.
-			//
-			// TODO: Implement proper superclass method lookup
+			// This looks up the method starting from the superclass of the
+			// current class context, allowing proper super message sends.
 
 			// Decode operand (same as OpSend)
 			selectorIdx := inst.Operand >> bytecode.SelectorIndexShift
@@ -449,14 +448,24 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 				args[i] = arg
 			}
 
-			// Pop receiver (self)
+			// Pop receiver (should be self)
 			receiver, err := vm.pop()
 			if err != nil {
 				return err
 			}
 
-			// Dispatch the message (same as regular send for now)
-			result, err := vm.send(receiver, selector, args)
+			// Super sends only work on instances with a current class context
+			instance, ok := receiver.(*Instance)
+			if !ok {
+				return fmt.Errorf("super can only be used within instance methods")
+			}
+
+			if vm.currentClass == nil {
+				return fmt.Errorf("super used without class context")
+			}
+
+			// Dispatch to superclass method
+			result, err := vm.superSend(instance, selector, args)
 			if err != nil {
 				return err
 			}
@@ -607,6 +616,7 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			//
 			// Loads a field from the current object (self).
 			// Only valid within method context where self is an Instance.
+			// Field indices are absolute (methods are compiled with all inherited fields).
 			instance, ok := vm.self.(*Instance)
 			if !ok {
 				return fmt.Errorf("LOAD_FIELD requires self to be an Instance, got %T", vm.self)
@@ -626,6 +636,7 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			//
 			// Stores the top stack value to a field of the current object (self).
 			// The value is popped, stored, then pushed back (assignments return values).
+			// Field indices are absolute (methods are compiled with all inherited fields).
 			instance, ok := vm.self.(*Instance)
 			if !ok {
 				return fmt.Errorf("STORE_FIELD requires self to be an Instance, got %T", vm.self)
@@ -641,6 +652,58 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			}
 
 			instance.Fields[inst.Operand] = val
+
+			// Push the value back (assignment returns the value)
+			if err := vm.push(val); err != nil {
+				return err
+			}
+
+		case bytecode.OpLoadClassVar:
+			// LOAD_CLASS_VAR: Load a class variable onto the stack
+			// Operand: class variable index
+			//
+			// Loads a class variable from the current class.
+			// Class variables are shared across all instances of a class.
+			if vm.currentClass == nil {
+				return fmt.Errorf("LOAD_CLASS_VAR requires a class context")
+			}
+
+			if inst.Operand < 0 || inst.Operand >= len(vm.currentClass.ClassVariables) {
+				return fmt.Errorf("class variable index out of bounds: %d", inst.Operand)
+			}
+
+			varName := vm.currentClass.ClassVariables[inst.Operand]
+			val, exists := vm.currentClass.ClassVarValues[varName]
+			if !exists {
+				// Class variable not yet initialized - push nil
+				val = nil
+			}
+
+			if err := vm.push(val); err != nil {
+				return err
+			}
+
+		case bytecode.OpStoreClassVar:
+			// STORE_CLASS_VAR: Store a value to a class variable
+			// Operand: class variable index
+			//
+			// Stores the top stack value to a class variable.
+			// The value is popped, stored, then pushed back (assignments return values).
+			if vm.currentClass == nil {
+				return fmt.Errorf("STORE_CLASS_VAR requires a class context")
+			}
+
+			if inst.Operand < 0 || inst.Operand >= len(vm.currentClass.ClassVariables) {
+				return fmt.Errorf("class variable index out of bounds: %d", inst.Operand)
+			}
+
+			val, err := vm.pop()
+			if err != nil {
+				return err
+			}
+
+			varName := vm.currentClass.ClassVariables[inst.Operand]
+			vm.currentClass.ClassVarValues[varName] = val
 
 			// Push the value back (assignment returns the value)
 			if err := vm.push(val); err != nil {
@@ -810,14 +873,17 @@ func (vm *VM) send(receiver interface{}, selector string, args []interface{}) (i
 		switch selector {
 		case "new":
 			// Create a new instance of the class
-			// Allocate fields initialized to nil
+			// Allocate fields for this class and all superclasses
+			totalFields := vm.countAllFields(classDef)
 			instance := &Instance{
 				Class:  classDef,
-				Fields: make([]interface{}, len(classDef.Fields)),
+				Fields: make([]interface{}, totalFields),
 			}
 			return instance, nil
+		default:
+			// Look up class method
+			return vm.executeClassMethod(classDef, selector, args)
 		}
-		// TODO: Handle class methods
 	}
 
 	// Check if receiver is an Instance (object instance)
@@ -1210,6 +1276,161 @@ type Instance struct {
 	Fields []interface{}              // Instance variable values
 }
 
+// count AllFields counts total fields in class hierarchy.
+//
+// This counts all instance variables from this class and all superclasses.
+// Fields are ordered from superclass to subclass.
+func (vm *VM) countAllFields(class *bytecode.ClassDefinition) int {
+	total := len(class.Fields)
+	currentClass := class
+	
+	// Walk up the hierarchy counting fields
+	for currentClass.SuperClass != "" && currentClass.SuperClass != "Object" {
+		superClass, exists := vm.classes[currentClass.SuperClass]
+		if !exists {
+			break
+		}
+		total += len(superClass.Fields)
+		currentClass = superClass
+	}
+	
+	return total
+}
+
+// getFieldOffset calculates the field offset for a class in the inheritance hierarchy.
+//
+// This returns the starting index for this class's fields in the instance field array.
+// Superclass fields come first, so the offset is the sum of all superclass field counts.
+func (vm *VM) getFieldOffset(class *bytecode.ClassDefinition) int {
+	offset := 0
+	currentClass := class
+	
+	// Walk up the hierarchy counting superclass fields
+	for currentClass.SuperClass != "" && currentClass.SuperClass != "Object" {
+		superClass, exists := vm.classes[currentClass.SuperClass]
+		if !exists {
+			break
+		}
+		offset += len(superClass.Fields)
+		currentClass = superClass
+	}
+	
+	return offset
+}
+
+// lookupMethod searches for a method in a class and its superclass chain.
+//
+// This implements the method lookup algorithm for inheritance:
+//   1. Search for the method in the given class
+//   2. If not found and class has a superclass, search in superclass
+//   3. Continue up the hierarchy until method is found or chain ends
+//
+// Parameters:
+//   - class: The class to start searching from
+//   - selector: The method name to find
+//
+// Returns:
+//   - The method definition if found, nil otherwise
+//   - The class where the method was found (for super sends)
+func (vm *VM) lookupMethod(class *bytecode.ClassDefinition, selector string) (*bytecode.MethodDefinition, *bytecode.ClassDefinition) {
+	currentClass := class
+	
+	// Walk up the class hierarchy
+	for currentClass != nil {
+		// Search for method in current class
+		for _, m := range currentClass.Methods {
+			if m.Selector == selector {
+				return m, currentClass
+			}
+		}
+		
+		// Method not found in this class, try superclass
+		if currentClass.SuperClass == "" || currentClass.SuperClass == "Object" {
+			// No superclass or reached Object (root of hierarchy)
+			break
+		}
+		
+		// Get the superclass definition
+		superClass, exists := vm.classes[currentClass.SuperClass]
+		if !exists {
+			// Superclass not found - stop searching
+			break
+		}
+		
+		currentClass = superClass
+	}
+	
+	// Method not found in hierarchy
+	return nil, nil
+}
+
+// superSend executes a method from the superclass.
+//
+// This implements super message sends by starting the method lookup
+// from the superclass of the current class context.
+//
+// Parameters:
+//   - instance: The object instance (self)
+//   - selector: The method name
+//   - args: Arguments to the method
+//
+// Returns:
+//   - The method's return value
+//   - Error if method not found or execution fails
+func (vm *VM) superSend(instance *Instance, selector string, args []interface{}) (interface{}, error) {
+	// Get the superclass of the current class context
+	if vm.currentClass.SuperClass == "" || vm.currentClass.SuperClass == "Object" {
+		return nil, fmt.Errorf("class %s has no superclass to send '%s' to", 
+			vm.currentClass.Name, selector)
+	}
+
+	superClass, exists := vm.classes[vm.currentClass.SuperClass]
+	if !exists {
+		return nil, fmt.Errorf("superclass %s not found for class %s", 
+			vm.currentClass.SuperClass, vm.currentClass.Name)
+	}
+
+	// Look up the method starting from superclass
+	method, class := vm.lookupMethod(superClass, selector)
+
+	if method == nil {
+		return nil, fmt.Errorf("superclass of %s does not understand message '%s'", 
+			vm.currentClass.Name, selector)
+	}
+
+	// Check argument count
+	if len(args) != len(method.Parameters) {
+		return nil, fmt.Errorf("method %s expects %d arguments, got %d", 
+			selector, len(method.Parameters), len(args))
+	}
+
+	// Create a new VM for method execution
+	methodVM := New()
+	methodVM.globals = vm.globals       // Share global variables
+	methodVM.classes = vm.classes       // Share class registry
+	methodVM.self = instance            // Set self to the instance
+	methodVM.currentClass = class       // Set class context to where method was found
+	// No field offset needed - methods are compiled with all fields
+
+	// Set up method parameters as local variables
+	for i, arg := range args {
+		methodVM.locals[i] = arg
+	}
+
+	// Execute the method bytecode
+	if err := methodVM.Run(method.Code); err != nil {
+		return nil, fmt.Errorf("error in super method %s: %w", selector, err)
+	}
+
+	// Return the result (top of stack)
+	if methodVM.sp > 0 {
+		return methodVM.stack[methodVM.sp-1], nil
+	}
+
+	// No value on stack - return nil
+	return nil, nil
+}
+
 // executeMethod executes a user-defined method on an instance.
 //
 // This implements the method lookup and dispatch for user-defined classes:
@@ -1230,17 +1451,11 @@ type Instance struct {
 //   - The method's return value
 //   - Error if method not found or execution fails
 func (vm *VM) executeMethod(instance *Instance, selector string, args []interface{}) (interface{}, error) {
-	// Look up the method in the instance's class
-	var method *bytecode.MethodDefinition
-	for _, m := range instance.Class.Methods {
-		if m.Selector == selector {
-			method = m
-			break
-		}
-	}
+	// Look up the method in the instance's class hierarchy
+	method, class := vm.lookupMethod(instance.Class, selector)
 
 	if method == nil {
-		// Method not found - check superclass chain (for now, just return error)
+		// Method not found in class hierarchy
 		return nil, fmt.Errorf("instance of %s does not understand message '%s'", 
 			instance.Class.Name, selector)
 	}
@@ -1256,6 +1471,8 @@ func (vm *VM) executeMethod(instance *Instance, selector string, args []interfac
 	methodVM.globals = vm.globals       // Share global variables
 	methodVM.classes = vm.classes       // Share class registry
 	methodVM.self = instance            // Set self to the instance
+	methodVM.currentClass = class       // Set current class context for super sends
+	// No field offset needed - methods are compiled with all fields
 
 	// Set up method parameters as local variables
 	for i, arg := range args {
@@ -1265,6 +1482,67 @@ func (vm *VM) executeMethod(instance *Instance, selector string, args []interfac
 	// Execute the method bytecode
 	if err := methodVM.Run(method.Code); err != nil {
 		return nil, fmt.Errorf("error in method %s: %w", selector, err)
+	}
+
+	// Return the result (top of stack)
+	if methodVM.sp > 0 {
+		return methodVM.stack[methodVM.sp-1], nil
+	}
+
+	// No value on stack - return nil
+	return nil, nil
+}
+
+// executeClassMethod executes a class method.
+//
+// Class methods are defined on the class itself rather than instances.
+// They have access to class variables but not instance variables.
+//
+// Parameters:
+//   - classDef: The class definition
+//   - selector: The method name
+//   - args: Arguments to the method
+//
+// Returns:
+//   - The method's return value
+//   - Error if method not found or execution fails
+func (vm *VM) executeClassMethod(classDef *bytecode.ClassDefinition, selector string, args []interface{}) (interface{}, error) {
+	// Look up the class method
+	var method *bytecode.MethodDefinition
+	for _, m := range classDef.ClassMethods {
+		if m.Selector == selector {
+			method = m
+			break
+		}
+	}
+
+	if method == nil {
+		// Class method not found
+		return nil, fmt.Errorf("class %s does not understand class message '%s'", 
+			classDef.Name, selector)
+	}
+
+	// Check argument count
+	if len(args) != len(method.Parameters) {
+		return nil, fmt.Errorf("class method %s expects %d arguments, got %d", 
+			selector, len(method.Parameters), len(args))
+	}
+
+	// Create a new VM for method execution
+	methodVM := New()
+	methodVM.globals = vm.globals       // Share global variables
+	methodVM.classes = vm.classes       // Share class registry
+	methodVM.self = classDef            // Set self to the class
+	methodVM.currentClass = classDef    // Set class context
+
+	// Set up method parameters as local variables
+	for i, arg := range args {
+		methodVM.locals[i] = arg
+	}
+
+	// Execute the method bytecode
+	if err := methodVM.Run(method.Code); err != nil {
+		return nil, fmt.Errorf("error in class method %s: %w", selector, err)
 	}
 
 	// Return the result (top of stack)

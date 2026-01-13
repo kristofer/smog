@@ -1,0 +1,54 @@
+" Simple Counter class example "
+
+Object subclass: #Counter [
+    | count |
+    
+    initialize [
+        count := 0.
+    ]
+    
+    increment [
+        count := count + 1.
+    ]
+    
+    decrement [
+        count := count - 1.
+    ]
+    
+    value [
+        ^count
+    ]
+    
+    reset [
+        count := 0.
+    ]
+]
+
+" Create and use a counter "
+| counter val |
+counter := Counter new.
+counter initialize.
+
+'Initial value: ' print.
+val := counter value.
+val println.
+
+counter increment.
+counter increment.
+counter increment.
+
+'After 3 increments: ' print.
+val := counter value.
+val println.
+
+counter decrement.
+
+'After 1 decrement: ' print.
+val := counter value.
+val println.
+
+counter reset.
+
+'After reset: ' print.
+val := counter value.
+val println.

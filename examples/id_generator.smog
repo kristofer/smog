@@ -1,0 +1,67 @@
+" Class methods and class variables example: ID Generator "
+
+Object subclass: #IDGenerator [
+    " Class variable to track next ID "
+    <| nextID |>
+    
+    " Class method to initialize the generator "
+    <initialize [
+        nextID := 1000.
+    ]>
+    
+    " Class method to get next ID "
+    <getNextID [
+        | current |
+        current := nextID.
+        nextID := nextID + 1.
+        ^current
+    ]>
+    
+    " Class method to reset "
+    <reset [
+        nextID := 1000.
+    ]>
+]
+
+Object subclass: #User [
+    | id name |
+    
+    " Class method to create a user with auto-generated ID "
+    <createWithName: userName [
+        | user |
+        user := User new.
+        user setID: (IDGenerator getNextID).
+        user setName: userName.
+        ^user
+    ]>
+    
+    setID: newID [
+        id := newID.
+    ]
+    
+    setName: newName [
+        name := newName.
+    ]
+    
+    describe [
+        'User #' print.
+        id print.
+        ': ' print.
+        name println.
+    ]
+]
+
+" Initialize the ID generator "
+IDGenerator initialize.
+
+" Create several users "
+| user1 user2 user3 |
+
+user1 := User createWithName: 'Alice'.
+user2 := User createWithName: 'Bob'.
+user3 := User createWithName: 'Charlie'.
+
+'Users created:' println.
+user1 describe.
+user2 describe.
+user3 describe.

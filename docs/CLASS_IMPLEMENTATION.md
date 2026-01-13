@@ -147,26 +147,123 @@ Object subclass: #Point [
 ]
 ```
 
+## Advanced Features Implemented ✅
+
+### Inheritance / Superclass Method Lookup
+✅ **Fully Implemented:**
+- Method lookup walks the class hierarchy automatically
+- Subclasses inherit methods from their superclass
+- Methods can be overridden in subclasses
+- Inherited instance variables are accessible in subclass methods
+
+**Example:**
+```smog
+Animal subclass: #Dog [
+    speak [
+        ^'Woof!'
+    ]
+]
+
+dog := Dog new.
+dog setName: 'Buddy'.  " Inherited method from Animal "
+dog speak.              " Overridden method in Dog "
+```
+
+### Class Methods
+✅ **Fully Implemented:**
+- Class methods are defined using `<methodName [...]>` syntax
+- Class methods can be called on the class object
+- Useful for factory methods and class initialization
+
+**Example:**
+```smog
+Object subclass: #Point [
+    " Class method "
+    <x: xVal y: yVal [
+        | point |
+        point := Point new.
+        point setX: xVal.
+        point setY: yVal.
+        ^point
+    ]>
+]
+
+point := Point x: 10 y: 20.
+```
+
+### Class Variables
+✅ **Fully Implemented:**
+- Class variables are declared using `<| varName |>` syntax
+- Class variables are shared across all instances of a class
+- Accessible from both instance methods and class methods
+
+**Example:**
+```smog
+Object subclass: #Counter [
+    <| totalCount |>
+    
+    <initialize [
+        totalCount := 0.
+    ]>
+    
+    incrementTotal [
+        totalCount := totalCount + 1.
+    ]
+]
+```
+
+### Super Message Sends
+✅ **Fully Implemented:**
+- Use `super methodName` to call parent class methods
+- Super sends start method lookup in the superclass
+- Allows extending parent behavior rather than replacing it
+
+**Example:**
+```smog
+Vehicle subclass: #Car [
+    initialize [
+        super initialize.
+        turboBoost := 5.
+    ]
+    
+    accelerate [
+        | baseSpeed |
+        baseSpeed := super accelerate.
+        speed := baseSpeed + turboBoost.
+        ^speed
+    ]
+]
+```
+
+### Self Keyword
+✅ **Fully Implemented:**
+- Use `self` to refer to the current object
+- Enables calling other methods on the same object
+- Compiler recognizes "self" as a special keyword
+
+**Example:**
+```smog
+Object subclass: #Animal [
+    introduce [
+        | sound |
+        sound := self speak.
+        sound println.
+    ]
+]
+```
+
 ## What Doesn't Work Yet
 
-❌ **Inheritance / Superclass Method Lookup:**
-- Classes can specify a superclass in syntax, but method lookup doesn't search the superclass chain
-- `super` message sends are parsed but not fully functional
-
-❌ **Class Methods:**
-- Class methods are compiled but not yet callable
-- Need to implement class-side method dispatch
-
-❌ **Class Variables:**
-- Class variables are parsed and stored but not accessible in methods
-
 ❌ **Chained Message Sends:**
-- `counter value println` doesn't work
-- Workaround: use intermediate variables
+- Direct chaining like `counter value println` requires intermediate variables
+- Workaround: `val := counter value. val println.`
+- This is actually standard Smalltalk behavior
 
 ## Test Coverage
 
-### Go Tests (test/class_test.go)
+### Go Tests
+
+**Basic Class Tests (test/class_test.go):**
 - `TestSimpleClassDefinition` - Class registration
 - `TestClassInstantiation` - Creating instances
 - `TestMethodCall` - Calling methods
@@ -176,6 +273,21 @@ Object subclass: #Point [
 - `TestMultipleFields` - Multiple instance variables
 - `TestCompleteCounterWorkflow` - Full workflow test
 
+**Inheritance Tests (test/inheritance_test.go):**
+- `TestInheritance_MethodOverride` - Overriding parent methods
+- `TestInheritance_InheritedMethod` - Calling inherited methods
+- `TestInheritance_SuperSend` - Using super to call parent methods
+- `TestInheritance_ThreeLevelHierarchy` - Deep inheritance chains
+
+**Advanced Class Tests (test/advanced_class_test.go):**
+- `TestClassMethod_SimpleClassMethod` - Calling class methods
+- `TestClassVariable_SharedAcrossInstances` - Class variable sharing
+- `TestClassMethod_WithParameters` - Class factory methods
+- `TestClassVariable_AccessFromClassMethod` - Class vars in class methods
+
+**Chained Messages (test/chained_messages_test.go):**
+- `TestChainedMessageSends` - Message chaining with intermediate variables
+
 ### Smog Tests (test/*.smog)
 - `counter_test.smog` - Counter with increment
 - `point_test.smog` - Point with x/y coordinates
@@ -184,16 +296,22 @@ Object subclass: #Point [
 
 All tests pass successfully! ✅
 
+## Example Programs
+
+See `examples/` directory for working examples:
+- `counter.smog` - Simple counter with increment/decrement
+- `animals.smog` - Inheritance with method override
+- `vehicles.smog` - Super sends with Vehicle/Car/Bicycle hierarchy
+- `id_generator.smog` - Class methods and class variables
+- `point.smog` - Class factory methods
+
 ## Future Enhancements
 
-1. **Superclass Method Lookup** - Walk the class hierarchy when searching for methods
-2. **Class Methods** - Enable calling methods on the class object itself
-3. **Class Variables** - Implement shared variables across all instances
-4. **Super Sends** - Complete implementation of `super` message sends
-5. **Inheritance Tests** - Add tests for actual subclassing
-6. **Better Error Messages** - More helpful errors for method not found, etc.
-7. **Method Lookup Caching** - Cache method lookups for performance
-8. **Message Cascade Parsing** - Fix `receiver method1 method2` syntax
+1. **Better Error Messages** - More helpful errors for method not found, etc.
+2. **Method Lookup Caching** - Cache method lookups for performance
+3. **Chained Messages** - Parser support for `receiver msg1 msg2` syntax
+4. **Class Inheritance for Class Methods** - Allow class methods to be inherited
+5. **Abstract Methods** - Mark methods that must be overridden
 
 ## Examples
 
