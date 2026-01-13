@@ -426,3 +426,160 @@ if bc.Instructions[3].Operand != 3 {
 t.Errorf("Expected MAKE_ARRAY operand 3, got %d", bc.Instructions[3].Operand)
 }
 }
+
+// TestCompileIncremental tests that CompileIncremental preserves the symbol table
+// across multiple compilations, which is needed for REPL functionality.
+func TestCompileIncremental(t *testing.T) {
+c := New()
+
+// First compilation: declare a variable
+input1 := "| x |"
+p1 := parser.New(input1)
+program1, err := p1.Parse()
+if err != nil {
+t.Fatalf("Parse failed for input1: %v", err)
+}
+
+bc1, err := c.CompileIncremental(program1)
+if err != nil {
+t.Fatalf("CompileIncremental failed for input1: %v", err)
+}
+
+// First bytecode should just have RETURN (variable declaration doesn't generate code)
+if len(bc1.Instructions) != 1 || bc1.Instructions[0].Op != bytecode.OpReturn {
+t.Logf("First compilation generated %d instructions", len(bc1.Instructions))
+}
+
+// Check that x is in the symbol table (slot 0)
+// We can't directly check the symbol table since it's unexported,
+// but we can verify behavior by compiling code that uses x
+
+// Second compilation: assign to x
+input2 := "x := 42."
+p2 := parser.New(input2)
+program2, err := p2.Parse()
+if err != nil {
+t.Fatalf("Parse failed for input2: %v", err)
+}
+
+bc2, err := c.CompileIncremental(program2)
+if err != nil {
+t.Fatalf("CompileIncremental failed for input2: %v", err)
+}
+
+// Should have: PUSH 42, STORE_LOCAL 0, RETURN
+if len(bc2.Instructions) != 3 {
+t.Fatalf("Expected 3 instructions in bc2, got %d", len(bc2.Instructions))
+}
+
+if bc2.Instructions[0].Op != bytecode.OpPush {
+t.Errorf("Expected PUSH instruction, got %v", bc2.Instructions[0].Op)
+}
+
+if bc2.Instructions[1].Op != bytecode.OpStoreLocal {
+t.Errorf("Expected STORE_LOCAL instruction, got %v", bc2.Instructions[1].Op)
+}
+
+// The operand should be 0 (slot for x)
+if bc2.Instructions[1].Operand != 0 {
+t.Errorf("Expected STORE_LOCAL to use slot 0, got %d", bc2.Instructions[1].Operand)
+}
+
+// Third compilation: read x
+input3 := "x println."
+p3 := parser.New(input3)
+program3, err := p3.Parse()
+if err != nil {
+t.Fatalf("Parse failed for input3: %v", err)
+}
+
+bc3, err := c.CompileIncremental(program3)
+if err != nil {
+t.Fatalf("CompileIncremental failed for input3: %v", err)
+}
+
+// Should have: LOAD_LOCAL 0, PUSH "println", SEND, RETURN
+if bc3.Instructions[0].Op != bytecode.OpLoadLocal {
+t.Errorf("Expected LOAD_LOCAL instruction, got %v", bc3.Instructions[0].Op)
+}
+
+// The operand should be 0 (slot for x)
+if bc3.Instructions[0].Operand != 0 {
+t.Errorf("Expected LOAD_LOCAL to use slot 0, got %d", bc3.Instructions[0].Operand)
+}
+}
+
+// TestCompileIncrementalMultipleVars tests that multiple local variables
+// are tracked correctly across incremental compilations.
+func TestCompileIncrementalMultipleVars(t *testing.T) {
+c := New()
+
+// Declare two variables
+input1 := "| x y |"
+p1 := parser.New(input1)
+program1, err := p1.Parse()
+if err != nil {
+t.Fatalf("Parse failed for input1: %v", err)
+}
+
+_, err = c.CompileIncremental(program1)
+if err != nil {
+t.Fatalf("CompileIncremental failed for input1: %v", err)
+}
+
+// Assign to both variables
+input2 := "x := 10. y := 20."
+p2 := parser.New(input2)
+program2, err := p2.Parse()
+if err != nil {
+t.Fatalf("Parse failed for input2: %v", err)
+}
+
+bc2, err := c.CompileIncremental(program2)
+if err != nil {
+t.Fatalf("CompileIncremental failed for input2: %v", err)
+}
+
+// Should use STORE_LOCAL with slots 0 and 1
+storeCount := 0
+for _, inst := range bc2.Instructions {
+if inst.Op == bytecode.OpStoreLocal {
+storeCount++
+if inst.Operand != 0 && inst.Operand != 1 {
+t.Errorf("Expected STORE_LOCAL to use slot 0 or 1, got %d", inst.Operand)
+}
+}
+}
+
+if storeCount != 2 {
+t.Errorf("Expected 2 STORE_LOCAL instructions, got %d", storeCount)
+}
+
+// Use both variables
+input3 := "x + y."
+p3 := parser.New(input3)
+program3, err := p3.Parse()
+if err != nil {
+t.Fatalf("Parse failed for input3: %v", err)
+}
+
+bc3, err := c.CompileIncremental(program3)
+if err != nil {
+t.Fatalf("CompileIncremental failed for input3: %v", err)
+}
+
+// Should have two LOAD_LOCAL instructions
+loadCount := 0
+for _, inst := range bc3.Instructions {
+if inst.Op == bytecode.OpLoadLocal {
+loadCount++
+if inst.Operand != 0 && inst.Operand != 1 {
+t.Errorf("Expected LOAD_LOCAL to use slot 0 or 1, got %d", inst.Operand)
+}
+}
+}
+
+if loadCount != 2 {
+t.Errorf("Expected 2 LOAD_LOCAL instructions, got %d", loadCount)
+}
+}
