@@ -35,9 +35,10 @@ false ifFalse: [ '  Condition is false!' println ].
 
 " Array operations "
 arr := #(10 20 30).
-'Array size:' print.
+'Array size: ' print.
 s := arr size.
 s println.
 
-'Element at index 2:' print.
-arr at: 2.
+'Element at index 2: ' print.
+s := arr at: 2.
+s println.
