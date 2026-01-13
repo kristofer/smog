@@ -1,0 +1,35 @@
+" Simple Point Class Test "
+
+Object subclass: #Point [
+    | x y |
+    
+    setX: xVal [
+        x := xVal.
+    ]
+    
+    setY: yVal [
+        y := yVal.
+    ]
+    
+    getX [
+        ^x
+    ]
+    
+    getY [
+        ^y
+    ]
+]
+
+" Create and use a point "
+| point xVal yVal |
+point := Point new.
+point setX: 10.
+point setY: 20.
+
+xVal := point getX.
+yVal := point getY.
+
+'Point x: ' print.
+xVal println.
+'Point y: ' print.
+yVal println.

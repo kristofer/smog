@@ -70,6 +70,7 @@ import (
 //   - constants: The constant pool of literal values
 //   - symbols: Symbol table mapping variable names to local slots
 //   - localCount: Number of local variables allocated so far
+//   - fields: Map of instance/class variable names to field indices (used in methods)
 //
 // The compiler is stateful and single-use: create a new compiler for
 // each compilation unit (program, method, block).
@@ -78,6 +79,7 @@ type Compiler struct {
 	constants    []interface{}          // Constant pool (literals, names)
 	symbols      map[string]int         // Symbol table: name -> local slot index
 	localCount   int                    // Next available local variable slot
+	fields       map[string]int         // Field table: field name -> field index
 }
 
 // New creates a new compiler instance.
@@ -87,12 +89,14 @@ type Compiler struct {
 //   - Empty constant pool
 //   - Empty symbol table
 //   - Zero local variables
+//   - Empty field table
 func New() *Compiler {
 	return &Compiler{
 		instructions: make([]bytecode.Instruction, 0),
 		constants:    make([]interface{}, 0),
 		symbols:      make(map[string]int),
 		localCount:   0,
+		fields:       make(map[string]int),
 	}
 }
 
@@ -186,6 +190,20 @@ func (c *Compiler) compileStatement(stmt ast.Statement) error {
 		c.emit(bytecode.OpReturn, 0)
 		return nil
 
+	case *ast.Class:
+		// Class definitions create a ClassDefinition and emit OpDefineClass.
+		//
+		// Process:
+		//   1. Compile each method's bytecode
+		//   2. Create ClassDefinition with metadata and methods
+		//   3. Add ClassDefinition to constant pool
+		//   4. Emit DEFINE_CLASS instruction
+		//
+		// Example: Object subclass: #Counter [ ... ]
+		//   -> ClassDefinition in constants
+		//   -> DEFINE_CLASS idx
+		return c.compileClass(s)
+
 	default:
 		return fmt.Errorf("unknown statement type: %T", stmt)
 	}
@@ -277,21 +295,29 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 
 	case *ast.Identifier:
 		// Identifiers refer to variables. We look up the variable in
-		// the symbol table to determine if it's local or global.
+		// the symbol table to determine if it's local, a field, or global.
 		//
 		// Local variables:
 		//   Stored in the symbol table with their slot index
 		//   Example: x (where x was declared as | x |)
 		//     -> LOAD_LOCAL slot_index
 		//
+		// Instance/class variables (fields):
+		//   Stored in the fields map with their field index
+		//   Example: count (where count is an instance variable)
+		//     -> LOAD_FIELD field_index
+		//
 		// Global variables:
-		//   Not in the symbol table (not declared locally)
+		//   Not in the symbol table or fields map (not declared locally)
 		//   Example: SomeClass
 		//     -> constants = ["SomeClass"]
 		//     -> LOAD_GLOBAL name_index
 		if idx, ok := c.symbols[e.Name]; ok {
 			// It's a local variable
 			c.emit(bytecode.OpLoadLocal, idx)
+		} else if idx, ok := c.fields[e.Name]; ok {
+			// It's an instance/class variable (field)
+			c.emit(bytecode.OpLoadField, idx)
 		} else {
 			// It's a global variable - add the name to constants
 			idx := c.addConstant(e.Name)
@@ -320,9 +346,12 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		}
 
 		// Step 2: Store to the variable
-		// Check if it's local or global (same logic as Identifier)
+		// Check if it's local, field, or global (same logic as Identifier)
 		if idx, ok := c.symbols[e.Name]; ok {
 			c.emit(bytecode.OpStoreLocal, idx)
+		} else if idx, ok := c.fields[e.Name]; ok {
+			// It's an instance/class variable (field)
+			c.emit(bytecode.OpStoreField, idx)
 		} else {
 			// Store as global
 			nameIdx := c.addConstant(e.Name)
@@ -672,4 +701,137 @@ func (c *Compiler) CompileIncremental(program *ast.Program) (*bytecode.Bytecode,
 		Instructions: c.instructions,
 		Constants:    c.constants,
 	}, nil
+}
+
+// compileClass compiles a class definition.
+//
+// A class definition consists of:
+//   - Name and superclass
+//   - Instance variables (fields)
+//   - Class variables
+//   - Methods (both instance and class methods)
+//
+// The compiler creates a ClassDefinition containing all this information,
+// adds it to the constant pool, and emits a DEFINE_CLASS instruction.
+//
+// Each method is compiled separately into its own bytecode, which is
+// stored in the MethodDefinition within the ClassDefinition.
+//
+// Example:
+//   Object subclass: #Counter [
+//       | count |
+//       initialize [ count := 0. ]
+//       increment [ count := count + 1. ]
+//   ]
+//
+// This compiles to:
+//   1. Create bytecode for initialize method
+//   2. Create bytecode for increment method
+//   3. Create ClassDefinition with both methods
+//   4. Add ClassDefinition to constants at index N
+//   5. Emit DEFINE_CLASS N
+func (c *Compiler) compileClass(class *ast.Class) error {
+	// Compile instance methods
+	instanceMethods := make([]*bytecode.MethodDefinition, 0, len(class.Methods))
+	for _, method := range class.Methods {
+		methodDef, err := c.compileMethod(method, class.Fields)
+		if err != nil {
+			return fmt.Errorf("failed to compile method %s: %w", method.Name, err)
+		}
+		instanceMethods = append(instanceMethods, methodDef)
+	}
+
+	// Compile class methods
+	classMethods := make([]*bytecode.MethodDefinition, 0, len(class.ClassMethods))
+	for _, method := range class.ClassMethods {
+		methodDef, err := c.compileMethod(method, class.ClassVariables)
+		if err != nil {
+			return fmt.Errorf("failed to compile class method %s: %w", method.Name, err)
+		}
+		classMethods = append(classMethods, methodDef)
+	}
+
+	// Create the class definition
+	classDef := &bytecode.ClassDefinition{
+		Name:           class.Name,
+		SuperClass:     class.SuperClass,
+		Fields:         class.Fields,
+		ClassVariables: class.ClassVariables,
+		Methods:        instanceMethods,
+		ClassMethods:   classMethods,
+	}
+
+	// Add class definition to constant pool
+	idx := c.addConstant(classDef)
+
+	// Emit DEFINE_CLASS instruction
+	c.emit(bytecode.OpDefineClass, idx)
+
+	return nil
+}
+
+// compileMethod compiles a method definition into bytecode.
+//
+// A method is compiled in its own scope with:
+//   - Parameters as local variables (starting at index 0)
+//   - Instance/class variables accessible via OpLoadField/OpStoreField
+//   - Method body statements compiled sequentially
+//   - Implicit return of self if no explicit return
+//
+// Example:
+//   increment [ count := count + 1. ]
+//
+// Compiles to:
+//   LOAD_FIELD 0      ; load count (assuming it's field 0)
+//   PUSH 1            ; constant 1
+//   SEND +, 1         ; send + message
+//   STORE_FIELD 0     ; store back to count
+//   PUSH_SELF         ; implicit return self
+//   RETURN
+func (c *Compiler) compileMethod(method *ast.Method, fields []string) (*bytecode.MethodDefinition, error) {
+	// Create a new compiler for the method body to have its own scope
+	methodCompiler := New()
+
+	// Parameters become local variables (in order)
+	for i, param := range method.Parameters {
+		methodCompiler.symbols[param] = i
+		methodCompiler.localCount = i + 1
+	}
+
+	// Build a map of field names to indices for field access
+	fieldMap := make(map[string]int)
+	for i, field := range fields {
+		fieldMap[field] = i
+	}
+
+	// Store field map in compiler for use during expression compilation
+	// We'll need to modify the compiler to support this
+	methodCompiler.fields = fieldMap
+
+	// Compile method body
+	for _, stmt := range method.Body {
+		if err := methodCompiler.compileStatement(stmt); err != nil {
+			return nil, err
+		}
+	}
+
+	// Add implicit return of self if the last statement wasn't a return
+	// Check if we need to add implicit return
+	if len(methodCompiler.instructions) == 0 ||
+		methodCompiler.instructions[len(methodCompiler.instructions)-1].Op != bytecode.OpReturn {
+		methodCompiler.emit(bytecode.OpPushSelf, 0)
+		methodCompiler.emit(bytecode.OpReturn, 0)
+	}
+
+	// Create method definition with compiled bytecode
+	methodDef := &bytecode.MethodDefinition{
+		Selector:   method.Name,
+		Parameters: method.Parameters,
+		Code: &bytecode.Bytecode{
+			Instructions: methodCompiler.instructions,
+			Constants:    methodCompiler.constants,
+		},
+	}
+
+	return methodDef, nil
 }
