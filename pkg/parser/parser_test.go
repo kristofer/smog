@@ -932,3 +932,89 @@ if len(dictLit.Pairs) != 0 {
 t.Errorf("Expected 0 pairs, got %d", len(dictLit.Pairs))
 }
 }
+
+// TestParseCascadeExpression tests parsing cascading messages
+func TestParseCascadeExpression(t *testing.T) {
+input := "point x: 10; y: 20"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+cascade, ok := stmt.Expression.(*ast.CascadeExpression)
+if !ok {
+t.Fatalf("Expected CascadeExpression, got %T", stmt.Expression)
+}
+
+// Check receiver
+receiver, ok := cascade.Receiver.(*ast.Identifier)
+if !ok || receiver.Name != "point" {
+t.Errorf("Expected receiver to be identifier 'point'")
+}
+
+// Check number of messages
+if len(cascade.Messages) != 2 {
+t.Fatalf("Expected 2 messages, got %d", len(cascade.Messages))
+}
+
+// Check first message: x: 10
+if cascade.Messages[0].Selector != "x:" {
+t.Errorf("Expected first selector to be 'x:', got %s", cascade.Messages[0].Selector)
+}
+if len(cascade.Messages[0].Args) != 1 {
+t.Errorf("Expected first message to have 1 arg, got %d", len(cascade.Messages[0].Args))
+}
+
+// Check second message: y: 20
+if cascade.Messages[1].Selector != "y:" {
+t.Errorf("Expected second selector to be 'y:', got %s", cascade.Messages[1].Selector)
+}
+if len(cascade.Messages[1].Args) != 1 {
+t.Errorf("Expected second message to have 1 arg, got %d", len(cascade.Messages[1].Args))
+}
+}
+
+// TestParseCascadeWithUnaryMessages tests cascading unary messages
+func TestParseCascadeWithUnaryMessages(t *testing.T) {
+input := "obj method1; method2; method3"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+cascade, ok := stmt.Expression.(*ast.CascadeExpression)
+if !ok {
+t.Fatalf("Expected CascadeExpression, got %T", stmt.Expression)
+}
+
+if len(cascade.Messages) != 3 {
+t.Fatalf("Expected 3 messages, got %d", len(cascade.Messages))
+}
+
+expectedSelectors := []string{"method1", "method2", "method3"}
+for i, expected := range expectedSelectors {
+if cascade.Messages[i].Selector != expected {
+t.Errorf("Expected message %d to be '%s', got '%s'", i, expected, cascade.Messages[i].Selector)
+}
+}
+}

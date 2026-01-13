@@ -464,20 +464,26 @@ func (p *Parser) parseMessageSend() ast.Expression {
 				}
 			}
 			
-			return &ast.MessageSend{
+			msgSend := &ast.MessageSend{
 				Receiver: receiver,
 				Selector: selector,
 				Args:     args,
 			}
+			
+			// Check for cascade after this message
+			return p.checkForCascade(msgSend)
 		} else {
 			// It's a unary message (no colon after the identifier)
 			// Example: 'hello' println
 			selector := p.curTok.Literal
-			return &ast.MessageSend{
+			msgSend := &ast.MessageSend{
 				Receiver: receiver,
 				Selector: selector,
 				Args:     []ast.Expression{}, // No arguments for unary messages
 			}
+			
+			// Check for cascade after this message
+			return p.checkForCascade(msgSend)
 		}
 	}
 
@@ -494,15 +500,137 @@ func (p *Parser) parseMessageSend() ast.Expression {
 			return nil
 		}
 		
-		return &ast.MessageSend{
+		msgSend := &ast.MessageSend{
 			Receiver: receiver,
 			Selector: operator,
 			Args:     []ast.Expression{arg},
 		}
+		
+		// Check for cascade after this message
+		return p.checkForCascade(msgSend)
 	}
 
 	// No message found - just return the receiver
 	return receiver
+}
+
+// checkForCascade checks if there's a cascade (;) after the initial expression
+// and if so, parses the cascade.
+//
+// Syntax: receiver message1; message2; message3
+//
+// The receiver is evaluated once, and each message is sent to the same receiver.
+// The cascade returns the receiver itself (not the result of the last message).
+func (p *Parser) checkForCascade(expr ast.Expression) ast.Expression {
+	// If the expression is not a message send, it can't be cascaded
+	firstMsg, isMessageSend := expr.(*ast.MessageSend)
+	if !isMessageSend {
+		return expr
+	}
+	
+	// Check if there's a semicolon indicating a cascade
+	if p.peekTok.Type != lexer.TokenSemicolon {
+		return expr
+	}
+	
+	// We have a cascade! Build a CascadeExpression
+	receiver := firstMsg.Receiver
+	messages := []ast.MessageSend{*firstMsg}
+	
+	// Parse additional messages separated by semicolons
+	for p.peekTok.Type == lexer.TokenSemicolon {
+		p.nextToken() // consume the semicolon
+		p.nextToken() // move to the message selector
+		
+		// Parse the next message (without the receiver)
+		msg := p.parseMessageWithoutReceiver()
+		if msg != nil {
+			messages = append(messages, *msg)
+		}
+	}
+	
+	return &ast.CascadeExpression{
+		Receiver: receiver,
+		Messages: messages,
+	}
+}
+
+// parseMessageWithoutReceiver parses a message selector and arguments
+// without a receiver (used in cascades).
+//
+// Returns a MessageSend with nil Receiver.
+func (p *Parser) parseMessageWithoutReceiver() *ast.MessageSend {
+	// Check for keyword message
+	if p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
+		keyword := p.curTok.Literal
+		p.nextToken() // consume colon
+		selector := keyword + ":"
+		
+		// Parse first argument
+		p.nextToken()
+		arg := p.parsePrimaryExpression()
+		if arg == nil {
+			p.addError("expected argument after keyword in cascade")
+			return nil
+		}
+		args := []ast.Expression{arg}
+		
+		// Check for additional keyword parts
+		for p.peekTok.Type == lexer.TokenIdentifier {
+			savedCur := p.curTok
+			savedPeek := p.peekTok
+			p.nextToken()
+			
+			if p.peekTok.Type == lexer.TokenColon {
+				keyword := p.curTok.Literal
+				p.nextToken() // consume colon
+				selector += keyword + ":"
+				
+				p.nextToken()
+				arg := p.parsePrimaryExpression()
+				if arg == nil {
+					p.addError("expected argument after keyword in cascade")
+					return nil
+				}
+				args = append(args, arg)
+			} else {
+				p.curTok = savedCur
+				p.peekTok = savedPeek
+				break
+			}
+		}
+		
+		return &ast.MessageSend{
+			Receiver: nil,
+			Selector: selector,
+			Args:     args,
+		}
+	} else if p.curTok.Type == lexer.TokenIdentifier {
+		// Unary message
+		selector := p.curTok.Literal
+		return &ast.MessageSend{
+			Receiver: nil,
+			Selector: selector,
+			Args:     []ast.Expression{},
+		}
+	} else if p.isBinaryOperator(p.curTok.Type) {
+		// Binary message
+		operator := p.curTok.Literal
+		p.nextToken()
+		arg := p.parsePrimaryExpression()
+		if arg == nil {
+			return nil
+		}
+		
+		return &ast.MessageSend{
+			Receiver: nil,
+			Selector: operator,
+			Args:     []ast.Expression{arg},
+		}
+	}
+	
+	p.addError("expected message selector in cascade")
+	return nil
 }
 
 // parseSuperMessageSend parses a super message send.

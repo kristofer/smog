@@ -464,6 +464,69 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		c.emit(bytecode.OpMakeDictionary, len(e.Pairs))
 		return nil
 
+	case *ast.CascadeExpression:
+		// Cascade expressions send multiple messages to the same receiver.
+		//
+		// Syntax: receiver msg1; msg2; msg3
+		//
+		// The cascade returns the receiver itself, not the result of any message.
+		//
+		// Compilation strategy:
+		//   1. Compile receiver -> [receiver]
+		//   2. For each message:
+		//      a. DUP receiver -> [receiver, receiver]
+		//      b. Compile args -> [receiver, receiver, arg1, arg2, ...]
+		//      c. SEND -> [receiver, result]
+		//      d. POP result -> [receiver]
+		//   3. Final stack has receiver as result
+		//
+		// Example: point x: 10; y: 20
+		//   PUSH point     ; [point]
+		//   DUP            ; [point, point]
+		//   PUSH 10        ; [point, point, 10]
+		//   SEND x:, 1     ; [point, result]
+		//   POP            ; [point]
+		//   DUP            ; [point, point]
+		//   PUSH 20        ; [point, point, 20]
+		//   SEND y:, 1     ; [point, result]
+		//   POP            ; [point]
+		//   ; Final: point is on stack
+		
+		// Step 1: Compile and push the receiver
+		if err := c.compileExpression(e.Receiver); err != nil {
+			return err
+		}
+		
+		// Step 2: For each message in the cascade
+		for _, msg := range e.Messages {
+			// Duplicate the receiver so we can send a message to it
+			c.emit(bytecode.OpDup, 0)
+			
+			// Compile message arguments
+			for _, arg := range msg.Args {
+				if err := c.compileExpression(arg); err != nil {
+					return err
+				}
+			}
+			
+			// Emit the SEND instruction
+			selectorIdx := c.addConstant(msg.Selector)
+			argCount := len(msg.Args)
+			operand := (selectorIdx << bytecode.SelectorIndexShift) | argCount
+			
+			if msg.IsSuper {
+				c.emit(bytecode.OpSuperSend, operand)
+			} else {
+				c.emit(bytecode.OpSend, operand)
+			}
+			
+			// Pop the result - we don't need it, we want the receiver
+			c.emit(bytecode.OpPop, 0)
+		}
+		
+		// The receiver is now on top of the stack as the result
+		return nil
+
 	default:
 		return fmt.Errorf("unknown expression type: %T", expr)
 	}
