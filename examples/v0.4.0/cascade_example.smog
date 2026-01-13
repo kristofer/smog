@@ -1,0 +1,14 @@
+" v0.4.0 Feature Showcase: Cascading Messages "
+
+" Cascading allows sending multiple messages to the same receiver "
+" using semicolons. The cascade returns the receiver, not the last result. "
+
+" Example: Point configuration with cascading "
+| point |
+point x: 10; y: 20; z: 30; display.
+
+" Benefits of cascading: "
+" 1. More concise code "
+" 2. Clear intent - all operations on same object "
+" 3. Enables fluent interfaces "
+" 4. Returns the receiver for further use "

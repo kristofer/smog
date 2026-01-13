@@ -1,0 +1,23 @@
+" v0.4.0 Feature Showcase: Dictionary Literals "
+
+" Dictionary literals provide a concise syntax for creating key-value maps "
+" Syntax: #{key1 -> value1. key2 -> value2. ...} "
+
+" Example 1: Basic dictionary "
+| person |
+person := #{'name' -> 'Alice'. 'age' -> 30. 'city' -> 'Wonderland'}.
+person println.
+
+" Example 2: Empty dictionary "
+| emptyDict |
+emptyDict := #{}.
+
+" Example 3: Dictionary with various types "
+| mixed |
+mixed := #{
+    'string' -> 'value'.
+    1 -> 'one'.
+    true -> false
+}.
+
+" Benefits: Concise syntax for creating key-value data structures "

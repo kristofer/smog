@@ -1,0 +1,12 @@
+" v0.4.0 Feature Showcase: Self Keyword "
+
+" The self keyword refers to the current object (receiver) "
+
+| calc |
+calc initialize.
+calc add: 10; multiply: 2; subtract: 5.
+
+" Benefits of self: "
+" 1. Explicit indication of internal method calls "
+" 2. Enables method chaining "
+" 3. Works with cascading for fluent interfaces "
