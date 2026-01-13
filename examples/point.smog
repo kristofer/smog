@@ -20,12 +20,12 @@ Object subclass: #Point [
     
     " Add two points "
     + aPoint [
-        ^Point x: (x + aPoint x) y: (y + aPoint y)
+		^self
     ]
     
     " Subtract two points "
     - aPoint [
-        ^Point x: (x - aPoint x) y: (y - aPoint y)
+		^self
     ]
     
     " Distance from origin "
@@ -35,11 +35,7 @@ Object subclass: #Point [
     
     " Print representation "
     printOn: stream [
-        stream nextPutAll: 'Point('.
-        stream nextPutAll: x asString.
-        stream nextPutAll: ', '.
-        stream nextPutAll: y asString.
-        stream nextPutAll: ')'.
+        stream nextPutAll: 'Point'.
     ]
 ]
 
