@@ -25,6 +25,8 @@ const (
 	TokenTrue
 	TokenFalse
 	TokenNil
+	TokenSelf
+	TokenSuper
 
 	// Delimiters
 	TokenPeriod      // .
@@ -38,6 +40,9 @@ const (
 	TokenRBracket    // ]
 	TokenHash        // #
 	TokenHashLParen  // #(
+
+	// Cascade operator
+	TokenSemicolon   // ;
 
 	// Operators (binary messages)
 	TokenPlus     // +
@@ -84,6 +89,10 @@ func (tt TokenType) String() string {
 		return "FALSE"
 	case TokenNil:
 		return "NIL"
+	case TokenSelf:
+		return "SELF"
+	case TokenSuper:
+		return "SUPER"
 	case TokenPeriod:
 		return "PERIOD"
 	case TokenPipe:
@@ -106,6 +115,8 @@ func (tt TokenType) String() string {
 		return "HASH"
 	case TokenHashLParen:
 		return "HASH_LPAREN"
+	case TokenSemicolon:
+		return "SEMICOLON"
 	case TokenPlus:
 		return "PLUS"
 	case TokenMinus:
@@ -299,6 +310,10 @@ func (l *Lexer) NextToken() Token {
 		tok.Type = TokenEqual
 		tok.Literal = "="
 		l.readChar()
+	case ';':
+		tok.Type = TokenSemicolon
+		tok.Literal = ";"
+		l.readChar()
 	case '~':
 		if l.peekChar() == '=' {
 			ch := l.ch
@@ -415,6 +430,10 @@ func lookupIdent(ident string) TokenType {
 		return TokenFalse
 	case "nil":
 		return TokenNil
+	case "self":
+		return TokenSelf
+	case "super":
+		return TokenSuper
 	default:
 		return TokenIdentifier
 	}

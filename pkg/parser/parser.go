@@ -398,6 +398,12 @@ func (p *Parser) parseAssignment() ast.Expression {
 //   "x println" -> MessageSend{Receiver: Identifier("x"), Selector: "println"}
 //   "3 + 4" -> MessageSend{Receiver: IntegerLiteral(3), Selector: "+", Args: [IntegerLiteral(4)]}
 func (p *Parser) parseMessageSend() ast.Expression {
+	// Check for super message send
+	// Syntax: super selector or super keyword: arg
+	if p.curTok.Type == lexer.TokenSuper {
+		return p.parseSuperMessageSend()
+	}
+	
 	// Step 1: Parse the receiver (the object that will receive the message)
 	receiver := p.parsePrimaryExpression()
 	if receiver == nil {
@@ -499,6 +505,106 @@ func (p *Parser) parseMessageSend() ast.Expression {
 	return receiver
 }
 
+// parseSuperMessageSend parses a super message send.
+//
+// Syntax: super selector
+//        or: super keyword: arg
+//
+// Super sends start method lookup in the superclass of the current class.
+// They're used to call inherited methods that have been overridden.
+//
+// Process:
+//   1. Verify we're on the 'super' keyword
+//   2. Parse the message selector and arguments
+//   3. Return MessageSend with IsSuper flag set
+//
+// Examples:
+//   super initialize
+//     -> MessageSend{Receiver: nil, Selector: "initialize", Args: [], IsSuper: true}
+//
+//   super at: index
+//     -> MessageSend{Receiver: nil, Selector: "at:", Args: [index], IsSuper: true}
+func (p *Parser) parseSuperMessageSend() ast.Expression {
+	// curTok is TokenSuper
+	p.nextToken() // move to the message selector
+	
+	// Check if it's a keyword message
+	if p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
+		// It's a keyword message
+		keyword := p.curTok.Literal
+		p.nextToken() // consume colon
+		selector := keyword + ":"
+		
+		// Parse first argument
+		p.nextToken()
+		arg := p.parsePrimaryExpression()
+		if arg == nil {
+			p.addError("expected argument after keyword in super send")
+			return nil
+		}
+		args := []ast.Expression{arg}
+		
+		// Check for additional keyword parts
+		for p.peekTok.Type == lexer.TokenIdentifier {
+			savedCur := p.curTok
+			savedPeek := p.peekTok
+			p.nextToken()
+			
+			if p.peekTok.Type == lexer.TokenColon {
+				keyword := p.curTok.Literal
+				p.nextToken() // consume colon
+				selector += keyword + ":"
+				
+				p.nextToken()
+				arg := p.parsePrimaryExpression()
+				if arg == nil {
+					p.addError("expected argument after keyword in super send")
+					return nil
+				}
+				args = append(args, arg)
+			} else {
+				p.curTok = savedCur
+				p.peekTok = savedPeek
+				break
+			}
+		}
+		
+		return &ast.MessageSend{
+			Receiver: nil, // receiver is implicit (self)
+			Selector: selector,
+			Args:     args,
+			IsSuper:  true,
+		}
+	} else if p.curTok.Type == lexer.TokenIdentifier {
+		// It's a unary message
+		selector := p.curTok.Literal
+		return &ast.MessageSend{
+			Receiver: nil, // receiver is implicit (self)
+			Selector: selector,
+			Args:     []ast.Expression{},
+			IsSuper:  true,
+		}
+	} else if p.isBinaryOperator(p.curTok.Type) {
+		// It's a binary message
+		operator := p.curTok.Literal
+		p.nextToken()
+		arg := p.parsePrimaryExpression()
+		if arg == nil {
+			return nil
+		}
+		
+		return &ast.MessageSend{
+			Receiver: nil, // receiver is implicit (self)
+			Selector: operator,
+			Args:     []ast.Expression{arg},
+			IsSuper:  true,
+		}
+	}
+	
+	p.addError("expected message selector after super")
+	return nil
+}
+
 // isBinaryOperator checks if a token type represents a binary operator.
 //
 // Binary operators are special message selectors that appear between
@@ -560,6 +666,9 @@ func (p *Parser) parsePrimaryExpression() ast.Expression {
 		return &ast.BooleanLiteral{Value: false}
 	case lexer.TokenNil:
 		return &ast.NilLiteral{}
+	case lexer.TokenSelf:
+		// self is represented as a special identifier
+		return &ast.Identifier{Name: "self"}
 	case lexer.TokenIdentifier:
 		return &ast.Identifier{Name: p.curTok.Literal}
 	case lexer.TokenLBracket:

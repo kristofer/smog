@@ -335,9 +335,9 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		// method calls, operator invocations, and all inter-object communication.
 		//
 		// Compilation process:
-		//   1. Compile receiver (pushes receiver on stack)
+		//   1. Compile receiver (pushes receiver on stack) - unless it's a super send
 		//   2. Compile each argument (pushes args on stack)
-		//   3. Emit SEND with selector and arg count
+		//   3. Emit SEND or SUPER_SEND with selector and arg count
 		//
 		// Example: receiver selector: arg1 with: arg2
 		//
@@ -347,13 +347,22 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		//   [receiver, arg1, arg2]     ; after compiling arg2
 		//   [result]                   ; after SEND pops args and receiver, pushes result
 		//
-		// The SEND instruction's operand encodes:
+		// For super sends:
+		//   The receiver is implicitly self, and we use SUPER_SEND instead
+		//   of SEND to start method lookup in the superclass.
+		//
+		// The SEND/SUPER_SEND instruction's operand encodes:
 		//   - Selector index (high bits): where to find the selector in constants
 		//   - Argument count (low 8 bits): how many args to pop from stack
 
-		// Step 1: Compile the receiver expression
-		if err := c.compileExpression(e.Receiver); err != nil {
-			return err
+		// Step 1: Compile the receiver expression (unless it's a super send)
+		if e.IsSuper {
+			// For super sends, push self as the receiver
+			c.emit(bytecode.OpPushSelf, 0)
+		} else {
+			if err := c.compileExpression(e.Receiver); err != nil {
+				return err
+			}
 		}
 
 		// Step 2: Compile all arguments in order
@@ -363,7 +372,7 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 			}
 		}
 
-		// Step 3: Emit the SEND instruction
+		// Step 3: Emit the SEND or SUPER_SEND instruction
 		// Add the selector to the constant pool
 		selectorIdx := c.addConstant(e.Selector)
 		argCount := len(e.Args)
@@ -372,7 +381,12 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		// High bits: selector index
 		// Low 8 bits: argument count
 		operand := (selectorIdx << bytecode.SelectorIndexShift) | argCount
-		c.emit(bytecode.OpSend, operand)
+		
+		if e.IsSuper {
+			c.emit(bytecode.OpSuperSend, operand)
+		} else {
+			c.emit(bytecode.OpSend, operand)
+		}
 		return nil
 
 	case *ast.BlockLiteral:

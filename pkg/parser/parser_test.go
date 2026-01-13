@@ -676,3 +676,177 @@ func TestParseArrayLiteral(t *testing.T) {
 		}
 	}
 }
+
+// TestParseSelfKeyword tests parsing the 'self' keyword
+func TestParseSelfKeyword(t *testing.T) {
+input := "self"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+ident, ok := stmt.Expression.(*ast.Identifier)
+if !ok {
+t.Fatalf("Expected Identifier, got %T", stmt.Expression)
+}
+
+if ident.Name != "self" {
+t.Errorf("Expected identifier 'self', got %s", ident.Name)
+}
+}
+
+// TestParseSuperUnaryMessage tests parsing super with a unary message
+func TestParseSuperUnaryMessage(t *testing.T) {
+input := "super initialize"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+msgSend, ok := stmt.Expression.(*ast.MessageSend)
+if !ok {
+t.Fatalf("Expected MessageSend, got %T", stmt.Expression)
+}
+
+if !msgSend.IsSuper {
+t.Error("Expected IsSuper to be true")
+}
+
+if msgSend.Selector != "initialize" {
+t.Errorf("Expected selector 'initialize', got %s", msgSend.Selector)
+}
+
+if len(msgSend.Args) != 0 {
+t.Errorf("Expected 0 arguments, got %d", len(msgSend.Args))
+}
+
+if msgSend.Receiver != nil {
+t.Error("Expected nil receiver for super send")
+}
+}
+
+// TestParseSuperKeywordMessage tests parsing super with a keyword message
+func TestParseSuperKeywordMessage(t *testing.T) {
+input := "super at: 5 put: 10"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+msgSend, ok := stmt.Expression.(*ast.MessageSend)
+if !ok {
+t.Fatalf("Expected MessageSend, got %T", stmt.Expression)
+}
+
+if !msgSend.IsSuper {
+t.Error("Expected IsSuper to be true")
+}
+
+if msgSend.Selector != "at:put:" {
+t.Errorf("Expected selector 'at:put:', got %s", msgSend.Selector)
+}
+
+if len(msgSend.Args) != 2 {
+t.Fatalf("Expected 2 arguments, got %d", len(msgSend.Args))
+}
+
+// Check first argument
+arg1, ok := msgSend.Args[0].(*ast.IntegerLiteral)
+if !ok {
+t.Fatalf("Expected first arg to be IntegerLiteral, got %T", msgSend.Args[0])
+}
+if arg1.Value != 5 {
+t.Errorf("Expected first arg value 5, got %d", arg1.Value)
+}
+
+// Check second argument
+arg2, ok := msgSend.Args[1].(*ast.IntegerLiteral)
+if !ok {
+t.Fatalf("Expected second arg to be IntegerLiteral, got %T", msgSend.Args[1])
+}
+if arg2.Value != 10 {
+t.Errorf("Expected second arg value 10, got %d", arg2.Value)
+}
+}
+
+// TestParseSuperBinaryMessage tests parsing super with a binary message
+func TestParseSuperBinaryMessage(t *testing.T) {
+input := "super + 5"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+msgSend, ok := stmt.Expression.(*ast.MessageSend)
+if !ok {
+t.Fatalf("Expected MessageSend, got %T", stmt.Expression)
+}
+
+if !msgSend.IsSuper {
+t.Error("Expected IsSuper to be true")
+}
+
+if msgSend.Selector != "+" {
+t.Errorf("Expected selector '+', got %s", msgSend.Selector)
+}
+
+if len(msgSend.Args) != 1 {
+t.Fatalf("Expected 1 argument, got %d", len(msgSend.Args))
+}
+
+arg, ok := msgSend.Args[0].(*ast.IntegerLiteral)
+if !ok {
+t.Fatalf("Expected arg to be IntegerLiteral, got %T", msgSend.Args[0])
+}
+if arg.Value != 5 {
+t.Errorf("Expected arg value 5, got %d", arg.Value)
+}
+}

@@ -384,25 +384,34 @@ func (al *ArrayLiteral) expressionNode()      {}
 //   - A name (the class identifier, like #Counter)
 //   - A superclass to inherit from (like Object)
 //   - Instance variables (fields) that each instance will have
+//   - Class variables (shared across all instances)
 //   - Methods that define the behavior of instances
+//   - Class methods (methods on the class itself)
 //
 // Example:
 //   Object subclass: #Counter [
-//       | count |
-//       initialize [ count := 0. ]
-//       increment [ count := count + 1. ]
+//       | count |                    " instance variable "
+//       <| totalCount |>             " class variable "
+//       initialize [ count := 0. ]   " instance method "
+//       <incrementTotal [            " class method "
+//           totalCount := totalCount + 1.
+//       ]>
 //   ]
 //
 // This creates a Class node with:
 //   - Name: "Counter"
 //   - SuperClass: "Object"
 //   - Fields: ["count"]
-//   - Methods: [initialize, increment methods]
+//   - ClassVariables: ["totalCount"]
+//   - Methods: [initialize method]
+//   - ClassMethods: [incrementTotal method]
 type Class struct {
-	Name       string    // Class name (without the # prefix)
-	SuperClass string    // Name of the superclass
-	Methods    []*Method // List of method definitions
-	Fields     []string  // List of instance variable names
+	Name           string    // Class name (without the # prefix)
+	SuperClass     string    // Name of the superclass
+	Methods        []*Method // List of instance method definitions
+	ClassMethods   []*Method // List of class method definitions
+	Fields         []string  // List of instance variable names
+	ClassVariables []string  // List of class variable names
 }
 
 // TokenLiteral returns "class" to identify this as a class definition.
@@ -450,6 +459,7 @@ func (m *Method) TokenLiteral() string { return "method" }
 //   - A receiver (the object receiving the message)
 //   - A selector (the message name)
 //   - Arguments (for binary and keyword messages)
+//   - IsSuper flag (true if this is a super send)
 //
 // Types of messages:
 //
@@ -465,24 +475,97 @@ func (m *Method) TokenLiteral() string { return "method" }
 //      array at: 1 put: 'value'
 //      -> MessageSend{Receiver: array, Selector: "at:put:", Args: [1, 'value']}
 //
+// 4. Super message sends (starts lookup in superclass):
+//      super initialize
+//      -> MessageSend{Receiver: nil, Selector: "initialize", Args: [], IsSuper: true}
+//
 // Compilation:
 // The compiler will:
 //   1. Compile the receiver expression (pushes receiver on stack)
 //   2. Compile each argument expression (pushes args on stack)
-//   3. Emit a SEND instruction with the selector and arg count
+//   3. Emit a SEND or SUPER_SEND instruction with the selector and arg count
 //
 // Execution:
 // The VM will:
 //   1. Pop the arguments and receiver from the stack
-//   2. Look up the method for the selector in the receiver's class
+//   2. Look up the method for the selector in the receiver's class (or superclass for super sends)
 //   3. Execute the method with the arguments
 //   4. Push the result back onto the stack
 type MessageSend struct {
-	Receiver Expression   // The object receiving the message
+	Receiver Expression   // The object receiving the message (nil for super sends)
 	Selector string       // The message selector (e.g., "+", "println", "at:put:")
 	Args     []Expression // Arguments to the message (empty for unary messages)
+	IsSuper  bool         // true if this is a super message send
 }
 
 // TokenLiteral returns the selector of the message.
 func (m *MessageSend) TokenLiteral() string { return m.Selector }
 func (m *MessageSend) expressionNode()      {}
+
+// CascadeExpression represents cascading messages to the same receiver.
+//
+// Syntax: receiver message1; message2; message3
+//
+// Cascading allows sending multiple messages to the same object without
+// repeating the receiver. The receiver is evaluated once, and each message
+// is sent to that same object in sequence.
+//
+// Example:
+//   point x: 10; y: 20; display
+//     -> CascadeExpression{
+//          Receiver: point,
+//          Messages: [
+//            MessageSend{Selector: "x:", Args: [10]},
+//            MessageSend{Selector: "y:", Args: [20]},
+//            MessageSend{Selector: "display", Args: []}
+//          ]
+//        }
+//
+// The cascade expression returns the receiver itself, not the result of
+// the last message (unlike sequential message sends).
+//
+// Compilation:
+//   1. Compile and push the receiver
+//   2. For each message except the last: DUP, compile message send, POP
+//   3. For the last message: compile message send, POP, push receiver
+//
+// This ensures the receiver is returned as the value of the cascade.
+type CascadeExpression struct {
+	Receiver Expression   // The object receiving all messages
+	Messages []MessageSend // The messages to send (without receivers)
+}
+
+// TokenLiteral returns "cascade" to identify this as a cascade expression.
+func (ce *CascadeExpression) TokenLiteral() string { return "cascade" }
+func (ce *CascadeExpression) expressionNode()      {}
+
+// DictionaryLiteral represents a dictionary literal.
+//
+// Syntax: #{ key1 -> value1. key2 -> value2. ... }
+//
+// Dictionary literals create dictionaries (hash maps) with the specified
+// key-value pairs.
+//
+// Example:
+//   #{ 'name' -> 'Alice'. 'age' -> 30 }
+//     -> DictionaryLiteral{
+//          Pairs: [
+//            {'name', 'Alice'},
+//            {'age', 30}
+//          ]
+//        }
+//
+// Note: This is syntactic sugar for creating Dictionary instances.
+type DictionaryLiteral struct {
+	Pairs []DictionaryPair // Key-value pairs in the dictionary
+}
+
+// DictionaryPair represents a key-value pair in a dictionary literal.
+type DictionaryPair struct {
+	Key   Expression // The key expression
+	Value Expression // The value expression
+}
+
+// TokenLiteral returns "dictionary" to identify this as a dictionary literal.
+func (dl *DictionaryLiteral) TokenLiteral() string { return "dictionary" }
+func (dl *DictionaryLiteral) expressionNode()      {}
