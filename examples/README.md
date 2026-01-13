@@ -75,13 +75,34 @@ Once the smog interpreter is built, you can run the executable examples:
 # Build the interpreter
 go build -o bin/smog ./cmd/smog
 
-# Run executable examples
+# Run examples directly from source
 ./bin/smog examples/hello.smog
 ./bin/smog examples/arrays.smog
 ./bin/smog examples/blocks.smog
 
+# Compile to bytecode for faster execution
+./bin/smog compile examples/hello.smog examples/hello.sg
+
+# Run compiled bytecode
+./bin/smog examples/hello.sg
+
+# Inspect bytecode
+./bin/smog disassemble examples/hello.sg
+
 # Run all examples with the test script
 ./run_examples.sh
+```
+
+### Bytecode Files (.sg)
+
+Some examples include pre-compiled .sg bytecode files. These provide:
+- **Faster startup** - No parsing or compilation needed
+- **Learning resource** - Inspect bytecode with `smog disassemble`
+- **Distribution format** - Share programs without source code
+
+To compile any example to bytecode:
+```bash
+./bin/smog compile examples/counter.smog examples/counter.sg
 ```
 
 **Note**: Examples in the `syntax-only/` directory demonstrate valid syntax but cannot execute because classes are not yet implemented.

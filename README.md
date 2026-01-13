@@ -11,6 +11,7 @@ Smog is a minimalist object-oriented programming language that follows the philo
 - **Smalltalk-Inspired Syntax**: Clean, minimal syntax based on Smalltalk
 - **Bytecode Compilation**: Source code compiles to bytecode for efficient execution
 - **Stack-Based VM**: Simple virtual machine for bytecode execution
+- **Bytecode Object Files**: Compile to .sg files for faster loading and distribution
 
 ## Quick Start
 
@@ -40,8 +41,16 @@ go run ./cmd/smog [file.smog]
 # Run hello world
 ./bin/smog examples/hello.smog
 
+# Compile to bytecode for faster loading
+./bin/smog compile examples/hello.smog examples/hello.sg
+
+# Run the compiled bytecode
+./bin/smog examples/hello.sg
+
+# Disassemble bytecode to inspect it
+./bin/smog disassemble examples/hello.sg
+
 # Run other examples
-./bin/smog examples/factorial.smog
 ./bin/smog examples/counter.smog
 ```
 
@@ -153,6 +162,7 @@ Start here if you're new to Smog or want to learn how to use the language:
 - **[Learning Guide](docs/LEARNING_GUIDE.md)** - ⭐ **START HERE** - Beginner's mental model and learning path
 - **[User's Guide](docs/USERS_GUIDE.md)** - Practical guide with examples for common programming tasks
 - **[REPL Guide](docs/REPL.md)** - Interactive Read-Eval-Print Loop for experimentation
+- **[Bytecode Format Guide](docs/BYTECODE_FORMAT.md)** - Working with .sg compiled bytecode files
 - **[Language Specification](docs/spec/LANGUAGE_SPEC.md)** - Complete language reference and syntax guide
 - **[Example Programs](examples/)** - Working code examples you can run and study
 
