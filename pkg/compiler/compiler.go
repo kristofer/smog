@@ -626,3 +626,49 @@ func (c *Compiler) addConstant(obj interface{}) int {
 	c.constants = append(c.constants, obj)
 	return len(c.constants) - 1
 }
+
+// CompileIncremental compiles a program while preserving the symbol table.
+//
+// This method is designed for REPL usage where variable declarations and
+// assignments need to persist across multiple compilations. Unlike Compile(),
+// which is intended for single-use compilation, CompileIncremental:
+//   - Preserves the symbol table (local variable mappings)
+//   - Resets the instruction list for each call
+//   - Resets the constant pool for each call
+//
+// The symbol table (symbols map and localCount) persists across calls,
+// allowing local variables declared in previous REPL inputs to remain
+// accessible in subsequent inputs.
+//
+// Example REPL session:
+//   Input 1: | x |     -> symbols["x"] = 0, localCount = 1
+//   Input 2: x := 42.  -> Uses symbols["x"] = 0 (preserved from Input 1)
+//   Input 3: x + 8.    -> Uses symbols["x"] = 0 (still preserved)
+//
+// Parameters:
+//   - program: The AST program to compile
+//
+// Returns:
+//   - Bytecode with instructions and constants
+//   - Error if compilation fails
+func (c *Compiler) CompileIncremental(program *ast.Program) (*bytecode.Bytecode, error) {
+	// Reset instructions and constants for this compilation
+	// but preserve symbols and localCount
+	c.instructions = make([]bytecode.Instruction, 0)
+	c.constants = make([]interface{}, 0)
+	
+	// Compile each statement in order
+	for _, stmt := range program.Statements {
+		if err := c.compileStatement(stmt); err != nil {
+			return nil, err
+		}
+	}
+
+	// Add final return instruction to end the program
+	c.emit(bytecode.OpReturn, 0)
+
+	return &bytecode.Bytecode{
+		Instructions: c.instructions,
+		Constants:    c.constants,
+	}, nil
+}

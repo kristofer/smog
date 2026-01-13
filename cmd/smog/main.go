@@ -92,6 +92,7 @@ func runFile(filename string) {
 // Features:
 //   - Multi-line input support (statements ending with period)
 //   - Persistent VM state (variables and values carry over between inputs)
+//   - Persistent compiler state (local variables persist across inputs)
 //   - Error recovery (errors don't crash the REPL)
 //   - Special commands: :quit, :exit, :help
 //
@@ -107,6 +108,10 @@ func runREPL() {
 
 	// Create a persistent VM for the REPL session
 	v := vm.New()
+	// Create a persistent compiler for the REPL session
+	// This maintains the symbol table across evaluations so that
+	// local variables declared in one input remain available in subsequent inputs
+	c := compiler.New()
 	scanner := bufio.NewScanner(os.Stdin)
 	
 	// Buffer for multi-line input
@@ -160,7 +165,7 @@ func runREPL() {
 		
 		// We have complete input, try to execute it
 		if input != "" {
-			evalREPL(v, input)
+			evalREPL(v, c, input)
 		}
 		
 		// Clear buffer for next input
@@ -174,9 +179,11 @@ func runREPL() {
 
 // evalREPL evaluates a single REPL input.
 //
-// This function parses, compiles, and runs the input using the persistent VM.
+// This function parses, compiles, and runs the input using the persistent VM
+// and persistent compiler. The compiler maintains the symbol table so that
+// local variables declared in previous inputs remain available.
 // Errors are printed but don't stop the REPL.
-func evalREPL(v *vm.VM, input string) {
+func evalREPL(v *vm.VM, c *compiler.Compiler, input string) {
 	// Parse the input
 	p := parser.New(input)
 	program, err := p.Parse()
@@ -190,9 +197,10 @@ func evalREPL(v *vm.VM, input string) {
 		return
 	}
 	
-	// Compile the AST to bytecode
-	c := compiler.New()
-	bc, err := c.Compile(program)
+	// Compile the AST to bytecode using incremental compilation
+	// This preserves the symbol table across REPL inputs so that
+	// local variables remain accessible
+	bc, err := c.CompileIncremental(program)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Compile error: %v\n", err)
 		return
