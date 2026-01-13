@@ -1,0 +1,48 @@
+" =============================================== "
+" Smog v0.3.0 - Blocks and Control Flow Examples "
+" =============================================== "
+
+" Simple block execution "
+'Simple block:' println.
+[ 'Hello from a block!' println ] value.
+
+" Block with parameter "
+'Block with parameter (square of 7):' println.
+[ :x | x * x ] value: 7.
+
+" Block with multiple parameters "
+'Block with two parameters (3 + 4):' println.
+[ :x :y | x + y ] value: 3 value: 4.
+
+" Conditional execution with ifTrue: "
+'Testing ifTrue:' println.
+true ifTrue: [ '  Condition is true!' println ].
+
+" Conditional execution with ifFalse: "
+'Testing ifFalse:' println.
+false ifFalse: [ '  Condition is false!' println ].
+
+" Looping with timesRepeat: "
+'Printing stars 5 times:' println.
+5 timesRepeat: [ '* ' print ].
+'' println.
+
+" Array iteration with do: "
+'Array elements (iterating with do:):' println.
+#(1 2 3 4 5) do: [ :x | x println ].
+
+" Array operations "
+'Array size:' print.
+#(10 20 30) size println.
+
+'Element at index 2:' print.
+#(10 20 30) at: 2.
+
+" Combining operations "
+'Sum of array (manual with do:):' println.
+| numbers sum |
+numbers := #(1 2 3 4 5).
+sum := 0.
+numbers do: [ :x | sum := sum + x ].
+'Sum: ' print.
+sum println.

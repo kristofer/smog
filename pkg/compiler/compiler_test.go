@@ -317,3 +317,112 @@ true.`
 		t.Errorf("Expected RETURN instruction, got %v", bc.Instructions[3].Op)
 	}
 }
+
+func TestCompileSimpleBlock(t *testing.T) {
+input := "[ 42 ]"
+
+p := parser.New(input)
+program, err := p.Parse()
+if err != nil {
+t.Fatalf("Parse failed: %v", err)
+}
+
+c := New()
+bc, err := c.Compile(program)
+if err != nil {
+t.Fatalf("Compile failed: %v", err)
+}
+
+// Should have: MAKE_CLOSURE, RETURN
+if len(bc.Instructions) != 2 {
+t.Fatalf("Expected 2 instructions, got %d", len(bc.Instructions))
+}
+
+if bc.Instructions[0].Op != bytecode.OpMakeClosure {
+t.Errorf("Expected MAKE_CLOSURE instruction, got %v", bc.Instructions[0].Op)
+}
+
+// Check that block bytecode is in constants
+if len(bc.Constants) < 1 {
+t.Fatalf("Expected at least 1 constant (block bytecode), got %d", len(bc.Constants))
+}
+
+blockBC, ok := bc.Constants[0].(*bytecode.Bytecode)
+if !ok {
+t.Fatalf("Expected first constant to be Bytecode, got %T", bc.Constants[0])
+}
+
+// Block should have: PUSH 42, RETURN
+if len(blockBC.Instructions) != 2 {
+t.Errorf("Expected 2 instructions in block, got %d", len(blockBC.Instructions))
+}
+}
+
+func TestCompileBlockWithParameter(t *testing.T) {
+input := "[ :x | x + 1 ]"
+
+p := parser.New(input)
+program, err := p.Parse()
+if err != nil {
+t.Fatalf("Parse failed: %v", err)
+}
+
+c := New()
+bc, err := c.Compile(program)
+if err != nil {
+t.Fatalf("Compile failed: %v", err)
+}
+
+// Should have: MAKE_CLOSURE, RETURN
+if len(bc.Instructions) < 1 {
+t.Fatalf("Expected at least 1 instruction, got %d", len(bc.Instructions))
+}
+
+if bc.Instructions[0].Op != bytecode.OpMakeClosure {
+t.Errorf("Expected MAKE_CLOSURE instruction, got %v", bc.Instructions[0].Op)
+}
+
+// Check parameter count is encoded in operand (low 8 bits)
+paramCount := bc.Instructions[0].Operand & bytecode.ArgCountMask
+if paramCount != 1 {
+t.Errorf("Expected 1 parameter, got %d", paramCount)
+}
+}
+
+func TestCompileArrayLiteral(t *testing.T) {
+input := "#(1 2 3)"
+
+p := parser.New(input)
+program, err := p.Parse()
+if err != nil {
+t.Fatalf("Parse failed: %v", err)
+}
+
+c := New()
+bc, err := c.Compile(program)
+if err != nil {
+t.Fatalf("Compile failed: %v", err)
+}
+
+// Should have: PUSH 1, PUSH 2, PUSH 3, MAKE_ARRAY 3, RETURN
+if len(bc.Instructions) != 5 {
+t.Fatalf("Expected 5 instructions, got %d", len(bc.Instructions))
+}
+
+// Check for three PUSH instructions
+for i := 0; i < 3; i++ {
+if bc.Instructions[i].Op != bytecode.OpPush {
+t.Errorf("Expected PUSH instruction at index %d, got %v", i, bc.Instructions[i].Op)
+}
+}
+
+// Check MAKE_ARRAY instruction
+if bc.Instructions[3].Op != bytecode.OpMakeArray {
+t.Errorf("Expected MAKE_ARRAY instruction, got %v", bc.Instructions[3].Op)
+}
+
+// Check element count
+if bc.Instructions[3].Operand != 3 {
+t.Errorf("Expected MAKE_ARRAY operand 3, got %d", bc.Instructions[3].Operand)
+}
+}

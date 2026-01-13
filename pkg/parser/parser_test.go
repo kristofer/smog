@@ -508,3 +508,171 @@ func TestParseKeywordMessageSend(t *testing.T) {
 		t.Errorf("Expected second argument 20, got %d", arg2.Value)
 	}
 }
+
+func TestParseSimpleBlockLiteral(t *testing.T) {
+	input := "[ 'Hello' println ]"
+
+	p := New(input)
+	program, err := p.Parse()
+
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+	}
+
+	block, ok := stmt.Expression.(*ast.BlockLiteral)
+	if !ok {
+		t.Fatalf("Expected BlockLiteral, got %T", stmt.Expression)
+	}
+
+	if len(block.Parameters) != 0 {
+		t.Errorf("Expected 0 parameters, got %d", len(block.Parameters))
+	}
+
+	if len(block.Body) != 1 {
+		t.Fatalf("Expected 1 statement in block body, got %d", len(block.Body))
+	}
+}
+
+func TestParseBlockLiteralWithOneParameter(t *testing.T) {
+	input := "[ :x | x * 2 ]"
+
+	p := New(input)
+	program, err := p.Parse()
+
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+	}
+
+	block, ok := stmt.Expression.(*ast.BlockLiteral)
+	if !ok {
+		t.Fatalf("Expected BlockLiteral, got %T", stmt.Expression)
+	}
+
+	if len(block.Parameters) != 1 {
+		t.Fatalf("Expected 1 parameter, got %d", len(block.Parameters))
+	}
+
+	if block.Parameters[0] != "x" {
+		t.Errorf("Expected parameter 'x', got '%s'", block.Parameters[0])
+	}
+
+	if len(block.Body) != 1 {
+		t.Fatalf("Expected 1 statement in block body, got %d", len(block.Body))
+	}
+}
+
+func TestParseBlockLiteralWithMultipleParameters(t *testing.T) {
+	input := "[ :x :y | x + y ]"
+
+	p := New(input)
+	program, err := p.Parse()
+
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+	}
+
+	block, ok := stmt.Expression.(*ast.BlockLiteral)
+	if !ok {
+		t.Fatalf("Expected BlockLiteral, got %T", stmt.Expression)
+	}
+
+	if len(block.Parameters) != 2 {
+		t.Fatalf("Expected 2 parameters, got %d", len(block.Parameters))
+	}
+
+	if block.Parameters[0] != "x" {
+		t.Errorf("Expected first parameter 'x', got '%s'", block.Parameters[0])
+	}
+
+	if block.Parameters[1] != "y" {
+		t.Errorf("Expected second parameter 'y', got '%s'", block.Parameters[1])
+	}
+}
+
+func TestParseReturnStatement(t *testing.T) {
+	input := "^42"
+
+	p := New(input)
+	program, err := p.Parse()
+
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+	}
+
+	ret, ok := program.Statements[0].(*ast.ReturnStatement)
+	if !ok {
+		t.Fatalf("Expected ReturnStatement, got %T", program.Statements[0])
+	}
+
+	intLit, ok := ret.Value.(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("Expected IntegerLiteral in return, got %T", ret.Value)
+	}
+
+	if intLit.Value != 42 {
+		t.Errorf("Expected return value 42, got %d", intLit.Value)
+	}
+}
+
+func TestParseArrayLiteral(t *testing.T) {
+	input := "#(1 2 3 4 5)"
+
+	p := New(input)
+	program, err := p.Parse()
+
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+	}
+
+	arr, ok := stmt.Expression.(*ast.ArrayLiteral)
+	if !ok {
+		t.Fatalf("Expected ArrayLiteral, got %T", stmt.Expression)
+	}
+
+	if len(arr.Elements) != 5 {
+		t.Fatalf("Expected 5 elements, got %d", len(arr.Elements))
+	}
+
+	expected := []int64{1, 2, 3, 4, 5}
+	for i, elem := range arr.Elements {
+		intLit, ok := elem.(*ast.IntegerLiteral)
+		if !ok {
+			t.Fatalf("Expected IntegerLiteral at index %d, got %T", i, elem)
+		}
+		if intLit.Value != expected[i] {
+			t.Errorf("Expected element %d to be %d, got %d", i, expected[i], intLit.Value)
+		}
+	}
+}
