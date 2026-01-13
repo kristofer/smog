@@ -175,28 +175,32 @@ Deep-dive technical documentation for understanding how Smog works internally:
 
 ## Development Status
 
-**Current Version**: 0.4.0
+**Current Version**: 0.5.0 (Advanced Classes)
 
-Smog has completed its enhanced features implementation. Current features:
+Smog has completed advanced class features implementation. Current features:
 - ✅ Complete lexer and parser
 - ✅ AST-based intermediate representation
 - ✅ Bytecode compiler
 - ✅ Stack-based virtual machine
+- ✅ **Full inheritance with method lookup**
+- ✅ **Class methods (factory methods)**
+- ✅ **Class variables (shared state)**
+- ✅ **Complete super message send support**
 - ✅ Blocks and closures
 - ✅ Arrays and dictionary literals
-- ✅ Super message sends
 - ✅ Cascading messages
 - ✅ Self keyword
 - ✅ Control flow primitives (ifTrue:, ifFalse:, timesRepeat:, do:)
 - ✅ Interactive REPL
 - ✅ Comprehensive documentation (teaching-quality comments)
-- ✅ Extensive test suite (70+ tests, benchmarks)
+- ✅ Extensive test suite (85+ tests, benchmarks)
 
 ### Version History
 - **v0.1.0**: Foundation - project structure and documentation
 - **v0.2.0**: Core language features - variables, message sends, primitives
 - **v0.3.0**: Blocks, arrays, control flow, extensive documentation
 - **v0.4.0**: Enhanced features - super, cascading, dictionaries, REPL
+- **v0.5.0**: Advanced classes - inheritance, class methods, class variables
 
 See the [roadmap](docs/planning/ROADMAP.md) for planned features and timeline.
 
