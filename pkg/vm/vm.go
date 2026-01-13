@@ -612,44 +612,38 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 
 		case bytecode.OpLoadField:
 			// LOAD_FIELD: Load an instance variable onto the stack
-			// Operand: field index (relative to method's class)
+			// Operand: field index
 			//
 			// Loads a field from the current object (self).
 			// Only valid within method context where self is an Instance.
-			// The operand is relative to the method's class, so we add the field offset.
+			// Field indices are absolute (methods are compiled with all inherited fields).
 			instance, ok := vm.self.(*Instance)
 			if !ok {
 				return fmt.Errorf("LOAD_FIELD requires self to be an Instance, got %T", vm.self)
 			}
 
-			// Calculate absolute field index
-			absoluteIndex := vm.fieldOffset + inst.Operand
-			if absoluteIndex < 0 || absoluteIndex >= len(instance.Fields) {
-				return fmt.Errorf("field index out of bounds: %d (offset=%d, relative=%d)", 
-					absoluteIndex, vm.fieldOffset, inst.Operand)
+			if inst.Operand < 0 || inst.Operand >= len(instance.Fields) {
+				return fmt.Errorf("field index out of bounds: %d", inst.Operand)
 			}
 
-			if err := vm.push(instance.Fields[absoluteIndex]); err != nil {
+			if err := vm.push(instance.Fields[inst.Operand]); err != nil {
 				return err
 			}
 
 		case bytecode.OpStoreField:
 			// STORE_FIELD: Store a value to an instance variable
-			// Operand: field index (relative to method's class)
+			// Operand: field index
 			//
 			// Stores the top stack value to a field of the current object (self).
 			// The value is popped, stored, then pushed back (assignments return values).
-			// The operand is relative to the method's class, so we add the field offset.
+			// Field indices are absolute (methods are compiled with all inherited fields).
 			instance, ok := vm.self.(*Instance)
 			if !ok {
 				return fmt.Errorf("STORE_FIELD requires self to be an Instance, got %T", vm.self)
 			}
 
-			// Calculate absolute field index
-			absoluteIndex := vm.fieldOffset + inst.Operand
-			if absoluteIndex < 0 || absoluteIndex >= len(instance.Fields) {
-				return fmt.Errorf("field index out of bounds: %d (offset=%d, relative=%d)", 
-					absoluteIndex, vm.fieldOffset, inst.Operand)
+			if inst.Operand < 0 || inst.Operand >= len(instance.Fields) {
+				return fmt.Errorf("field index out of bounds: %d", inst.Operand)
 			}
 
 			val, err := vm.pop()
@@ -657,7 +651,7 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 				return err
 			}
 
-			instance.Fields[absoluteIndex] = val
+			instance.Fields[inst.Operand] = val
 
 			// Push the value back (assignment returns the value)
 			if err := vm.push(val); err != nil {
@@ -1416,7 +1410,7 @@ func (vm *VM) superSend(instance *Instance, selector string, args []interface{})
 	methodVM.classes = vm.classes       // Share class registry
 	methodVM.self = instance            // Set self to the instance
 	methodVM.currentClass = class       // Set class context to where method was found
-	methodVM.fieldOffset = vm.getFieldOffset(class) // Set field offset for this class
+	// No field offset needed - methods are compiled with all fields
 
 	// Set up method parameters as local variables
 	for i, arg := range args {
@@ -1478,7 +1472,7 @@ func (vm *VM) executeMethod(instance *Instance, selector string, args []interfac
 	methodVM.classes = vm.classes       // Share class registry
 	methodVM.self = instance            // Set self to the instance
 	methodVM.currentClass = class       // Set current class context for super sends
-	methodVM.fieldOffset = vm.getFieldOffset(class) // Set field offset for this class
+	// No field offset needed - methods are compiled with all fields
 
 	// Set up method parameters as local variables
 	for i, arg := range args {

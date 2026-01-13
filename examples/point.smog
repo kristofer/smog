@@ -1,0 +1,84 @@
+" Point class with class method factory "
+
+Object subclass: #Point [
+    | x y |
+    
+    " Class method to create a point with coordinates "
+    <x: xVal y: yVal [
+        | point |
+        point := Point new.
+        point setX: xVal.
+        point setY: yVal.
+        ^point
+    ]>
+    
+    " Class method to create a point at origin "
+    <origin [
+        ^Point x: 0 y: 0
+    ]>
+    
+    setX: val [
+        x := val.
+    ]
+    
+    setY: val [
+        y := val.
+    ]
+    
+    getX [
+        ^x
+    ]
+    
+    getY [
+        ^y
+    ]
+    
+    describe [
+        '(' print.
+        x print.
+        ', ' print.
+        y print.
+        ')' println.
+    ]
+    
+    distanceFromOrigin [
+        | xSquared ySquared sum |
+        xSquared := x * x.
+        ySquared := y * y.
+        sum := xSquared + ySquared.
+        ^sum
+    ]
+]
+
+" Create points using class methods "
+| p1 p2 p3 |
+
+p1 := Point origin.
+p2 := Point x: 3 y: 4.
+p3 := Point x: 10 y: 20.
+
+'Points created:' println.
+
+'Origin: ' print.
+p1 describe.
+
+'Point 1: ' print.
+p2 describe.
+
+'Point 2: ' print.
+p3 describe.
+
+'' println.
+'Distances from origin (squared):' println.
+
+'Origin distance: ' print.
+val := p1 distanceFromOrigin.
+val println.
+
+'Point 1 distance: ' print.
+val := p2 distanceFromOrigin.
+val println.
+
+'Point 2 distance: ' print.
+val := p3 distanceFromOrigin.
+val println.

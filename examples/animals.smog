@@ -1,0 +1,65 @@
+" Inheritance example: Animals with different sounds "
+
+Object subclass: #Animal [
+    | name |
+    
+    setName: n [
+        name := n.
+    ]
+    
+    getName [
+        ^name
+    ]
+    
+    speak [
+        ^'Some generic sound'
+    ]
+    
+    introduce [
+        | sound |
+        'I am a ' print.
+        name print.
+        ' and I say: ' print.
+        sound := self speak.
+        sound println.
+    ]
+]
+
+Animal subclass: #Dog [
+    speak [
+        ^'Woof!'
+    ]
+]
+
+Animal subclass: #Cat [
+    speak [
+        ^'Meow!'
+    ]
+]
+
+Animal subclass: #Cow [
+    speak [
+        ^'Moo!'
+    ]
+]
+
+" Create and use different animals "
+| dog cat cow |
+
+dog := Dog new.
+dog setName: 'Buddy'.
+
+cat := Cat new.
+cat setName: 'Whiskers'.
+
+cow := Cow new.
+cow setName: 'Bessie'.
+
+'Dogs:' println.
+dog introduce.
+
+'Cats:' println.
+cat introduce.
+
+'Cows:' println.
+cow introduce.

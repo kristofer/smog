@@ -1,0 +1,92 @@
+" Super send example: Vehicle hierarchy with acceleration "
+
+Object subclass: #Vehicle [
+    | speed |
+    
+    initialize [
+        speed := 0.
+    ]
+    
+    accelerate [
+        speed := speed + 10.
+        ^speed
+    ]
+    
+    getSpeed [
+        ^speed
+    ]
+    
+    describe [
+        'Speed: ' print.
+        speed println.
+    ]
+]
+
+Vehicle subclass: #Car [
+    | turboBoost |
+    
+    initialize [
+        super initialize.
+        turboBoost := 5.
+    ]
+    
+    accelerate [
+        | baseSpeed |
+        " Call parent's accelerate first "
+        baseSpeed := super accelerate.
+        " Then add turbo boost "
+        speed := baseSpeed + turboBoost.
+        ^speed
+    ]
+    
+    describe [
+        'Car - ' print.
+        super describe.
+    ]
+]
+
+Vehicle subclass: #Bicycle [
+    initialize [
+        super initialize.
+    ]
+    
+    accelerate [
+        | baseSpeed |
+        " Bicycles accelerate slower "
+        baseSpeed := super accelerate.
+        speed := baseSpeed - 5.
+        ^speed
+    ]
+    
+    describe [
+        'Bicycle - ' print.
+        super describe.
+    ]
+]
+
+" Test the vehicles "
+| car bike |
+
+car := Car new.
+car initialize.
+
+bike := Bicycle new.
+bike initialize.
+
+'Initial state:' println.
+car describe.
+bike describe.
+
+'' println.
+'After one acceleration:' println.
+car accelerate.
+bike accelerate.
+car describe.
+bike describe.
+
+'' println.
+'After another acceleration:' println.
+car accelerate.
+bike accelerate.
+car describe.
+bike describe.
