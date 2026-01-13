@@ -1018,3 +1018,320 @@ t.Errorf("Expected message %d to be '%s', got '%s'", i, expected, cascade.Messag
 }
 }
 }
+
+// TestParseSimpleClass tests parsing a basic class with instance variables and a method
+func TestParseSimpleClass(t *testing.T) {
+input := `Object subclass: #Counter [
+| count |
+
+initialize [
+count := 0.
+]
+]`
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+class, ok := program.Statements[0].(*ast.Class)
+if !ok {
+t.Fatalf("Expected Class, got %T", program.Statements[0])
+}
+
+if class.Name != "Counter" {
+t.Errorf("Expected class name 'Counter', got '%s'", class.Name)
+}
+
+if class.SuperClass != "Object" {
+t.Errorf("Expected superclass 'Object', got '%s'", class.SuperClass)
+}
+
+if len(class.Fields) != 1 {
+t.Fatalf("Expected 1 instance variable, got %d", len(class.Fields))
+}
+
+if class.Fields[0] != "count" {
+t.Errorf("Expected instance variable 'count', got '%s'", class.Fields[0])
+}
+
+if len(class.Methods) != 1 {
+t.Fatalf("Expected 1 method, got %d", len(class.Methods))
+}
+
+if class.Methods[0].Name != "initialize" {
+t.Errorf("Expected method name 'initialize', got '%s'", class.Methods[0].Name)
+}
+}
+
+// TestParseClassWithMultipleInstanceVariables tests parsing a class with multiple instance variables
+func TestParseClassWithMultipleInstanceVariables(t *testing.T) {
+input := `Object subclass: #Point [
+| x y z |
+]`
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+class := program.Statements[0].(*ast.Class)
+
+if len(class.Fields) != 3 {
+t.Fatalf("Expected 3 instance variables, got %d", len(class.Fields))
+}
+
+expectedFields := []string{"x", "y", "z"}
+for i, expected := range expectedFields {
+if class.Fields[i] != expected {
+t.Errorf("Expected field %d to be '%s', got '%s'", i, expected, class.Fields[i])
+}
+}
+}
+
+// TestParseClassWithClassVariables tests parsing a class with class variables
+func TestParseClassWithClassVariables(t *testing.T) {
+input := `Object subclass: #Counter [
+| count |
+<| totalCount instances |>
+
+initialize [
+count := 0.
+]
+]`
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+class := program.Statements[0].(*ast.Class)
+
+if len(class.ClassVariables) != 2 {
+t.Fatalf("Expected 2 class variables, got %d", len(class.ClassVariables))
+}
+
+expectedClassVars := []string{"totalCount", "instances"}
+for i, expected := range expectedClassVars {
+if class.ClassVariables[i] != expected {
+t.Errorf("Expected class variable %d to be '%s', got '%s'", i, expected, class.ClassVariables[i])
+}
+}
+}
+
+// TestParseClassWithKeywordMethod tests parsing a method with keyword parameters
+func TestParseClassWithKeywordMethod(t *testing.T) {
+input := `Object subclass: #Point [
+x: xValue y: yValue [
+x := xValue.
+y := yValue.
+]
+]`
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+class := program.Statements[0].(*ast.Class)
+
+if len(class.Methods) != 1 {
+t.Fatalf("Expected 1 method, got %d", len(class.Methods))
+}
+
+method := class.Methods[0]
+if method.Name != "x:y:" {
+t.Errorf("Expected method name 'x:y:', got '%s'", method.Name)
+}
+
+if len(method.Parameters) != 2 {
+t.Fatalf("Expected 2 parameters, got %d", len(method.Parameters))
+}
+
+expectedParams := []string{"xValue", "yValue"}
+for i, expected := range expectedParams {
+if method.Parameters[i] != expected {
+t.Errorf("Expected parameter %d to be '%s', got '%s'", i, expected, method.Parameters[i])
+}
+}
+}
+
+// TestParseClassWithBinaryMethod tests parsing a binary operator method
+func TestParseClassWithBinaryMethod(t *testing.T) {
+input := `Object subclass: #Point [
++ aPoint [
+		^self
+]
+]`
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+class := program.Statements[0].(*ast.Class)
+
+if len(class.Methods) != 1 {
+t.Fatalf("Expected 1 method, got %d", len(class.Methods))
+}
+
+method := class.Methods[0]
+if method.Name != "+" {
+t.Errorf("Expected method name '+', got '%s'", method.Name)
+}
+
+if len(method.Parameters) != 1 {
+t.Fatalf("Expected 1 parameter, got %d", len(method.Parameters))
+}
+
+if method.Parameters[0] != "aPoint" {
+t.Errorf("Expected parameter 'aPoint', got '%s'", method.Parameters[0])
+}
+}
+
+// TestParseClassWithClassMethod tests parsing a class method
+func TestParseClassWithClassMethod(t *testing.T) {
+input := `Object subclass: #Counter [
+<new [
+^self basicNew initialize
+]>
+]`
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+class := program.Statements[0].(*ast.Class)
+
+if len(class.ClassMethods) != 1 {
+t.Fatalf("Expected 1 class method, got %d", len(class.ClassMethods))
+}
+
+method := class.ClassMethods[0]
+if method.Name != "new" {
+t.Errorf("Expected class method name 'new', got '%s'", method.Name)
+}
+}
+
+// TestParseClassWithMultipleMethods tests parsing a class with multiple methods
+func TestParseClassWithMultipleMethods(t *testing.T) {
+input := `Object subclass: #Counter [
+| count |
+
+initialize [
+count := 0.
+]
+
+increment [
+count := count + 1.
+]
+
+value [
+^count
+]
+]`
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+class := program.Statements[0].(*ast.Class)
+
+if len(class.Methods) != 3 {
+t.Fatalf("Expected 3 methods, got %d", len(class.Methods))
+}
+
+expectedMethods := []string{"initialize", "increment", "value"}
+for i, expected := range expectedMethods {
+if class.Methods[i].Name != expected {
+t.Errorf("Expected method %d to be '%s', got '%s'", i, expected, class.Methods[i].Name)
+}
+}
+}
+
+// TestParseCompleteClass tests parsing a complete class with all features
+func TestParseCompleteClass(t *testing.T) {
+input := `Vehicle subclass: #Car [
+| speed turboBoost |
+<| totalCars |>
+
+initialize [
+speed := 0.
+turboBoost := false.
+]
+
+accelerate [
+speed := speed + 10.
+]
+
+<incrementTotal [
+totalCars := totalCars + 1.
+]>
+]`
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+class := program.Statements[0].(*ast.Class)
+
+// Check class name and superclass
+if class.Name != "Car" {
+t.Errorf("Expected class name 'Car', got '%s'", class.Name)
+}
+
+if class.SuperClass != "Vehicle" {
+t.Errorf("Expected superclass 'Vehicle', got '%s'", class.SuperClass)
+}
+
+// Check instance variables
+if len(class.Fields) != 2 {
+t.Fatalf("Expected 2 instance variables, got %d", len(class.Fields))
+}
+
+// Check class variables
+if len(class.ClassVariables) != 1 {
+t.Fatalf("Expected 1 class variable, got %d", len(class.ClassVariables))
+}
+
+if class.ClassVariables[0] != "totalCars" {
+t.Errorf("Expected class variable 'totalCars', got '%s'", class.ClassVariables[0])
+}
+
+// Check instance methods
+if len(class.Methods) != 2 {
+t.Fatalf("Expected 2 instance methods, got %d", len(class.Methods))
+}
+
+// Check class methods
+if len(class.ClassMethods) != 1 {
+t.Fatalf("Expected 1 class method, got %d", len(class.ClassMethods))
+}
+
+if class.ClassMethods[0].Name != "incrementTotal" {
+t.Errorf("Expected class method 'incrementTotal', got '%s'", class.ClassMethods[0].Name)
+}
+}

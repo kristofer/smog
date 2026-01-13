@@ -215,6 +215,12 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseReturnStatement()
 	}
 
+	// Check for class definitions (Identifier subclass: #ClassName [...])
+	// We need to check if it's specifically: identifier "subclass" ":"
+	if p.isClassDefinition() {
+		return p.parseClass()
+	}
+
 	// Otherwise, treat it as an expression statement
 	expr := p.parseExpression()
 	if expr == nil {
@@ -427,6 +433,7 @@ func (p *Parser) parseMessageSend() ast.Expression {
 			
 			// Parse first argument (move to the argument position)
 			p.nextToken()
+			// TODO: Support unary/binary messages as arguments (precedence handling needed)
 			arg := p.parsePrimaryExpression()
 			if arg == nil {
 				p.addError("expected argument after keyword")
@@ -450,6 +457,7 @@ func (p *Parser) parseMessageSend() ast.Expression {
 					
 					// Parse the argument for this keyword part
 					p.nextToken()
+					// TODO: Support unary/binary messages as arguments (precedence handling needed)
 					arg := p.parsePrimaryExpression()
 					if arg == nil {
 						p.addError("expected argument after keyword")
@@ -807,6 +815,9 @@ func (p *Parser) parsePrimaryExpression() ast.Expression {
 	case lexer.TokenHashLBrace:
 		// Dictionary literal #{...}
 		return p.parseDictionaryLiteral()
+	case lexer.TokenLParen:
+		// Parenthesized expression (...)
+		return p.parseParenthesizedExpression()
 	default:
 		p.addError(fmt.Sprintf("unexpected token: %s", p.curTok.Type))
 		return nil
@@ -1078,6 +1089,110 @@ func (p *Parser) parseDictionaryLiteral() ast.Expression {
 	return &ast.DictionaryLiteral{Pairs: pairs}
 }
 
+// parseParenthesizedExpression parses an expression within parentheses.
+//
+// Syntax: (expression)
+//
+// Parentheses are used for grouping and controlling evaluation order.
+//
+// Example:
+//   (x + y) * z
+//   Point x: (a + b) y: (c + d)
+func (p *Parser) parseParenthesizedExpression() ast.Expression {
+	// curTok is '('
+	p.nextToken() // move past '('
+	
+	// Parse the full expression inside (with all message types)
+	expr := p.parseBinaryOrUnaryOrPrimary()
+	if expr == nil {
+		return nil
+	}
+	
+	// Expect closing ')'
+	p.nextToken()
+	if p.curTok.Type != lexer.TokenRParen {
+		p.addError("expected ')' to close parenthesized expression")
+		return nil
+	}
+	
+	return expr
+}
+
+// parseUnaryOrPrimary parses a primary expression optionally followed by unary messages.
+//
+// This is used when parsing arguments to binary messages, where unary messages
+// have higher precedence.
+//
+// Example: in "x + aPoint x", the argument to + is "aPoint x" (unary message)
+func (p *Parser) parseUnaryOrPrimary() ast.Expression {
+	// Parse the primary expression first
+	receiver := p.parsePrimaryExpression()
+	if receiver == nil {
+		return nil
+	}
+	
+	// Check for unary messages (identifier without colon)
+	for p.peekTok.Type == lexer.TokenIdentifier {
+		// Save position to check if it's really a unary message
+		savedCur := p.curTok
+		savedPeek := p.peekTok
+		p.nextToken()
+		
+		// Make sure it's not a keyword message (no colon after)
+		if p.peekTok.Type == lexer.TokenColon {
+			// This is a keyword message, restore and stop
+			p.curTok = savedCur
+			p.peekTok = savedPeek
+			break
+		}
+		
+		// It's a unary message
+		selector := p.curTok.Literal
+		receiver = &ast.MessageSend{
+			Receiver: receiver,
+			Selector: selector,
+			Args:     []ast.Expression{},
+		}
+	}
+	
+	return receiver
+}
+
+// parseBinaryOrUnaryOrPrimary parses expressions with proper precedence:
+// 1. Primary (highest)
+// 2. Unary messages
+// 3. Binary messages (lowest)
+//
+// This is used when parsing arguments to keyword messages.
+func (p *Parser) parseBinaryOrUnaryOrPrimary() ast.Expression {
+	// Start with primary + unary
+	receiver := p.parseUnaryOrPrimary()
+	if receiver == nil {
+		return nil
+	}
+	
+	// Check for binary messages
+	if p.isBinaryOperator(p.peekTok.Type) {
+		p.nextToken() // advance to operator
+		operator := p.curTok.Literal
+		
+		// Parse argument (unary or primary)
+		p.nextToken()
+		arg := p.parseUnaryOrPrimary()
+		if arg == nil {
+			return nil
+		}
+		
+		return &ast.MessageSend{
+			Receiver: receiver,
+			Selector: operator,
+			Args:     []ast.Expression{arg},
+		}
+	}
+	
+	return receiver
+}
+
 // Errors returns the list of accumulated parsing errors.
 //
 // This can be called after Parse() to get detailed error information
@@ -1087,4 +1202,261 @@ func (p *Parser) parseDictionaryLiteral() ast.Expression {
 //   - A slice of error message strings (empty if no errors)
 func (p *Parser) Errors() []string {
 	return p.errors
+}
+
+// isClassDefinition checks if the current position is at the start of a class definition.
+//
+// A class definition has the pattern: Identifier "subclass" ":" ...
+// We check if curTok is identifier and peekTok is specifically "subclass".
+func (p *Parser) isClassDefinition() bool {
+	return p.curTok.Type == lexer.TokenIdentifier &&
+		p.peekTok.Type == lexer.TokenIdentifier &&
+		p.peekTok.Literal == "subclass"
+}
+
+// parseClass parses a class definition.
+//
+// Syntax: SuperClass subclass: #ClassName [
+//           | instanceVar1 instanceVar2 |
+//           <| classVar1 classVar2 |>
+//           method1 [ body ]
+//           <classMethod [ body ]>
+//         ]
+//
+// Process:
+//   1. Extract superclass name (already at identifier)
+//   2. Verify "subclass:" keyword
+//   3. Parse class name (symbol starting with #)
+//   4. Parse class body within brackets [...]
+//   5. Within body, parse instance variables, class variables, and methods
+//
+// Example:
+//   Object subclass: #Counter [
+//       | count |
+//       initialize [ count := 0. ]
+//   ]
+func (p *Parser) parseClass() *ast.Class {
+	// curTok should be the superclass identifier
+	if p.curTok.Type != lexer.TokenIdentifier {
+		p.addError("expected superclass identifier")
+		return nil
+	}
+	superClass := p.curTok.Literal
+	
+	// Move to "subclass" keyword
+	p.nextToken()
+	if p.curTok.Type != lexer.TokenIdentifier || p.curTok.Literal != "subclass" {
+		p.addError("expected 'subclass' keyword")
+		return nil
+	}
+	
+	// Expect colon after "subclass"
+	p.nextToken()
+	if p.curTok.Type != lexer.TokenColon {
+		p.addError("expected ':' after 'subclass'")
+		return nil
+	}
+	
+	// Move to class name (should be a symbol like #Counter)
+	p.nextToken()
+	if p.curTok.Type != lexer.TokenHash {
+		p.addError("expected '#' before class name")
+		return nil
+	}
+	
+	// Get the class name after #
+	p.nextToken()
+	if p.curTok.Type != lexer.TokenIdentifier {
+		p.addError("expected class name after '#'")
+		return nil
+	}
+	className := p.curTok.Literal
+	
+	// Expect opening bracket [
+	p.nextToken()
+	if p.curTok.Type != lexer.TokenLBracket {
+		p.addError("expected '[' to start class body")
+		return nil
+	}
+	
+	// Parse class body
+	class := &ast.Class{
+		Name:           className,
+		SuperClass:     superClass,
+		Fields:         []string{},
+		ClassVariables: []string{},
+		Methods:        []*ast.Method{},
+		ClassMethods:   []*ast.Method{},
+	}
+	
+	p.nextToken() // move into the class body
+	
+	// Parse instance variables if present (| var1 var2 |)
+	if p.curTok.Type == lexer.TokenPipe {
+		p.nextToken() // skip opening |
+		for p.curTok.Type == lexer.TokenIdentifier {
+			class.Fields = append(class.Fields, p.curTok.Literal)
+			p.nextToken()
+		}
+		if p.curTok.Type != lexer.TokenPipe {
+			p.addError("expected '|' to close instance variables")
+			return nil
+		}
+		p.nextToken() // skip closing |
+	}
+	
+	// Parse class variables if present (<| classVar1 classVar2 |>)
+	if p.curTok.Type == lexer.TokenLess {
+		// Check if next is pipe
+		if p.peekTok.Type == lexer.TokenPipe {
+			p.nextToken() // skip <
+			p.nextToken() // skip |
+			for p.curTok.Type == lexer.TokenIdentifier {
+				class.ClassVariables = append(class.ClassVariables, p.curTok.Literal)
+				p.nextToken()
+			}
+			if p.curTok.Type != lexer.TokenPipe {
+				p.addError("expected '|' to close class variables")
+				return nil
+			}
+			p.nextToken() // skip |
+			if p.curTok.Type != lexer.TokenGreater {
+				p.addError("expected '>' to close class variables")
+				return nil
+			}
+			p.nextToken() // skip >
+		}
+	}
+	
+	// Parse methods until we hit the closing bracket
+	for p.curTok.Type != lexer.TokenRBracket && p.curTok.Type != lexer.TokenEOF {
+		// Check if this is a class method (starts with <)
+		isClassMethod := false
+		if p.curTok.Type == lexer.TokenLess {
+			isClassMethod = true
+			// Don't consume the < yet, let parseMethod handle it
+		}
+		
+		method := p.parseMethod()
+		if method != nil {
+			if isClassMethod {
+				class.ClassMethods = append(class.ClassMethods, method)
+			} else {
+				class.Methods = append(class.Methods, method)
+			}
+		}
+	}
+	
+	// Expect closing bracket ]
+	if p.curTok.Type != lexer.TokenRBracket {
+		p.addError("expected ']' to close class body")
+		return nil
+	}
+	
+	return class
+}
+
+// parseMethod parses a method definition within a class.
+//
+// Syntax: methodSelector [ body ]
+//        or: keyword: param [ body ]
+//        or: <classMethod [ body ]>
+//
+// Returns a Method with name, parameters, and body.
+func (p *Parser) parseMethod() *ast.Method {
+	// Check for class method (starts with <)
+	isClassMethod := false
+	if p.curTok.Type == lexer.TokenLess {
+		isClassMethod = true
+		p.nextToken() // skip <
+	}
+	
+	// Parse method selector and parameters
+	var selector string
+	var params []string
+	
+	// Check what kind of method selector we have
+	if p.curTok.Type == lexer.TokenIdentifier {
+		// Could be unary or keyword method
+		if p.peekTok.Type == lexer.TokenColon {
+			// Keyword method - parse keyword parts
+			for p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
+				selector += p.curTok.Literal + ":"
+				p.nextToken() // skip identifier
+				p.nextToken() // skip colon
+				
+				// Get parameter name
+				if p.curTok.Type != lexer.TokenIdentifier {
+					p.addError("expected parameter name after ':'")
+					return nil
+				}
+				params = append(params, p.curTok.Literal)
+				p.nextToken()
+			}
+		} else {
+			// Unary method
+			selector = p.curTok.Literal
+			p.nextToken()
+		}
+	} else if p.isBinaryOperator(p.curTok.Type) {
+		// Binary method (e.g., +, -, etc.)
+		selector = p.curTok.Literal
+		p.nextToken()
+		
+		// Binary methods have one parameter
+		if p.curTok.Type != lexer.TokenIdentifier {
+			p.addError("expected parameter name for binary method")
+			return nil
+		}
+		params = append(params, p.curTok.Literal)
+		p.nextToken()
+	} else {
+		p.addError("expected method selector")
+		return nil
+	}
+	
+	// Expect opening bracket for method body
+	if p.curTok.Type != lexer.TokenLBracket {
+		p.addError("expected '[' to start method body")
+		return nil
+	}
+	p.nextToken() // skip [
+	
+	// Parse method body (statements until ])
+	var body []ast.Statement
+	for p.curTok.Type != lexer.TokenRBracket && p.curTok.Type != lexer.TokenEOF {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			body = append(body, stmt)
+		}
+		p.nextToken()
+	}
+	
+	// Expect closing bracket
+	if p.curTok.Type != lexer.TokenRBracket {
+		p.addError("expected ']' to close method body")
+		return nil
+	}
+	p.nextToken() // skip ]
+	
+	// If class method, expect closing >
+	if isClassMethod {
+		if p.curTok.Type != lexer.TokenGreater {
+			p.addError("expected '>' to close class method")
+			return nil
+		}
+		p.nextToken() // skip >
+	}
+	
+	method := &ast.Method{
+		Name:       selector,
+		Parameters: params,
+		Body:       body,
+	}
+	
+	// Note: We don't distinguish class methods from instance methods in the AST yet
+	// This would need to be added to the Method struct or handled separately
+	// For now, all methods go into the Methods slice
+	
+	return method
 }

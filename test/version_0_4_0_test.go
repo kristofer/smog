@@ -301,3 +301,137 @@ func TestVersion0_4_0_Integration(t *testing.T) {
 		}
 	})
 }
+
+// TestVersion0_4_0_ClassParsing tests parsing of class definitions
+func TestVersion0_4_0_ClassParsing(t *testing.T) {
+t.Run("ParseSimpleClass", func(t *testing.T) {
+input := `Object subclass: #Counter [
+| count |
+
+initialize [
+count := 0.
+]
+]`
+
+p := parser.New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse failed: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+class, ok := program.Statements[0].(*ast.Class)
+if !ok {
+t.Fatalf("Expected Class, got %T", program.Statements[0])
+}
+
+if class.Name != "Counter" {
+t.Errorf("Expected class name 'Counter', got '%s'", class.Name)
+}
+
+if class.SuperClass != "Object" {
+t.Errorf("Expected superclass 'Object', got '%s'", class.SuperClass)
+}
+
+if len(class.Fields) != 1 || class.Fields[0] != "count" {
+t.Errorf("Expected 1 instance variable 'count', got %v", class.Fields)
+}
+
+if len(class.Methods) != 1 {
+t.Fatalf("Expected 1 method, got %d", len(class.Methods))
+}
+
+if class.Methods[0].Name != "initialize" {
+t.Errorf("Expected method 'initialize', got '%s'", class.Methods[0].Name)
+}
+})
+
+t.Run("ParseClassWithClassVariablesAndMethods", func(t *testing.T) {
+input := `Object subclass: #Counter [
+| count |
+<| totalCount |>
+
+initialize [
+count := 0.
+]
+
+<resetTotal [
+totalCount := 0.
+]>
+]`
+
+p := parser.New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse failed: %v", err)
+}
+
+class := program.Statements[0].(*ast.Class)
+
+if len(class.ClassVariables) != 1 || class.ClassVariables[0] != "totalCount" {
+t.Errorf("Expected 1 class variable 'totalCount', got %v", class.ClassVariables)
+}
+
+if len(class.ClassMethods) != 1 {
+t.Fatalf("Expected 1 class method, got %d", len(class.ClassMethods))
+}
+
+if class.ClassMethods[0].Name != "resetTotal" {
+t.Errorf("Expected class method 'resetTotal', got '%s'", class.ClassMethods[0].Name)
+}
+})
+
+t.Run("ParseMultipleClasses", func(t *testing.T) {
+input := `Object subclass: #Vehicle [
+| speed |
+
+initialize [
+speed := 0.
+]
+]
+
+Vehicle subclass: #Car [
+| turboBoost |
+
+initialize [
+super initialize.
+turboBoost := false.
+]
+]`
+
+p := parser.New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse failed: %v", err)
+}
+
+if len(program.Statements) != 2 {
+t.Fatalf("Expected 2 statements, got %d", len(program.Statements))
+}
+
+class1, ok1 := program.Statements[0].(*ast.Class)
+class2, ok2 := program.Statements[1].(*ast.Class)
+
+if !ok1 || !ok2 {
+t.Fatalf("Expected both statements to be Classes")
+}
+
+if class1.Name != "Vehicle" {
+t.Errorf("Expected first class 'Vehicle', got '%s'", class1.Name)
+}
+
+if class2.Name != "Car" {
+t.Errorf("Expected second class 'Car', got '%s'", class2.Name)
+}
+
+if class2.SuperClass != "Vehicle" {
+t.Errorf("Expected Car's superclass 'Vehicle', got '%s'", class2.SuperClass)
+}
+})
+}
