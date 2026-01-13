@@ -190,19 +190,29 @@ func (p *Parser) Parse() (*ast.Program, error) {
 //      Recognized by: curTok is TokenPipe
 //      Parsed by: parseVariableDeclaration()
 //
-//   2. Expression Statement: any expression followed by optional period
+//   2. Return Statement: ^expression
+//      Recognized by: curTok is TokenCaret
+//      Parsed by: parseReturnStatement()
+//
+//   3. Expression Statement: any expression followed by optional period
 //      Recognized by: anything else
 //      Parsed by: parseExpression() wrapped in ExpressionStatement
 //
 // Example flows:
 //
 //   "| x |" -> curTok is TokenPipe -> parseVariableDeclaration()
+//   "^42" -> curTok is TokenCaret -> parseReturnStatement()
 //   "x := 5." -> curTok is TokenIdentifier -> parseExpression() -> Assignment
 //   "3 + 4." -> curTok is TokenInteger -> parseExpression() -> MessageSend
 func (p *Parser) parseStatement() ast.Statement {
 	// Check for variable declarations (start with |)
 	if p.curTok.Type == lexer.TokenPipe {
 		return p.parseVariableDeclaration()
+	}
+
+	// Check for return statements (start with ^)
+	if p.curTok.Type == lexer.TokenCaret {
+		return p.parseReturnStatement()
 	}
 
 	// Otherwise, treat it as an expression statement
@@ -525,6 +535,8 @@ func (p *Parser) isBinaryOperator(tt lexer.TokenType) bool {
 //   - Boolean literals: true, false
 //   - Nil literal: nil
 //   - Identifiers: variableName, x, count
+//   - Block literals: [ ... ], [ :x | ... ]
+//   - Array literals: #(1 2 3)
 //
 // This function dispatches to specific parsing functions based on the
 // current token type.
@@ -533,6 +545,7 @@ func (p *Parser) isBinaryOperator(tt lexer.TokenType) bool {
 //   TokenInteger -> parseIntegerLiteral() -> IntegerLiteral{Value: 42}
 //   TokenString -> parseStringLiteral() -> StringLiteral{Value: "Hello"}
 //   TokenIdentifier -> Identifier{Name: "x"}
+//   TokenLBracket -> parseBlockLiteral() -> BlockLiteral{...}
 func (p *Parser) parsePrimaryExpression() ast.Expression {
 	switch p.curTok.Type {
 	case lexer.TokenInteger:
@@ -549,6 +562,11 @@ func (p *Parser) parsePrimaryExpression() ast.Expression {
 		return &ast.NilLiteral{}
 	case lexer.TokenIdentifier:
 		return &ast.Identifier{Name: p.curTok.Literal}
+	case lexer.TokenLBracket:
+		return p.parseBlockLiteral()
+	case lexer.TokenHashLParen:
+		// Array literal #(...)
+		return p.parseArrayLiteral()
 	default:
 		p.addError(fmt.Sprintf("unexpected token: %s", p.curTok.Type))
 		return nil
@@ -619,6 +637,143 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 //   p.addError("expected closing | in variable declaration")
 func (p *Parser) addError(msg string) {
 	p.errors = append(p.errors, msg)
+}
+
+// parseBlockLiteral parses a block literal.
+//
+// Syntax: [ statements... ]
+//        or: [ :param1 :param2 ... | statements... ]
+//
+// Blocks are closures that can capture variables from their environment.
+//
+// Process:
+//   1. Skip the opening [ (already verified by caller)
+//   2. Check for parameters (start with :)
+//   3. If parameters exist, collect them until |
+//   4. Parse statements until closing ]
+//   5. Return BlockLiteral node
+//
+// Examples:
+//   [ 'Hello' println ]
+//     -> BlockLiteral{Parameters: [], Body: [println statement]}
+//
+//   [ :x | x * 2 ]
+//     -> BlockLiteral{Parameters: ["x"], Body: [x * 2 statement]}
+//
+//   [ :x :y | x + y ]
+//     -> BlockLiteral{Parameters: ["x", "y"], Body: [x + y statement]}
+func (p *Parser) parseBlockLiteral() ast.Expression {
+	// curTok is [, move to next
+	p.nextToken()
+
+	var parameters []string
+
+	// Check for parameters (start with colon)
+	if p.curTok.Type == lexer.TokenColon {
+		// Parse parameters
+		for p.curTok.Type == lexer.TokenColon {
+			p.nextToken() // skip colon
+			if p.curTok.Type != lexer.TokenIdentifier {
+				p.addError("expected parameter name after :")
+				return nil
+			}
+			parameters = append(parameters, p.curTok.Literal)
+			p.nextToken() // move past parameter name
+		}
+
+		// Expect pipe after parameters
+		if p.curTok.Type != lexer.TokenPipe {
+			p.addError("expected | after block parameters")
+			return nil
+		}
+		p.nextToken() // skip pipe
+	}
+
+	// Parse block body (statements until ])
+	var body []ast.Statement
+	for p.curTok.Type != lexer.TokenRBracket && p.curTok.Type != lexer.TokenEOF {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			body = append(body, stmt)
+		}
+		// If we're at a period, skip it and continue
+		if p.curTok.Type == lexer.TokenPeriod {
+			p.nextToken()
+		} else if p.curTok.Type != lexer.TokenRBracket {
+			// If not at ] and not at period, move forward
+			p.nextToken()
+		}
+	}
+
+	// Expect closing ]
+	if p.curTok.Type != lexer.TokenRBracket {
+		p.addError("expected ] to close block")
+		return nil
+	}
+
+	return &ast.BlockLiteral{
+		Parameters: parameters,
+		Body:       body,
+	}
+}
+
+// parseReturnStatement parses a return statement.
+//
+// Syntax: ^expression
+//
+// Return statements exit from methods, returning a value.
+//
+// Example:
+//   ^count
+//     -> ReturnStatement{Value: Identifier("count")}
+//
+//   ^x + y
+//     -> ReturnStatement{Value: MessageSend{...}}
+func (p *Parser) parseReturnStatement() ast.Statement {
+	// curTok is ^, move to the expression
+	p.nextToken()
+
+	// Parse the return value expression
+	value := p.parseExpression()
+	if value == nil {
+		p.addError("expected expression after ^")
+		return nil
+	}
+
+	return &ast.ReturnStatement{Value: value}
+}
+
+// parseArrayLiteral parses an array literal.
+//
+// Syntax: #(element1 element2 ...)
+//
+// Array literals create array objects with the specified elements.
+//
+// Example:
+//   #(1 2 3 4 5)
+//     -> ArrayLiteral{Elements: [1, 2, 3, 4, 5]}
+func (p *Parser) parseArrayLiteral() ast.Expression {
+	// curTok is #(
+	p.nextToken() // move past #(
+
+	var elements []ast.Expression
+
+	// Parse elements until )
+	for p.curTok.Type != lexer.TokenRParen && p.curTok.Type != lexer.TokenEOF {
+		elem := p.parsePrimaryExpression()
+		if elem != nil {
+			elements = append(elements, elem)
+		}
+		p.nextToken()
+	}
+
+	// Expect closing )
+	if p.curTok.Type != lexer.TokenRParen {
+		p.addError("expected ) to close array literal")
+		return nil
+	}
+
+	return &ast.ArrayLiteral{Elements: elements}
 }
 
 // Errors returns the list of accumulated parsing errors.

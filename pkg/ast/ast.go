@@ -294,7 +294,88 @@ type Identifier struct {
 func (i *Identifier) TokenLiteral() string { return i.Name }
 func (i *Identifier) expressionNode()      {}
 
-// Class represents a class definition.
+// BlockLiteral represents a block (closure) literal.
+//
+// Syntax: [ statements... ]
+//        or: [ :param1 :param2 | statements... ]
+//
+// Blocks are anonymous functions (closures) that can be passed around
+// as values and executed later. They are fundamental to control flow
+// and higher-order programming in smog.
+//
+// A block consists of:
+//   - Parameters (optional): :x :y
+//   - Body: sequence of statements
+//
+// Blocks can capture variables from their surrounding scope (closures).
+//
+// Examples:
+//   [ 'Hello' println ]
+//     -> BlockLiteral{Parameters: [], Body: [println message]}
+//
+//   [ :x | x * 2 ]
+//     -> BlockLiteral{Parameters: ["x"], Body: [x * 2]}
+//
+//   [ :x :y | x + y ]
+//     -> BlockLiteral{Parameters: ["x", "y"], Body: [x + y]}
+//
+// Execution:
+//   Blocks are executed by sending them the 'value' message (no args)
+//   or 'value:' message (with args):
+//     block value
+//     block value: 5
+//     block value: 3 value: 7
+type BlockLiteral struct {
+	Parameters []string    // Parameter names (e.g., ["x", "y"])
+	Body       []Statement // Statements in the block body
+}
+
+// TokenLiteral returns "block" to identify this as a block literal.
+func (bl *BlockLiteral) TokenLiteral() string { return "block" }
+func (bl *BlockLiteral) expressionNode()      {}
+
+// ReturnStatement represents an explicit return from a method.
+//
+// Syntax: ^expression
+//
+// Return statements exit the current method and return a value to the caller.
+// The caret (^) is the return operator.
+//
+// Examples:
+//   ^5
+//     -> ReturnStatement{Value: IntegerLiteral{5}}
+//
+//   ^x + y
+//     -> ReturnStatement{Value: MessageSend{...}}
+//
+// Note: Methods implicitly return self if there's no explicit return.
+// Blocks return the value of their last expression.
+type ReturnStatement struct {
+	Value Expression // The expression to return
+}
+
+// TokenLiteral returns "return" to identify this as a return statement.
+func (rs *ReturnStatement) TokenLiteral() string { return "return" }
+func (rs *ReturnStatement) statementNode()       {}
+
+// ArrayLiteral represents an array literal.
+//
+// Syntax: #(element1 element2 ...)
+//
+// Array literals create arrays with the specified elements.
+//
+// Example:
+//   #(1 2 3 4 5)
+//     -> ArrayLiteral{Elements: [1, 2, 3, 4, 5]}
+//
+// Note: This is syntactic sugar for creating Array instances.
+type ArrayLiteral struct {
+	Elements []Expression // Elements of the array
+}
+
+// TokenLiteral returns "array" to identify this as an array literal.
+func (al *ArrayLiteral) TokenLiteral() string { return "array" }
+func (al *ArrayLiteral) expressionNode()      {}
 //
 // Syntax: SuperClass subclass: #ClassName [fields... methods...]
 //
