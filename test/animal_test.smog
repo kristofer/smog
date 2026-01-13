@@ -1,0 +1,30 @@
+" Test: Inheritance "
+
+Object subclass: #Animal [
+    | name |
+    
+    setName: n [
+        name := n.
+    ]
+    
+    getName [
+        ^name
+    ]
+    
+    speak [
+        'Some generic sound' println.
+    ]
+]
+
+" Note: For now, we'll test without subclassing Animal
+  since we haven't implemented superclass lookup yet "
+
+" Create and use an animal "
+| animal n |
+animal := Animal new.
+animal setName: 'Buddy'.
+n := animal getName.
+
+'Animal name: ' print.
+n println.
+animal speak.

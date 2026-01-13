@@ -342,3 +342,73 @@ func TestMultipleFields(t *testing.T) {
 		t.Errorf("Expected point y to be 20, got %v", result)
 	}
 }
+
+// TestCompleteCounterWorkflow tests a complete Counter workflow.
+func TestCompleteCounterWorkflow(t *testing.T) {
+	source := `
+		Object subclass: #Counter [
+			| count |
+			
+			initialize [
+				count := 0.
+			]
+			
+			increment [
+				count := count + 1.
+			]
+			
+			decrement [
+				count := count - 1.
+			]
+			
+			value [
+				^count
+			]
+			
+			reset [
+				count := 0.
+			]
+		]
+		
+		| counter val1 val2 val3 |
+		counter := Counter new.
+		counter initialize.
+		
+		" Test initial value "
+		val1 := counter value.
+		
+		" Test increment "
+		counter increment.
+		counter increment.
+		counter increment.
+		val2 := counter value.
+		
+		" Test decrement "
+		counter decrement.
+		val3 := counter value.
+	`
+
+	p := parser.New(source)
+	program, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	c := compiler.New()
+	bytecode, err := c.Compile(program)
+	if err != nil {
+		t.Fatalf("Compile error: %v", err)
+	}
+
+	v := vm.New()
+	err = v.Run(bytecode)
+	if err != nil {
+		t.Fatalf("Runtime error: %v", err)
+	}
+
+	// val3 should be 2 (incremented 3 times, decremented once)
+	result := v.StackTop()
+	if result != int64(2) {
+		t.Errorf("Expected counter value to be 2, got %v", result)
+	}
+}

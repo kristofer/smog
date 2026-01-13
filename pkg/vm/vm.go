@@ -1230,50 +1230,50 @@ type Instance struct {
 //   - The method's return value
 //   - Error if method not found or execution fails
 func (vm *VM) executeMethod(instance *Instance, selector string, args []interface{}) (interface{}, error) {
-// Look up the method in the instance's class
-var method *bytecode.MethodDefinition
-for _, m := range instance.Class.Methods {
-if m.Selector == selector {
-method = m
-break
-}
-}
+	// Look up the method in the instance's class
+	var method *bytecode.MethodDefinition
+	for _, m := range instance.Class.Methods {
+		if m.Selector == selector {
+			method = m
+			break
+		}
+	}
 
-if method == nil {
-// Method not found - check superclass chain (for now, just return error)
-return nil, fmt.Errorf("instance of %s does not understand message '%s'", 
-instance.Class.Name, selector)
-}
+	if method == nil {
+		// Method not found - check superclass chain (for now, just return error)
+		return nil, fmt.Errorf("instance of %s does not understand message '%s'", 
+			instance.Class.Name, selector)
+	}
 
-// Check argument count
-if len(args) != len(method.Parameters) {
-return nil, fmt.Errorf("method %s expects %d arguments, got %d", 
-selector, len(method.Parameters), len(args))
-}
+	// Check argument count
+	if len(args) != len(method.Parameters) {
+		return nil, fmt.Errorf("method %s expects %d arguments, got %d", 
+			selector, len(method.Parameters), len(args))
+	}
 
-// Create a new VM for method execution to isolate its stack and locals
-methodVM := New()
-methodVM.globals = vm.globals       // Share global variables
-methodVM.classes = vm.classes       // Share class registry
-methodVM.self = instance            // Set self to the instance
+	// Create a new VM for method execution to isolate its stack and locals
+	methodVM := New()
+	methodVM.globals = vm.globals       // Share global variables
+	methodVM.classes = vm.classes       // Share class registry
+	methodVM.self = instance            // Set self to the instance
 
-// Set up method parameters as local variables
-for i, arg := range args {
-methodVM.locals[i] = arg
-}
+	// Set up method parameters as local variables
+	for i, arg := range args {
+		methodVM.locals[i] = arg
+	}
 
-// Execute the method bytecode
-if err := methodVM.Run(method.Code); err != nil {
-return nil, fmt.Errorf("error in method %s: %w", selector, err)
-}
+	// Execute the method bytecode
+	if err := methodVM.Run(method.Code); err != nil {
+		return nil, fmt.Errorf("error in method %s: %w", selector, err)
+	}
 
-// Return the result (top of stack)
-if methodVM.sp > 0 {
-return methodVM.stack[methodVM.sp-1], nil
-}
+	// Return the result (top of stack)
+	if methodVM.sp > 0 {
+		return methodVM.stack[methodVM.sp-1], nil
+	}
 
-// No value on stack - return nil
-return nil, nil
+	// No value on stack - return nil
+	return nil, nil
 }
 
 // GetGlobal retrieves a global variable by name.
