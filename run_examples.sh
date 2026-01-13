@@ -9,8 +9,8 @@ echo "Building smog..."
 go build -o bin/smog ./cmd/smog
 echo ""
 
-# Find all .smog files in examples/ directory and sort them
-find examples -name "*.smog" -type f | sort | while read -r example; do
+# Find all .smog files in examples/ directory, excluding syntax-only, and sort them
+find examples -name "*.smog" -type f -not -path "*/syntax-only/*" | sort | while read -r example; do
     echo "========================================="
     echo "Running: $example"
     echo "========================================="

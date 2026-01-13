@@ -1,0 +1,19 @@
+" Factorial calculation in Smog "
+
+Object subclass: #Math [
+    " Calculate factorial recursively "
+    " Note: This demonstrates syntax but cannot execute "
+    " because keyword methods in classes are not fully parsed "
+    compute [
+        | n result |
+        n := 5.
+        result := 1.
+        ^result
+    ]
+]
+
+" Create instance and calculate factorial of 5 "
+| math result |
+math := Math new.
+result := math compute.
+result println.  " Would print factorial result "

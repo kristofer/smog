@@ -2,7 +2,9 @@
 
 This directory contains example programs demonstrating various features of the smog language.
 
-## Basic Examples
+## Runnable Examples
+
+These examples can be executed with the current version of Smog:
 
 ### hello.smog
 The classic "Hello, World!" program.
@@ -13,41 +15,28 @@ The classic "Hello, World!" program.
 
 **Demonstrates**: Basic string literal and message sending.
 
-### factorial.smog
-Calculates factorial using recursion.
-
-```smog
-Object subclass: #Math [
-    factorial: n [
-        n <= 1 ifTrue: [ ^1 ].
-        ^n * (self factorial: (n - 1))
-    ]
-]
-```
-
-**Demonstrates**: 
-- Class definition
-- Method definition
-- Recursion
-- Conditional execution (ifTrue:)
-- Return statements (^)
-
-## Object-Oriented Examples
-
-### counter.smog
-A simple counter class with increment/decrement operations.
+### arrays.smog
+Working with arrays and basic collection operations.
 
 **Demonstrates**:
-- Instance variables
-- Multiple methods
-- Object state management
-- Object instantiation
+- Array literals (#(...))
+- Iteration (do:)
+- Array access (at:)
+- Array size
+- Variable declarations
 
-### point.smog
-Classic 2D point class with arithmetic operations.
+### blocks.smog
+Block (closure) examples showing functional programming concepts.
 
 **Demonstrates**:
-- Constructor methods
+- Block literals
+- Block parameters
+- Block evaluation
+- Higher-order functions
+
+## Syntax-Only Examples
+
+Examples that demonstrate valid Smog syntax but require features not yet implemented (classes, object instantiation) are in the [syntax-only/](syntax-only/) directory.
 - Accessor methods
 - Operator overloading (binary messages)
 - Object composition
@@ -80,31 +69,34 @@ Block (closure) examples showing functional programming concepts.
 
 ## Running Examples
 
-Once the smog interpreter is built, you can run any example:
+Once the smog interpreter is built, you can run the executable examples:
 
 ```bash
 # Build the interpreter
 go build -o bin/smog ./cmd/smog
 
-# Run an example
+# Run executable examples
 ./bin/smog examples/hello.smog
-./bin/smog examples/factorial.smog
-./bin/smog examples/counter.smog
-./bin/smog examples/point.smog
 ./bin/smog examples/arrays.smog
 ./bin/smog examples/blocks.smog
+
+# Run all examples with the test script
+./run_examples.sh
 ```
+
+**Note**: Examples in the `syntax-only/` directory demonstrate valid syntax but cannot execute because classes are not yet implemented.
 
 ## Learning Path
 
 If you're new to smog, we recommend exploring the examples in this order:
 
 1. **hello.smog** - Start with the basics
-2. **factorial.smog** - Learn about classes and methods
-3. **counter.smog** - Understand instance variables and state
-4. **point.smog** - See more complex class interactions
-5. **blocks.smog** - Explore functional programming features
-6. **arrays.smog** - Work with collections
+2. **arrays.smog** - Work with collections  
+3. **blocks.smog** - Explore functional programming features
+4. **v0.2.0/** - Versioned examples for v0.2.0 features
+5. **v0.3.0/** - Versioned examples for v0.3.0 features
+6. **v0.4.0/** - Versioned examples for v0.4.0 features
+7. **syntax-only/** - Advanced syntax examples (class-based, not yet executable)
 
 ## Contributing Examples
 
