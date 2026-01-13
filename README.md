@@ -143,17 +143,23 @@ smog/
 
 ## Development Status
 
-**Current Version**: 0.1.0-dev
+**Current Version**: 0.3.0
 
-Smog is in early development. The current release includes:
-- ✅ Project structure
-- ✅ Language specification
-- ✅ Architecture documentation
-- ✅ Example programs
-- 🚧 Parser (planned)
-- 🚧 Compiler (planned)
-- 🚧 Virtual machine (planned)
-- 🚧 Standard library (planned)
+Smog has completed its foundational implementation. Current features:
+- ✅ Complete lexer and parser
+- ✅ AST-based intermediate representation
+- ✅ Bytecode compiler
+- ✅ Stack-based virtual machine
+- ✅ Blocks and closures
+- ✅ Arrays and literals
+- ✅ Control flow primitives (ifTrue:, ifFalse:, timesRepeat:, do:)
+- ✅ Comprehensive documentation (teaching-quality comments)
+- ✅ Extensive test suite (48+ tests)
+
+### Version History
+- **v0.1.0**: Foundation - project structure and documentation
+- **v0.2.0**: Core language features - variables, message sends, primitives
+- **v0.3.0**: Blocks, arrays, control flow, extensive documentation
 
 See the [roadmap](docs/planning/ROADMAP.md) for planned features and timeline.
 

@@ -968,13 +968,13 @@ func (vm *VM) StackTop() interface{} {
 //   - ParamCount: Number of parameters the block expects
 //   - Environment: Captured variables (for closures - future enhancement)
 type Block struct {
-Bytecode   *bytecode.Bytecode // The block's compiled code
-ParamCount int                // Number of parameters
+	Bytecode   *bytecode.Bytecode // The block's compiled code
+	ParamCount int                // Number of parameters
 }
 
 // Array represents a runtime array object.
 //
 // Arrays are ordered collections of values.
 type Array struct {
-Elements []interface{} // The array elements
+	Elements []interface{} // The array elements
 }
