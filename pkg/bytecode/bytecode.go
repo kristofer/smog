@@ -197,6 +197,39 @@ const (
 	//
 	// Allocates a new object with space for instance variables.
 	OpNewObject
+
+	// === Block/Closure Operations ===
+	//
+	// These opcodes handle block (closure) creation and evaluation.
+
+	// OpMakeClosure creates a closure (block) object.
+	// Operand: packed value containing:
+	//   - High bits: index of block code in constant pool
+	//   - Low 8 bits: number of parameters
+	//
+	// A closure captures the current environment and can be executed later.
+	// The block code is stored as a separate bytecode object in the constants.
+	OpMakeClosure
+
+	// OpCallBlock calls a block with arguments.
+	// Operand: number of arguments
+	//
+	// Stack before: [block, arg1, arg2, ..., argN]
+	// Stack after:  [result]
+	//
+	// Executes the block with the given arguments.
+	OpCallBlock
+
+	// === Array Operations ===
+
+	// OpMakeArray creates an array with elements from the stack.
+	// Operand: number of elements
+	//
+	// Stack before: [elem1, elem2, ..., elemN]
+	// Stack after:  [array]
+	//
+	// Pops N elements from the stack and creates an array containing them.
+	OpMakeArray
 )
 
 // Instruction represents a single bytecode instruction.
@@ -334,6 +367,12 @@ func (op Opcode) String() string {
 		return "PUSH_FALSE"
 	case OpNewObject:
 		return "NEW_OBJECT"
+	case OpMakeClosure:
+		return "MAKE_CLOSURE"
+	case OpCallBlock:
+		return "CALL_BLOCK"
+	case OpMakeArray:
+		return "MAKE_ARRAY"
 	default:
 		return "UNKNOWN"
 	}

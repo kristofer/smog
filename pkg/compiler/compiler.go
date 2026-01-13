@@ -138,6 +138,7 @@ func (c *Compiler) Compile(program *ast.Program) (*bytecode.Bytecode, error) {
 //
 //   - ExpressionStatement: Compile the expression (leaves value on stack)
 //   - VariableDeclaration: Register variables in symbol table (no bytecode)
+//   - ReturnStatement: Compile return value and emit RETURN instruction
 //
 // Future statement types might include:
 //   - Class definitions
@@ -164,6 +165,25 @@ func (c *Compiler) compileStatement(stmt ast.Statement) error {
 			c.symbols[name] = c.localCount
 			c.localCount++
 		}
+		return nil
+
+	case *ast.ReturnStatement:
+		// Return statements compile the return value and emit RETURN.
+		//
+		// Process:
+		//   1. Compile the return value expression
+		//   2. Emit RETURN instruction
+		//
+		// The value will be on the stack when RETURN executes,
+		// and the VM will use it as the method/block result.
+		//
+		// Example: ^count + 1
+		//   -> compile "count + 1" (leaves result on stack)
+		//   -> RETURN
+		if err := c.compileExpression(s.Value); err != nil {
+			return err
+		}
+		c.emit(bytecode.OpReturn, 0)
 		return nil
 
 	default:
@@ -193,6 +213,10 @@ func (c *Compiler) compileStatement(stmt ast.Statement) error {
 //   Message Sends:
 //     Compile receiver, compile arguments, emit SEND instruction
 //     Example: 3 + 4 -> PUSH 3; PUSH 4; SEND +, 1
+//
+//   Blocks:
+//     Create a separate bytecode for the block body, add to constants
+//     Example: [ x + 1 ] -> MAKE_CLOSURE block_index, 0
 //
 // All expression compilation follows the pattern:
 //   1. Compile sub-expressions (leaves values on stack)
@@ -351,9 +375,102 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		c.emit(bytecode.OpSend, operand)
 		return nil
 
+	case *ast.BlockLiteral:
+		// Block literals compile to closures.
+		//
+		// Process:
+		//   1. Create a new compiler for the block body
+		//   2. Compile the block body to separate bytecode
+		//   3. Add the bytecode to the constant pool
+		//   4. Emit MAKE_CLOSURE instruction
+		//
+		// The block captures the current environment (closure).
+		//
+		// Example: [ :x | x + 1 ]
+		//   -> Bytecode for block body stored in constants
+		//   -> MAKE_CLOSURE block_idx, 1  (1 parameter)
+		return c.compileBlockLiteral(e)
+
+	case *ast.ArrayLiteral:
+		// Array literals compile to a sequence of element pushes
+		// followed by a MAKE_ARRAY instruction.
+		//
+		// Process:
+		//   1. Compile each element expression
+		//   2. Emit MAKE_ARRAY with element count
+		//
+		// Example: #(1 2 3)
+		//   -> PUSH 1
+		//   -> PUSH 2
+		//   -> PUSH 3
+		//   -> MAKE_ARRAY 3
+		
+		// Compile each element
+		for _, elem := range e.Elements {
+			if err := c.compileExpression(elem); err != nil {
+				return err
+			}
+		}
+		
+		// Emit MAKE_ARRAY instruction
+		c.emit(bytecode.OpMakeArray, len(e.Elements))
+		return nil
+
 	default:
 		return fmt.Errorf("unknown expression type: %T", expr)
 	}
+}
+
+// compileBlockLiteral compiles a block literal into a closure.
+//
+// Blocks are compiled as separate bytecode units that are stored in the
+// constant pool. The MAKE_CLOSURE instruction creates a closure object
+// that captures the current environment.
+//
+// Parameters:
+//   - block: The BlockLiteral AST node
+//
+// Returns:
+//   - error if compilation fails
+func (c *Compiler) compileBlockLiteral(block *ast.BlockLiteral) error {
+	// Create a new compiler for the block body
+	// This gives the block its own symbol table and instruction sequence
+	blockCompiler := New()
+	
+	// Add block parameters to the symbol table
+	// Parameters become local variables in the block
+	for _, param := range block.Parameters {
+		blockCompiler.symbols[param] = blockCompiler.localCount
+		blockCompiler.localCount++
+	}
+	
+	// Compile the block body statements
+	for _, stmt := range block.Body {
+		if err := blockCompiler.compileStatement(stmt); err != nil {
+			return err
+		}
+	}
+	
+	// Add return instruction at the end
+	// Blocks return the value of their last expression
+	blockCompiler.emit(bytecode.OpReturn, 0)
+	
+	// Create the bytecode for the block
+	blockBytecode := &bytecode.Bytecode{
+		Instructions: blockCompiler.instructions,
+		Constants:    blockCompiler.constants,
+	}
+	
+	// Add the block bytecode to the constant pool
+	blockIdx := c.addConstant(blockBytecode)
+	paramCount := len(block.Parameters)
+	
+	// Emit MAKE_CLOSURE instruction
+	// Pack block index and parameter count
+	operand := (blockIdx << bytecode.SelectorIndexShift) | paramCount
+	c.emit(bytecode.OpMakeClosure, operand)
+	
+	return nil
 }
 
 // emit adds a bytecode instruction to the instruction sequence.
