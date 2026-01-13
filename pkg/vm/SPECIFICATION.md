@@ -183,7 +183,7 @@ The VM implements primitive operations as built-in message handlers:
 - `*` (multiply): Multiplies two numbers
 - `/` (divide): Divides two numbers (error on division by zero)
 
-**Type Requirements**: Both operands must be the same numeric type
+**Type Requirements**: Both operands must be the same numeric type (no automatic type coercion)
 **Returns**: Same type as operands
 **Errors**: Type mismatch, division by zero
 

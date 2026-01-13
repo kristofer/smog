@@ -169,7 +169,7 @@ if err != nil {
 - Stack size is fixed at 1024 slots
 - Local variables array is fixed at 256 slots
 - Global variables use a map for dynamic storage
-- Each `Run()` call resets the stack pointer and local variables
+- Each `Run()` call resets the stack pointer to 0 and initializes all local variables to nil
 
 ## Related Documentation
 
