@@ -850,3 +850,85 @@ if arg.Value != 5 {
 t.Errorf("Expected arg value 5, got %d", arg.Value)
 }
 }
+
+// TestParseDictionaryLiteral tests parsing a dictionary literal
+func TestParseDictionaryLiteral(t *testing.T) {
+input := "#{'name' -> 'Alice'. 'age' -> 30}"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+dictLit, ok := stmt.Expression.(*ast.DictionaryLiteral)
+if !ok {
+t.Fatalf("Expected DictionaryLiteral, got %T", stmt.Expression)
+}
+
+if len(dictLit.Pairs) != 2 {
+t.Fatalf("Expected 2 pairs, got %d", len(dictLit.Pairs))
+}
+
+// Check first pair
+key1, ok := dictLit.Pairs[0].Key.(*ast.StringLiteral)
+if !ok || key1.Value != "name" {
+t.Errorf("Expected first key to be 'name'")
+}
+
+value1, ok := dictLit.Pairs[0].Value.(*ast.StringLiteral)
+if !ok || value1.Value != "Alice" {
+t.Errorf("Expected first value to be 'Alice'")
+}
+
+// Check second pair
+key2, ok := dictLit.Pairs[1].Key.(*ast.StringLiteral)
+if !ok || key2.Value != "age" {
+t.Errorf("Expected second key to be 'age'")
+}
+
+value2, ok := dictLit.Pairs[1].Value.(*ast.IntegerLiteral)
+if !ok || value2.Value != 30 {
+t.Errorf("Expected second value to be 30")
+}
+}
+
+// TestParseEmptyDictionaryLiteral tests parsing an empty dictionary
+func TestParseEmptyDictionaryLiteral(t *testing.T) {
+input := "#{}"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+dictLit, ok := stmt.Expression.(*ast.DictionaryLiteral)
+if !ok {
+t.Fatalf("Expected DictionaryLiteral, got %T", stmt.Expression)
+}
+
+if len(dictLit.Pairs) != 0 {
+t.Errorf("Expected 0 pairs, got %d", len(dictLit.Pairs))
+}
+}

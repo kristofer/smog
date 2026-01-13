@@ -430,6 +430,40 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		c.emit(bytecode.OpMakeArray, len(e.Elements))
 		return nil
 
+	case *ast.DictionaryLiteral:
+		// Dictionary literals compile to a sequence of key-value pushes
+		// followed by a MAKE_DICTIONARY instruction.
+		//
+		// Process:
+		//   1. Compile each key expression
+		//   2. Compile each value expression
+		//   3. Emit MAKE_DICTIONARY with pair count
+		//
+		// Example: #{'name' -> 'Alice'. 'age' -> 30}
+		//   -> PUSH 'name'
+		//   -> PUSH 'Alice'
+		//   -> PUSH 'age'
+		//   -> PUSH 30
+		//   -> MAKE_DICTIONARY 2
+		//
+		// Stack evolution:
+		//   []
+		//   ['name']
+		//   ['name', 'Alice']
+		//   ['name', 'Alice', 'age']
+		//   ['name', 'Alice', 'age', 30]
+		//   [dictionary]  ; MAKE_DICTIONARY pops 4 elements and pushes dictionary
+		for _, pair := range e.Pairs {
+			if err := c.compileExpression(pair.Key); err != nil {
+				return err
+			}
+			if err := c.compileExpression(pair.Value); err != nil {
+				return err
+			}
+		}
+		c.emit(bytecode.OpMakeDictionary, len(e.Pairs))
+		return nil
+
 	default:
 		return fmt.Errorf("unknown expression type: %T", expr)
 	}

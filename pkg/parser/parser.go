@@ -676,6 +676,9 @@ func (p *Parser) parsePrimaryExpression() ast.Expression {
 	case lexer.TokenHashLParen:
 		// Array literal #(...)
 		return p.parseArrayLiteral()
+	case lexer.TokenHashLBrace:
+		// Dictionary literal #{...}
+		return p.parseDictionaryLiteral()
 	default:
 		p.addError(fmt.Sprintf("unexpected token: %s", p.curTok.Type))
 		return nil
@@ -883,6 +886,68 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 	}
 
 	return &ast.ArrayLiteral{Elements: elements}
+}
+
+// parseDictionaryLiteral parses a dictionary literal.
+//
+// Syntax: #{key1 -> value1. key2 -> value2. ...}
+//
+// Dictionary literals create dictionary objects with the specified key-value pairs.
+// Each pair consists of a key expression, an arrow (->), and a value expression.
+// Pairs are separated by periods.
+//
+// Example:
+//   #{'name' -> 'Alice'. 'age' -> 30}
+//     -> DictionaryLiteral{Pairs: [{'name', 'Alice'}, {'age', 30}]}
+func (p *Parser) parseDictionaryLiteral() ast.Expression {
+	// curTok is #{
+	p.nextToken() // move past #{
+
+	var pairs []ast.DictionaryPair
+
+	// Parse key-value pairs until }
+	for p.curTok.Type != lexer.TokenRBrace && p.curTok.Type != lexer.TokenEOF {
+		// Parse key
+		key := p.parsePrimaryExpression()
+		if key == nil {
+			p.addError("expected key in dictionary literal")
+			return nil
+		}
+		
+		p.nextToken()
+		
+		// Expect arrow
+		if p.curTok.Type != lexer.TokenArrow {
+			p.addError("expected -> after dictionary key")
+			return nil
+		}
+		
+		p.nextToken() // move past ->
+		
+		// Parse value
+		value := p.parsePrimaryExpression()
+		if value == nil {
+			p.addError("expected value in dictionary literal")
+			return nil
+		}
+		
+		pairs = append(pairs, ast.DictionaryPair{Key: key, Value: value})
+		
+		p.nextToken()
+		
+		// Skip optional period between pairs
+		if p.curTok.Type == lexer.TokenPeriod {
+			p.nextToken()
+		}
+	}
+
+	// Expect closing }
+	if p.curTok.Type != lexer.TokenRBrace {
+		p.addError("expected } to close dictionary literal")
+		return nil
+	}
+
+	return &ast.DictionaryLiteral{Pairs: pairs}
 }
 
 // Errors returns the list of accumulated parsing errors.

@@ -40,6 +40,10 @@ const (
 	TokenRBracket    // ]
 	TokenHash        // #
 	TokenHashLParen  // #(
+	TokenHashLBrace  // #{
+	TokenLBrace      // {
+	TokenRBrace      // }
+	TokenArrow       // ->
 
 	// Cascade operator
 	TokenSemicolon   // ;
@@ -115,6 +119,14 @@ func (tt TokenType) String() string {
 		return "HASH"
 	case TokenHashLParen:
 		return "HASH_LPAREN"
+	case TokenHashLBrace:
+		return "HASH_LBRACE"
+	case TokenLBrace:
+		return "LBRACE"
+	case TokenRBrace:
+		return "RBRACE"
+	case TokenArrow:
+		return "ARROW"
 	case TokenSemicolon:
 		return "SEMICOLON"
 	case TokenPlus:
@@ -205,10 +217,15 @@ func (l *Lexer) NextToken() Token {
 		tok.Type = TokenString
 		tok.Literal = l.readString()
 	case '#':
+		// Could be # (symbol prefix) or #( (array literal) or #{ (dict literal)
 		if l.peekChar() == '(' {
-			l.readChar()
 			tok.Type = TokenHashLParen
 			tok.Literal = "#("
+			l.readChar()
+		} else if l.peekChar() == '{' {
+			tok.Type = TokenHashLBrace
+			tok.Literal = "#{"
+			l.readChar()
 		} else {
 			tok.Type = TokenHash
 			tok.Literal = "#"
@@ -254,13 +271,27 @@ func (l *Lexer) NextToken() Token {
 		tok.Type = TokenRBracket
 		tok.Literal = "]"
 		l.readChar()
+	case '{':
+		tok.Type = TokenLBrace
+		tok.Literal = "{"
+		l.readChar()
+	case '}':
+		tok.Type = TokenRBrace
+		tok.Literal = "}"
+		l.readChar()
 	case '+':
 		tok.Type = TokenPlus
 		tok.Literal = "+"
 		l.readChar()
 	case '-':
-		// Could be negative number or minus operator
-		if unicode.IsDigit(rune(l.peekChar())) {
+		// Could be negative number, arrow (->), or minus operator
+		if l.peekChar() == '>' {
+			ch := l.ch
+			l.readChar()
+			tok.Type = TokenArrow
+			tok.Literal = string(ch) + string(l.ch)
+			l.readChar()
+		} else if unicode.IsDigit(rune(l.peekChar())) {
 			l.readChar() // consume the minus
 			tok.Type, tok.Literal = l.readNumber()
 			tok.Literal = "-" + tok.Literal
