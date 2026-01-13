@@ -543,6 +543,10 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			//
 			// Stack before: [key1, value1, key2, value2, ..., keyN, valueN]
 			// Stack after:  [dictionary]
+			//
+			// Note: In Go, map keys must be comparable types (no slices, maps, or functions).
+			// Using non-comparable types as dictionary keys will cause a runtime panic.
+			// This is a known limitation of the current implementation.
 
 			pairCount := inst.Operand
 
@@ -560,6 +564,10 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 				if err != nil {
 					return err
 				}
+				
+				// Note: No validation of key type here. Using non-comparable types
+				// (slices, maps, functions) will cause a panic.
+				// TODO: Add key type validation or use a custom map implementation
 				dict[key] = value
 			}
 

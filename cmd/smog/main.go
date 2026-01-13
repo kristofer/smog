@@ -147,6 +147,11 @@ func runREPL() {
 		
 		// Check if we have a complete statement (ends with period)
 		// or if the line is empty (just execute what we have)
+		//
+		// Note: This is a simple heuristic that checks for a trailing period.
+		// It doesn't handle periods within string literals or comments.
+		// A more robust implementation would integrate with the parser.
+		// For typical REPL usage, this simple approach works well.
 		input := strings.TrimSpace(inputBuffer.String())
 		if !strings.HasSuffix(input, ".") && line != "" {
 			// Not complete yet, continue reading
