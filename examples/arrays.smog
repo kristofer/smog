@@ -32,7 +32,7 @@ doubled do: [ :each |
 " Filter array using select "
 | evens |
 evens := numbers select: [ :each |
-    (each \\ 2) = 0
+    (each % 2) = 0
 ].
 
 'Even numbers:' println.
