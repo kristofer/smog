@@ -211,3 +211,108 @@ x + y`
 		t.Errorf("Expected 30, got %v", result)
 	}
 }
+
+func TestVMSimpleBlock(t *testing.T) {
+input := "[ 42 ] value"
+
+p := parser.New(input)
+program, _ := p.Parse()
+c := compiler.New()
+bc, _ := c.Compile(program)
+
+vm := New()
+err := vm.Run(bc)
+
+if err != nil {
+t.Fatalf("VM error: %v", err)
+}
+
+result := vm.StackTop()
+if result != int64(42) {
+t.Errorf("Expected 42, got %v", result)
+}
+}
+
+func TestVMBlockWithOneParameter(t *testing.T) {
+input := "[ :x | x * 2 ] value: 5"
+
+p := parser.New(input)
+program, _ := p.Parse()
+c := compiler.New()
+bc, _ := c.Compile(program)
+
+vm := New()
+err := vm.Run(bc)
+
+if err != nil {
+t.Fatalf("VM error: %v", err)
+}
+
+result := vm.StackTop()
+if result != int64(10) {
+t.Errorf("Expected 10, got %v", result)
+}
+}
+
+func TestVMBlockWithTwoParameters(t *testing.T) {
+input := "[ :x :y | x + y ] value: 3 value: 7"
+
+p := parser.New(input)
+program, _ := p.Parse()
+c := compiler.New()
+bc, _ := c.Compile(program)
+
+vm := New()
+err := vm.Run(bc)
+
+if err != nil {
+t.Fatalf("VM error: %v", err)
+}
+
+result := vm.StackTop()
+if result != int64(10) {
+t.Errorf("Expected 10, got %v", result)
+}
+}
+
+func TestVMArrayLiteral(t *testing.T) {
+input := "#(1 2 3) size"
+
+p := parser.New(input)
+program, _ := p.Parse()
+c := compiler.New()
+bc, _ := c.Compile(program)
+
+vm := New()
+err := vm.Run(bc)
+
+if err != nil {
+t.Fatalf("VM error: %v", err)
+}
+
+result := vm.StackTop()
+if result != int64(3) {
+t.Errorf("Expected 3, got %v", result)
+}
+}
+
+func TestVMArrayAt(t *testing.T) {
+input := "#(10 20 30) at: 2"
+
+p := parser.New(input)
+program, _ := p.Parse()
+c := compiler.New()
+bc, _ := c.Compile(program)
+
+vm := New()
+err := vm.Run(bc)
+
+if err != nil {
+t.Fatalf("VM error: %v", err)
+}
+
+result := vm.StackTop()
+if result != int64(20) {
+t.Errorf("Expected 20, got %v", result)
+}
+}

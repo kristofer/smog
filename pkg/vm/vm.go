@@ -140,7 +140,7 @@ func New() *VM {
 // sequentially from the bytecode until hitting a RETURN or an error.
 //
 // Execution Process:
-//   1. Reset VM state (stack and locals cleared)
+//   1. Reset VM state (stack cleared; locals cleared only if all are nil)
 //   2. Load the constant pool from bytecode
 //   3. Execute instructions from IP=0 until RETURN or error
 //   4. Each instruction updates stack, variables, or control flow
@@ -153,9 +153,10 @@ func New() *VM {
 //   - error if a runtime error occurred
 //
 // State Management:
-//   The VM resets its stack and locals before each run to ensure clean
-//   execution. However, global variables persist across runs, allowing
-//   state to be maintained between executions.
+//   The VM resets its stack before each run. Locals are only cleared
+//   if they appear to be uninitialized (all nil). This allows blocks
+//   to pre-load parameter values before calling Run().
+//   Global variables persist across runs, allowing state to be maintained.
 //
 // Example:
 //
@@ -167,14 +168,25 @@ func New() *VM {
 //   }
 //   result := vm.StackTop() // Get the final result
 func (vm *VM) Run(bc *bytecode.Bytecode) error {
-	// Reset state for clean execution
-	// Stack pointer back to 0 (empty stack)
+	// Reset stack pointer to 0 (empty stack)
 	vm.sp = 0
 	
-	// Clear all local variables to nil
-	// This ensures no leftover state from previous runs
+	// Check if locals need to be cleared
+	// If any local is non-nil, we assume they've been pre-initialized
+	// (e.g., for block parameters) and don't clear them
+	hasInitializedLocals := false
 	for i := range vm.locals {
-		vm.locals[i] = nil
+		if vm.locals[i] != nil {
+			hasInitializedLocals = true
+			break
+		}
+	}
+	
+	// Only clear locals if none are initialized
+	if !hasInitializedLocals {
+		for i := range vm.locals {
+			vm.locals[i] = nil
+		}
 	}
 	
 	// Load the constant pool from the bytecode
@@ -371,6 +383,74 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 				return err
 			}
 
+		case bytecode.OpMakeClosure:
+			// MAKE_CLOSURE: Create a block (closure) object
+			// Operand: packed value with bytecode index and parameter count
+			//
+			// Process:
+			//   1. Decode bytecode index and parameter count
+			//   2. Get the block bytecode from constants
+			//   3. Create a Block object
+			//   4. Push the block onto the stack
+			//
+			// The block can later be executed with the 'value' message.
+
+			// Decode operand
+			bytecodeIdx := inst.Operand >> bytecode.SelectorIndexShift
+			paramCount := inst.Operand & bytecode.ArgCountMask
+
+			// Get block bytecode from constants
+			if bytecodeIdx < 0 || bytecodeIdx >= len(vm.constants) {
+				return fmt.Errorf("bytecode index out of bounds: %d", bytecodeIdx)
+			}
+			blockBC, ok := vm.constants[bytecodeIdx].(*bytecode.Bytecode)
+			if !ok {
+				return fmt.Errorf("expected Bytecode in constant pool for block")
+			}
+
+			// Create block object
+			block := &Block{
+				Bytecode:   blockBC,
+				ParamCount: paramCount,
+			}
+
+			// Push block onto stack
+			if err := vm.push(block); err != nil {
+				return err
+			}
+
+		case bytecode.OpMakeArray:
+			// MAKE_ARRAY: Create an array from stack elements
+			// Operand: number of elements
+			//
+			// Process:
+			//   1. Pop N elements from stack
+			//   2. Create an Array object containing them
+			//   3. Push the array onto the stack
+			//
+			// Stack before: [elem1, elem2, ..., elemN]
+			// Stack after:  [array]
+
+			elemCount := inst.Operand
+
+			// Pop elements (in reverse order to maintain order)
+			elements := make([]interface{}, elemCount)
+			for i := elemCount - 1; i >= 0; i-- {
+				elem, err := vm.pop()
+				if err != nil {
+					return err
+				}
+				elements[i] = elem
+			}
+
+			// Create array object
+			array := &Array{Elements: elements}
+
+			// Push array onto stack
+			if err := vm.push(array); err != nil {
+				return err
+			}
+
 		case bytecode.OpReturn:
 			// RETURN: End execution
 			// Operand: unused
@@ -420,6 +500,51 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 //   send(5, "+", [3]) -> 8
 //   send("Hello", "println", []) -> "Hello" (and prints it)
 func (vm *VM) send(receiver interface{}, selector string, args []interface{}) (interface{}, error) {
+	// Check if receiver is a Block and selector is 'value' or starts with 'value:'
+	if block, ok := receiver.(*Block); ok {
+		// Match 'value' (no args) or 'value:' with varying arg counts
+		if selector == "value" || (len(selector) >= 6 && selector[:6] == "value:") {
+			return vm.executeBlock(block, args)
+		}
+	}
+
+	// Check if receiver is an Array and handle array messages
+	if array, ok := receiver.(*Array); ok {
+		switch selector {
+		case "size":
+			return int64(len(array.Elements)), nil
+		case "at:":
+			// Array indexing (1-based like Smalltalk)
+			if len(args) != 1 {
+				return nil, fmt.Errorf("at: expects 1 argument, got %d", len(args))
+			}
+			idx, ok := args[0].(int64)
+			if !ok {
+				return nil, fmt.Errorf("array index must be integer")
+			}
+			if idx < 1 || idx > int64(len(array.Elements)) {
+				return nil, fmt.Errorf("array index out of bounds: %d", idx)
+			}
+			return array.Elements[idx-1], nil
+		case "do:":
+			// Iterate over array elements with a block
+			if len(args) != 1 {
+				return nil, fmt.Errorf("do: expects 1 argument (block), got %d", len(args))
+			}
+			block, ok := args[0].(*Block)
+			if !ok {
+				return nil, fmt.Errorf("do: argument must be a block")
+			}
+			for _, elem := range array.Elements {
+				_, err := vm.executeBlock(block, []interface{}{elem})
+				if err != nil {
+					return nil, err
+				}
+			}
+			return array, nil
+		}
+	}
+
 	// Handle primitive operations
 	// These are built directly into the VM for efficiency
 	switch selector {
@@ -455,6 +580,60 @@ func (vm *VM) send(receiver interface{}, selector string, args []interface{}) (i
 	default:
 		return nil, fmt.Errorf("unknown message: %s", selector)
 	}
+}
+
+// executeBlock executes a block with the given arguments.
+//
+// Process:
+//   1. Check argument count matches parameter count
+//   2. Create a new VM instance for the block execution
+//   3. Set up parameters as local variables BEFORE calling Run()
+//   4. Run the block's bytecode
+//   5. Return the result
+//
+// Parameters:
+//   - block: The Block object to execute
+//   - args: Arguments to pass to the block
+//
+// Returns:
+//   - The result of executing the block
+//   - Error if execution fails or argument count doesn't match
+func (vm *VM) executeBlock(block *Block, args []interface{}) (interface{}, error) {
+	// Check argument count
+	if len(args) != block.ParamCount {
+		return nil, fmt.Errorf("block expects %d arguments, got %d", block.ParamCount, len(args))
+	}
+
+	// Create a new VM for block execution
+	// This gives the block its own stack and local variables
+	blockVM := &VM{
+		stack:   make([]interface{}, 1024),
+		sp:      0,
+		locals:  make([]interface{}, 256),
+		globals: vm.globals, // Share globals with parent VM
+		constants: block.Bytecode.Constants, // Will be overwritten by Run() anyway
+	}
+
+	// Set up block parameters as local variables
+	// The block compiler has already allocated slots for parameters
+	// Parameters are locals 0, 1, 2, etc.
+	// We do this BEFORE calling Run() so they don't get reset
+	for i, arg := range args {
+		blockVM.locals[i] = arg
+	}
+
+	// Execute the block bytecode
+	if err := blockVM.Run(block.Bytecode); err != nil {
+		return nil, err
+	}
+
+	// Return the top value from the block's stack
+	result := blockVM.StackTop()
+	if result == nil {
+		// Blocks return nil if they don't have an explicit result
+		return nil, nil
+	}
+	return result, nil
 }
 
 // Primitive operations for arithmetic and comparison.
@@ -713,4 +892,25 @@ func (vm *VM) StackTop() interface{} {
 		return nil
 	}
 	return vm.stack[vm.sp-1]
+}
+
+// Block represents a runtime block (closure) object.
+//
+// Blocks are first-class objects that encapsulate code and can be
+// executed later. They capture their environment (closure semantics).
+//
+// A block contains:
+//   - Bytecode: The compiled code to execute
+//   - ParamCount: Number of parameters the block expects
+//   - Environment: Captured variables (for closures - future enhancement)
+type Block struct {
+Bytecode   *bytecode.Bytecode // The block's compiled code
+ParamCount int                // Number of parameters
+}
+
+// Array represents a runtime array object.
+//
+// Arrays are ordered collections of values.
+type Array struct {
+Elements []interface{} // The array elements
 }
