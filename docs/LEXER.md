@@ -118,7 +118,11 @@ nil         → TokenNil
 **Comments:**
 - Enclosed in double quotes
 - Can span multiple lines
-- Example: `" This is a comment "`
+
+**Example:**
+```smog
+" This is a comment "
+```
 
 ## Lexing Process
 

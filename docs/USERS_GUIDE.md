@@ -89,8 +89,18 @@ array size println.       " Prints: 5 "
 20 - 3 println.          " Subtraction "
 4 * 6 println.           " Multiplication "
 10 / 2 println.          " Division "
+10 \\ 3 println.         " Modulo (remainder): 1 "
 5 < 10 println.          " Comparison "
 ```
+
+**Note on Operators:**
+- `+`, `-`, `*`, `/` - Standard arithmetic operators
+- `\\` - Modulo operator (returns remainder after division)
+  - Example: `10 \\ 3` returns `1` (10 ÷ 3 = 3 remainder 1)
+  - Useful for checking even/odd: `(n \\ 2) = 0` means n is even
+- `<`, `>`, `<=`, `>=` - Comparison operators
+- `=` - Equality check
+- `~=` - Not equal
 
 **Keyword Messages** (multiple parts):
 ```smog
