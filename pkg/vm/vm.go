@@ -508,6 +508,70 @@ func (vm *VM) send(receiver interface{}, selector string, args []interface{}) (i
 		}
 	}
 
+	// Check if receiver is a Boolean and handle boolean control flow
+	if b, ok := receiver.(bool); ok {
+		switch selector {
+		case "ifTrue:":
+			if len(args) != 1 {
+				return nil, fmt.Errorf("ifTrue: expects 1 argument (block), got %d", len(args))
+			}
+			block, ok := args[0].(*Block)
+			if !ok {
+				return nil, fmt.Errorf("ifTrue: argument must be a block")
+			}
+			if b {
+				return vm.executeBlock(block, []interface{}{})
+			}
+			return nil, nil
+		case "ifFalse:":
+			if len(args) != 1 {
+				return nil, fmt.Errorf("ifFalse: expects 1 argument (block), got %d", len(args))
+			}
+			block, ok := args[0].(*Block)
+			if !ok {
+				return nil, fmt.Errorf("ifFalse: argument must be a block")
+			}
+			if !b {
+				return vm.executeBlock(block, []interface{}{})
+			}
+			return nil, nil
+		case "ifTrue:ifFalse:":
+			if len(args) != 2 {
+				return nil, fmt.Errorf("ifTrue:ifFalse: expects 2 arguments (blocks), got %d", len(args))
+			}
+			trueBlock, ok1 := args[0].(*Block)
+			falseBlock, ok2 := args[1].(*Block)
+			if !ok1 || !ok2 {
+				return nil, fmt.Errorf("ifTrue:ifFalse: arguments must be blocks")
+			}
+			if b {
+				return vm.executeBlock(trueBlock, []interface{}{})
+			}
+			return vm.executeBlock(falseBlock, []interface{}{})
+		}
+	}
+
+	// Check if receiver is an Integer and handle integer messages
+	if num, ok := receiver.(int64); ok {
+		switch selector {
+		case "timesRepeat:":
+			if len(args) != 1 {
+				return nil, fmt.Errorf("timesRepeat: expects 1 argument (block), got %d", len(args))
+			}
+			block, ok := args[0].(*Block)
+			if !ok {
+				return nil, fmt.Errorf("timesRepeat: argument must be a block")
+			}
+			for i := int64(0); i < num; i++ {
+				_, err := vm.executeBlock(block, []interface{}{})
+				if err != nil {
+					return nil, err
+				}
+			}
+			return nil, nil
+		}
+	}
+
 	// Check if receiver is an Array and handle array messages
 	if array, ok := receiver.(*Array); ok {
 		switch selector {
