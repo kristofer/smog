@@ -133,6 +133,19 @@ const (
 	// Used within methods to modify instance variables of self.
 	OpStoreField
 
+	// OpLoadClassVar loads a class variable.
+	// Operand: index of the class variable
+	//
+	// Class variables are shared across all instances of a class.
+	// Used within instance or class methods to access class variables.
+	OpLoadClassVar
+
+	// OpStoreClassVar stores a value to a class variable.
+	// Operand: index of the class variable
+	//
+	// Modifies a class variable that is shared across all instances.
+	OpStoreClassVar
+
 	// OpLoadGlobal loads a global variable onto the stack.
 	// Operand: index of the variable name in constant pool
 	//
@@ -371,6 +384,10 @@ func (op Opcode) String() string {
 		return "LOAD_FIELD"
 	case OpStoreField:
 		return "STORE_FIELD"
+	case OpLoadClassVar:
+		return "LOAD_CLASS_VAR"
+	case OpStoreClassVar:
+		return "STORE_CLASS_VAR"
 	case OpLoadGlobal:
 		return "LOAD_GLOBAL"
 	case OpStoreGlobal:
@@ -426,12 +443,13 @@ func (op Opcode) String() string {
 //   - Fields: ["count"]
 //   - Methods: [initialize, increment, value]
 type ClassDefinition struct {
-	Name           string             // Class name (e.g., "Counter")
-	SuperClass     string             // Superclass name (e.g., "Object")
-	Fields         []string           // Instance variable names
-	ClassVariables []string           // Class variable names
-	Methods        []*MethodDefinition // Instance method definitions
-	ClassMethods   []*MethodDefinition // Class method definitions
+	Name              string                 // Class name (e.g., "Counter")
+	SuperClass        string                 // Superclass name (e.g., "Object")
+	Fields            []string               // Instance variable names
+	ClassVariables    []string               // Class variable names
+	ClassVarValues    map[string]interface{} // Runtime storage for class variable values
+	Methods           []*MethodDefinition    // Instance method definitions
+	ClassMethods      []*MethodDefinition    // Class method definitions
 }
 
 // MethodDefinition represents a compiled method within a class.

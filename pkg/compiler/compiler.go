@@ -80,6 +80,7 @@ type Compiler struct {
 	symbols      map[string]int         // Symbol table: name -> local slot index
 	localCount   int                    // Next available local variable slot
 	fields       map[string]int         // Field table: field name -> field index
+	classVars    map[string]int         // Class variable table: name -> index
 }
 
 // New creates a new compiler instance.
@@ -97,6 +98,7 @@ func New() *Compiler {
 		symbols:      make(map[string]int),
 		localCount:   0,
 		fields:       make(map[string]int),
+		classVars:    make(map[string]int),
 	}
 }
 
@@ -316,8 +318,11 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 			// It's a local variable
 			c.emit(bytecode.OpLoadLocal, idx)
 		} else if idx, ok := c.fields[e.Name]; ok {
-			// It's an instance/class variable (field)
+			// It's an instance variable (field)
 			c.emit(bytecode.OpLoadField, idx)
+		} else if idx, ok := c.classVars[e.Name]; ok {
+			// It's a class variable
+			c.emit(bytecode.OpLoadClassVar, idx)
 		} else {
 			// It's a global variable - add the name to constants
 			idx := c.addConstant(e.Name)
@@ -346,12 +351,15 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		}
 
 		// Step 2: Store to the variable
-		// Check if it's local, field, or global (same logic as Identifier)
+		// Check if it's local, field, class variable, or global
 		if idx, ok := c.symbols[e.Name]; ok {
 			c.emit(bytecode.OpStoreLocal, idx)
 		} else if idx, ok := c.fields[e.Name]; ok {
-			// It's an instance/class variable (field)
+			// It's an instance variable (field)
 			c.emit(bytecode.OpStoreField, idx)
+		} else if idx, ok := c.classVars[e.Name]; ok {
+			// It's a class variable
+			c.emit(bytecode.OpStoreClassVar, idx)
 		} else {
 			// Store as global
 			nameIdx := c.addConstant(e.Name)
@@ -734,7 +742,7 @@ func (c *Compiler) compileClass(class *ast.Class) error {
 	// Compile instance methods
 	instanceMethods := make([]*bytecode.MethodDefinition, 0, len(class.Methods))
 	for _, method := range class.Methods {
-		methodDef, err := c.compileMethod(method, class.Fields)
+		methodDef, err := c.compileMethod(method, class.Fields, class.ClassVariables)
 		if err != nil {
 			return fmt.Errorf("failed to compile method %s: %w", method.Name, err)
 		}
@@ -744,7 +752,7 @@ func (c *Compiler) compileClass(class *ast.Class) error {
 	// Compile class methods
 	classMethods := make([]*bytecode.MethodDefinition, 0, len(class.ClassMethods))
 	for _, method := range class.ClassMethods {
-		methodDef, err := c.compileMethod(method, class.ClassVariables)
+		methodDef, err := c.compileMethod(method, nil, class.ClassVariables)
 		if err != nil {
 			return fmt.Errorf("failed to compile class method %s: %w", method.Name, err)
 		}
@@ -757,6 +765,7 @@ func (c *Compiler) compileClass(class *ast.Class) error {
 		SuperClass:     class.SuperClass,
 		Fields:         class.Fields,
 		ClassVariables: class.ClassVariables,
+		ClassVarValues: make(map[string]interface{}), // Initialize class variable storage
 		Methods:        instanceMethods,
 		ClassMethods:   classMethods,
 	}
@@ -774,7 +783,8 @@ func (c *Compiler) compileClass(class *ast.Class) error {
 //
 // A method is compiled in its own scope with:
 //   - Parameters as local variables (starting at index 0)
-//   - Instance/class variables accessible via OpLoadField/OpStoreField
+//   - Instance variables accessible via OpLoadField/OpStoreField
+//   - Class variables accessible via OpLoadClassVar/OpStoreClassVar
 //   - Method body statements compiled sequentially
 //   - Implicit return of self if no explicit return
 //
@@ -788,7 +798,7 @@ func (c *Compiler) compileClass(class *ast.Class) error {
 //   STORE_FIELD 0     ; store back to count
 //   PUSH_SELF         ; implicit return self
 //   RETURN
-func (c *Compiler) compileMethod(method *ast.Method, fields []string) (*bytecode.MethodDefinition, error) {
+func (c *Compiler) compileMethod(method *ast.Method, fields []string, classVars []string) (*bytecode.MethodDefinition, error) {
 	// Create a new compiler for the method body to have its own scope
 	methodCompiler := New()
 
@@ -799,14 +809,22 @@ func (c *Compiler) compileMethod(method *ast.Method, fields []string) (*bytecode
 	}
 
 	// Build a map of field names to indices for field access
-	fieldMap := make(map[string]int)
-	for i, field := range fields {
-		fieldMap[field] = i
+	if fields != nil {
+		fieldMap := make(map[string]int)
+		for i, field := range fields {
+			fieldMap[field] = i
+		}
+		methodCompiler.fields = fieldMap
 	}
 
-	// Store field map in compiler for use during expression compilation
-	// We'll need to modify the compiler to support this
-	methodCompiler.fields = fieldMap
+	// Build a map of class variable names to indices
+	if classVars != nil {
+		classVarMap := make(map[string]int)
+		for i, classVar := range classVars {
+			classVarMap[classVar] = i
+		}
+		methodCompiler.classVars = classVarMap
+	}
 
 	// Compile method body
 	for _, stmt := range method.Body {
