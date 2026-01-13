@@ -108,11 +108,13 @@ import (
 //     - Contains literals and identifiers
 //     - Referenced by index in instructions
 type VM struct {
-	stack     []interface{}         // Value stack for computation
-	sp        int                   // Stack pointer (index of next free slot)
-	locals    []interface{}         // Local variable storage
-	globals   map[string]interface{} // Global variable storage
-	constants []interface{}         // Constant pool from bytecode
+	stack     []interface{}                     // Value stack for computation
+	sp        int                               // Stack pointer (index of next free slot)
+	locals    []interface{}                     // Local variable storage
+	globals   map[string]interface{}            // Global variable storage
+	constants []interface{}                     // Constant pool from bytecode
+	self      interface{}                       // Current receiver (self) for method execution
+	classes   map[string]*bytecode.ClassDefinition // Registered classes by name
 }
 
 // New creates a new virtual machine instance.
@@ -122,15 +124,18 @@ type VM struct {
 //   - Stack pointer at 0 (empty)
 //   - Local variable array with 256 slots
 //   - Empty global variable map
+//   - Empty class registry
 //
 // The VM is reusable - you can call Run() multiple times on the same VM.
-// Global variables persist across runs, but the stack and locals are reset.
+// Global variables and registered classes persist across runs, but the 
+// stack and locals are reset.
 func New() *VM {
 	return &VM{
 		stack:   make([]interface{}, 1024),
 		sp:      0,
 		locals:  make([]interface{}, 256),
 		globals: make(map[string]interface{}),
+		classes: make(map[string]*bytecode.ClassDefinition),
 	}
 }
 
@@ -265,12 +270,9 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			// PUSH_SELF: Push the current receiver (self) onto the stack
 			// Operand: unused
 			//
-			// In the current implementation, we don't have a proper 'self'
-			// reference since we don't have full class instantiation yet.
-			// For now, we push nil as a placeholder.
-			//
-			// TODO: Implement proper self reference when class system is complete
-			if err := vm.push(nil); err != nil {
+			// In methods, self refers to the current object instance.
+			// Outside of methods, self is nil.
+			if err := vm.push(vm.self); err != nil {
 				return err
 			}
 
@@ -576,6 +578,75 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 				return err
 			}
 
+		case bytecode.OpDefineClass:
+			// DEFINE_CLASS: Register a class definition
+			// Operand: index into constant pool for ClassDefinition
+			//
+			// Retrieves the ClassDefinition from constants and registers
+			// it in the VM's class registry, making it available for
+			// instantiation via the 'new' message.
+			if inst.Operand < 0 || inst.Operand >= len(vm.constants) {
+				return fmt.Errorf("constant index out of bounds: %d", inst.Operand)
+			}
+
+			classDef, ok := vm.constants[inst.Operand].(*bytecode.ClassDefinition)
+			if !ok {
+				return fmt.Errorf("expected ClassDefinition at constant[%d], got %T", 
+					inst.Operand, vm.constants[inst.Operand])
+			}
+
+			// Register the class in the global class registry
+			vm.classes[classDef.Name] = classDef
+
+			// Also register the class as a global variable so it can be referenced
+			vm.globals[classDef.Name] = classDef
+
+		case bytecode.OpLoadField:
+			// LOAD_FIELD: Load an instance variable onto the stack
+			// Operand: field index
+			//
+			// Loads a field from the current object (self).
+			// Only valid within method context where self is an Instance.
+			instance, ok := vm.self.(*Instance)
+			if !ok {
+				return fmt.Errorf("LOAD_FIELD requires self to be an Instance, got %T", vm.self)
+			}
+
+			if inst.Operand < 0 || inst.Operand >= len(instance.Fields) {
+				return fmt.Errorf("field index out of bounds: %d", inst.Operand)
+			}
+
+			if err := vm.push(instance.Fields[inst.Operand]); err != nil {
+				return err
+			}
+
+		case bytecode.OpStoreField:
+			// STORE_FIELD: Store a value to an instance variable
+			// Operand: field index
+			//
+			// Stores the top stack value to a field of the current object (self).
+			// The value is popped, stored, then pushed back (assignments return values).
+			instance, ok := vm.self.(*Instance)
+			if !ok {
+				return fmt.Errorf("STORE_FIELD requires self to be an Instance, got %T", vm.self)
+			}
+
+			if inst.Operand < 0 || inst.Operand >= len(instance.Fields) {
+				return fmt.Errorf("field index out of bounds: %d", inst.Operand)
+			}
+
+			val, err := vm.pop()
+			if err != nil {
+				return err
+			}
+
+			instance.Fields[inst.Operand] = val
+
+			// Push the value back (assignment returns the value)
+			if err := vm.push(val); err != nil {
+				return err
+			}
+
 		case bytecode.OpReturn:
 			// RETURN: End execution
 			// Operand: unused
@@ -732,6 +803,27 @@ func (vm *VM) send(receiver interface{}, selector string, args []interface{}) (i
 			}
 			return array, nil
 		}
+	}
+
+	// Check if receiver is a ClassDefinition (class object)
+	if classDef, ok := receiver.(*bytecode.ClassDefinition); ok {
+		switch selector {
+		case "new":
+			// Create a new instance of the class
+			// Allocate fields initialized to nil
+			instance := &Instance{
+				Class:  classDef,
+				Fields: make([]interface{}, len(classDef.Fields)),
+			}
+			return instance, nil
+		}
+		// TODO: Handle class methods
+	}
+
+	// Check if receiver is an Instance (object instance)
+	if instance, ok := receiver.(*Instance); ok {
+		// Look up method in the instance's class
+		return vm.executeMethod(instance, selector, args)
 	}
 
 	// Handle primitive operations
@@ -1102,4 +1194,97 @@ type Block struct {
 // Arrays are ordered collections of values.
 type Array struct {
 	Elements []interface{} // The array elements
+}
+
+// Instance represents a runtime object instance.
+//
+// An Instance is created from a ClassDefinition and contains:
+//   - Class: Reference to the class definition
+//   - Fields: Values of the instance variables
+//
+// Example:
+//   For a Counter class with one field 'count':
+//     Instance{Class: CounterClassDef, Fields: [0]}
+type Instance struct {
+	Class  *bytecode.ClassDefinition // The class this is an instance of
+	Fields []interface{}              // Instance variable values
+}
+
+// executeMethod executes a user-defined method on an instance.
+//
+// This implements the method lookup and dispatch for user-defined classes:
+//   1. Find the method by selector in the instance's class
+//   2. Check argument count matches parameter count
+//   3. Create a new VM context for method execution
+//   4. Set self to the instance
+//   5. Pass arguments as local variables
+//   6. Execute the method bytecode
+//   7. Return the result
+//
+// Parameters:
+//   - instance: The object instance receiving the message
+//   - selector: The method name
+//   - args: Arguments to the method
+//
+// Returns:
+//   - The method's return value
+//   - Error if method not found or execution fails
+func (vm *VM) executeMethod(instance *Instance, selector string, args []interface{}) (interface{}, error) {
+	// Look up the method in the instance's class
+	var method *bytecode.MethodDefinition
+	for _, m := range instance.Class.Methods {
+		if m.Selector == selector {
+			method = m
+			break
+		}
+	}
+
+	if method == nil {
+		// Method not found - check superclass chain (for now, just return error)
+		return nil, fmt.Errorf("instance of %s does not understand message '%s'", 
+			instance.Class.Name, selector)
+	}
+
+	// Check argument count
+	if len(args) != len(method.Parameters) {
+		return nil, fmt.Errorf("method %s expects %d arguments, got %d", 
+			selector, len(method.Parameters), len(args))
+	}
+
+	// Create a new VM for method execution to isolate its stack and locals
+	methodVM := New()
+	methodVM.globals = vm.globals       // Share global variables
+	methodVM.classes = vm.classes       // Share class registry
+	methodVM.self = instance            // Set self to the instance
+
+	// Set up method parameters as local variables
+	for i, arg := range args {
+		methodVM.locals[i] = arg
+	}
+
+	// Execute the method bytecode
+	if err := methodVM.Run(method.Code); err != nil {
+		return nil, fmt.Errorf("error in method %s: %w", selector, err)
+	}
+
+	// Return the result (top of stack)
+	if methodVM.sp > 0 {
+		return methodVM.stack[methodVM.sp-1], nil
+	}
+
+	// No value on stack - return nil
+	return nil, nil
+}
+
+// GetGlobal retrieves a global variable by name.
+//
+// This is primarily for testing purposes.
+//
+// Parameters:
+//   - name: The global variable name
+//
+// Returns:
+//   - The value of the global, or nil if not found
+func (vm *VM) GetGlobal(name string) interface{} {
+return vm.globals[name]
 }

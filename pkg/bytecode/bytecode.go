@@ -192,6 +192,19 @@ const (
 
 	// === Object Operations ===
 
+	// OpDefineClass defines a new class.
+	// Operand: index into constant pool for class definition
+	//
+	// The constant at the index is a ClassDefinition containing:
+	//   - Class name
+	//   - Superclass name
+	//   - Instance variable names
+	//   - Method definitions
+	//
+	// This instruction creates the class and registers it globally
+	// so it can be used with the 'new' message.
+	OpDefineClass
+
 	// OpNewObject creates a new instance of a class.
 	// Operand: class identifier
 	//
@@ -376,6 +389,8 @@ func (op Opcode) String() string {
 		return "PUSH_TRUE"
 	case OpPushFalse:
 		return "PUSH_FALSE"
+	case OpDefineClass:
+		return "DEFINE_CLASS"
 	case OpNewObject:
 		return "NEW_OBJECT"
 	case OpMakeClosure:
@@ -389,4 +404,51 @@ func (op Opcode) String() string {
 	default:
 		return "UNKNOWN"
 	}
+}
+
+// ClassDefinition represents a compiled class definition.
+//
+// A ClassDefinition contains all the information needed to create instances
+// of a class and dispatch methods to them. It's stored in the constant pool
+// and referenced by OpDefineClass instructions.
+//
+// Example:
+//   Object subclass: #Counter [
+//       | count |
+//       initialize [ count := 0. ]
+//       increment [ count := count + 1. ]
+//       value [ ^count ]
+//   ]
+//
+// This creates a ClassDefinition with:
+//   - Name: "Counter"
+//   - SuperClass: "Object"
+//   - Fields: ["count"]
+//   - Methods: [initialize, increment, value]
+type ClassDefinition struct {
+	Name           string             // Class name (e.g., "Counter")
+	SuperClass     string             // Superclass name (e.g., "Object")
+	Fields         []string           // Instance variable names
+	ClassVariables []string           // Class variable names
+	Methods        []*MethodDefinition // Instance method definitions
+	ClassMethods   []*MethodDefinition // Class method definitions
+}
+
+// MethodDefinition represents a compiled method within a class.
+//
+// A method consists of a selector (name), parameters, and bytecode.
+// When a message is sent to an object, the VM looks up the method
+// by selector in the object's class and executes its bytecode.
+//
+// Example:
+//   increment [ count := count + 1. ]
+//
+// This creates a MethodDefinition with:
+//   - Selector: "increment"
+//   - Parameters: []
+//   - Code: bytecode for "count := count + 1"
+type MethodDefinition struct {
+	Selector   string    // Method name/selector (e.g., "increment", "at:put:")
+	Parameters []string  // Parameter names for the method
+	Code       *Bytecode // Compiled bytecode for the method body
 }

@@ -1,0 +1,30 @@
+" Test: Simple Counter Class "
+
+Object subclass: #Counter [
+    | count |
+    
+    initialize [
+        count := 0.
+    ]
+    
+    increment [
+        count := count + 1.
+    ]
+    
+    value [
+        ^count
+    ]
+]
+
+" Create and use a counter "
+| counter result |
+counter := Counter new.
+counter initialize.
+
+counter increment.
+counter increment.
+counter increment.
+
+result := counter value.
+'Counter value: ' print.
+result println.
