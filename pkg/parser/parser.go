@@ -398,6 +398,12 @@ func (p *Parser) parseAssignment() ast.Expression {
 //   "x println" -> MessageSend{Receiver: Identifier("x"), Selector: "println"}
 //   "3 + 4" -> MessageSend{Receiver: IntegerLiteral(3), Selector: "+", Args: [IntegerLiteral(4)]}
 func (p *Parser) parseMessageSend() ast.Expression {
+	// Check for super message send
+	// Syntax: super selector or super keyword: arg
+	if p.curTok.Type == lexer.TokenSuper {
+		return p.parseSuperMessageSend()
+	}
+	
 	// Step 1: Parse the receiver (the object that will receive the message)
 	receiver := p.parsePrimaryExpression()
 	if receiver == nil {
@@ -458,20 +464,26 @@ func (p *Parser) parseMessageSend() ast.Expression {
 				}
 			}
 			
-			return &ast.MessageSend{
+			msgSend := &ast.MessageSend{
 				Receiver: receiver,
 				Selector: selector,
 				Args:     args,
 			}
+			
+			// Check for cascade after this message
+			return p.checkForCascade(msgSend)
 		} else {
 			// It's a unary message (no colon after the identifier)
 			// Example: 'hello' println
 			selector := p.curTok.Literal
-			return &ast.MessageSend{
+			msgSend := &ast.MessageSend{
 				Receiver: receiver,
 				Selector: selector,
 				Args:     []ast.Expression{}, // No arguments for unary messages
 			}
+			
+			// Check for cascade after this message
+			return p.checkForCascade(msgSend)
 		}
 	}
 
@@ -488,15 +500,237 @@ func (p *Parser) parseMessageSend() ast.Expression {
 			return nil
 		}
 		
-		return &ast.MessageSend{
+		msgSend := &ast.MessageSend{
 			Receiver: receiver,
 			Selector: operator,
 			Args:     []ast.Expression{arg},
 		}
+		
+		// Check for cascade after this message
+		return p.checkForCascade(msgSend)
 	}
 
 	// No message found - just return the receiver
 	return receiver
+}
+
+// checkForCascade checks if there's a cascade (;) after the initial expression
+// and if so, parses the cascade.
+//
+// Syntax: receiver message1; message2; message3
+//
+// The receiver is evaluated once, and each message is sent to the same receiver.
+// The cascade returns the receiver itself (not the result of the last message).
+func (p *Parser) checkForCascade(expr ast.Expression) ast.Expression {
+	// If the expression is not a message send, it can't be cascaded
+	firstMsg, isMessageSend := expr.(*ast.MessageSend)
+	if !isMessageSend {
+		return expr
+	}
+	
+	// Check if there's a semicolon indicating a cascade
+	if p.peekTok.Type != lexer.TokenSemicolon {
+		return expr
+	}
+	
+	// We have a cascade! Build a CascadeExpression
+	receiver := firstMsg.Receiver
+	messages := []ast.MessageSend{*firstMsg}
+	
+	// Parse additional messages separated by semicolons
+	for p.peekTok.Type == lexer.TokenSemicolon {
+		p.nextToken() // consume the semicolon
+		p.nextToken() // move to the message selector
+		
+		// Parse the next message (without the receiver)
+		msg := p.parseMessageWithoutReceiver()
+		if msg != nil {
+			messages = append(messages, *msg)
+		}
+	}
+	
+	return &ast.CascadeExpression{
+		Receiver: receiver,
+		Messages: messages,
+	}
+}
+
+// parseMessageWithoutReceiver parses a message selector and arguments
+// without a receiver (used in cascades).
+//
+// Returns a MessageSend with nil Receiver.
+func (p *Parser) parseMessageWithoutReceiver() *ast.MessageSend {
+	// Check for keyword message
+	if p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
+		keyword := p.curTok.Literal
+		p.nextToken() // consume colon
+		selector := keyword + ":"
+		
+		// Parse first argument
+		p.nextToken()
+		arg := p.parsePrimaryExpression()
+		if arg == nil {
+			p.addError("expected argument after keyword in cascade")
+			return nil
+		}
+		args := []ast.Expression{arg}
+		
+		// Check for additional keyword parts
+		for p.peekTok.Type == lexer.TokenIdentifier {
+			savedCur := p.curTok
+			savedPeek := p.peekTok
+			p.nextToken()
+			
+			if p.peekTok.Type == lexer.TokenColon {
+				keyword := p.curTok.Literal
+				p.nextToken() // consume colon
+				selector += keyword + ":"
+				
+				p.nextToken()
+				arg := p.parsePrimaryExpression()
+				if arg == nil {
+					p.addError("expected argument after keyword in cascade")
+					return nil
+				}
+				args = append(args, arg)
+			} else {
+				p.curTok = savedCur
+				p.peekTok = savedPeek
+				break
+			}
+		}
+		
+		return &ast.MessageSend{
+			Receiver: nil,
+			Selector: selector,
+			Args:     args,
+		}
+	} else if p.curTok.Type == lexer.TokenIdentifier {
+		// Unary message
+		selector := p.curTok.Literal
+		return &ast.MessageSend{
+			Receiver: nil,
+			Selector: selector,
+			Args:     []ast.Expression{},
+		}
+	} else if p.isBinaryOperator(p.curTok.Type) {
+		// Binary message
+		operator := p.curTok.Literal
+		p.nextToken()
+		arg := p.parsePrimaryExpression()
+		if arg == nil {
+			return nil
+		}
+		
+		return &ast.MessageSend{
+			Receiver: nil,
+			Selector: operator,
+			Args:     []ast.Expression{arg},
+		}
+	}
+	
+	p.addError("expected message selector in cascade")
+	return nil
+}
+
+// parseSuperMessageSend parses a super message send.
+//
+// Syntax: super selector
+//        or: super keyword: arg
+//
+// Super sends start method lookup in the superclass of the current class.
+// They're used to call inherited methods that have been overridden.
+//
+// Process:
+//   1. Verify we're on the 'super' keyword
+//   2. Parse the message selector and arguments
+//   3. Return MessageSend with IsSuper flag set
+//
+// Examples:
+//   super initialize
+//     -> MessageSend{Receiver: nil, Selector: "initialize", Args: [], IsSuper: true}
+//
+//   super at: index
+//     -> MessageSend{Receiver: nil, Selector: "at:", Args: [index], IsSuper: true}
+func (p *Parser) parseSuperMessageSend() ast.Expression {
+	// curTok is TokenSuper
+	p.nextToken() // move to the message selector
+	
+	// Check if it's a keyword message
+	if p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
+		// It's a keyword message
+		keyword := p.curTok.Literal
+		p.nextToken() // consume colon
+		selector := keyword + ":"
+		
+		// Parse first argument
+		p.nextToken()
+		arg := p.parsePrimaryExpression()
+		if arg == nil {
+			p.addError("expected argument after keyword in super send")
+			return nil
+		}
+		args := []ast.Expression{arg}
+		
+		// Check for additional keyword parts
+		for p.peekTok.Type == lexer.TokenIdentifier {
+			savedCur := p.curTok
+			savedPeek := p.peekTok
+			p.nextToken()
+			
+			if p.peekTok.Type == lexer.TokenColon {
+				keyword := p.curTok.Literal
+				p.nextToken() // consume colon
+				selector += keyword + ":"
+				
+				p.nextToken()
+				arg := p.parsePrimaryExpression()
+				if arg == nil {
+					p.addError("expected argument after keyword in super send")
+					return nil
+				}
+				args = append(args, arg)
+			} else {
+				p.curTok = savedCur
+				p.peekTok = savedPeek
+				break
+			}
+		}
+		
+		return &ast.MessageSend{
+			Receiver: nil, // receiver is implicit (self)
+			Selector: selector,
+			Args:     args,
+			IsSuper:  true,
+		}
+	} else if p.curTok.Type == lexer.TokenIdentifier {
+		// It's a unary message
+		selector := p.curTok.Literal
+		return &ast.MessageSend{
+			Receiver: nil, // receiver is implicit (self)
+			Selector: selector,
+			Args:     []ast.Expression{},
+			IsSuper:  true,
+		}
+	} else if p.isBinaryOperator(p.curTok.Type) {
+		// It's a binary message
+		operator := p.curTok.Literal
+		p.nextToken()
+		arg := p.parsePrimaryExpression()
+		if arg == nil {
+			return nil
+		}
+		
+		return &ast.MessageSend{
+			Receiver: nil, // receiver is implicit (self)
+			Selector: operator,
+			Args:     []ast.Expression{arg},
+			IsSuper:  true,
+		}
+	}
+	
+	p.addError("expected message selector after super")
+	return nil
 }
 
 // isBinaryOperator checks if a token type represents a binary operator.
@@ -560,6 +794,9 @@ func (p *Parser) parsePrimaryExpression() ast.Expression {
 		return &ast.BooleanLiteral{Value: false}
 	case lexer.TokenNil:
 		return &ast.NilLiteral{}
+	case lexer.TokenSelf:
+		// self is represented as a special identifier
+		return &ast.Identifier{Name: "self"}
 	case lexer.TokenIdentifier:
 		return &ast.Identifier{Name: p.curTok.Literal}
 	case lexer.TokenLBracket:
@@ -567,6 +804,9 @@ func (p *Parser) parsePrimaryExpression() ast.Expression {
 	case lexer.TokenHashLParen:
 		// Array literal #(...)
 		return p.parseArrayLiteral()
+	case lexer.TokenHashLBrace:
+		// Dictionary literal #{...}
+		return p.parseDictionaryLiteral()
 	default:
 		p.addError(fmt.Sprintf("unexpected token: %s", p.curTok.Type))
 		return nil
@@ -774,6 +1014,68 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 	}
 
 	return &ast.ArrayLiteral{Elements: elements}
+}
+
+// parseDictionaryLiteral parses a dictionary literal.
+//
+// Syntax: #{key1 -> value1. key2 -> value2. ...}
+//
+// Dictionary literals create dictionary objects with the specified key-value pairs.
+// Each pair consists of a key expression, an arrow (->), and a value expression.
+// Pairs are separated by periods.
+//
+// Example:
+//   #{'name' -> 'Alice'. 'age' -> 30}
+//     -> DictionaryLiteral{Pairs: [{'name', 'Alice'}, {'age', 30}]}
+func (p *Parser) parseDictionaryLiteral() ast.Expression {
+	// curTok is #{
+	p.nextToken() // move past #{
+
+	var pairs []ast.DictionaryPair
+
+	// Parse key-value pairs until }
+	for p.curTok.Type != lexer.TokenRBrace && p.curTok.Type != lexer.TokenEOF {
+		// Parse key
+		key := p.parsePrimaryExpression()
+		if key == nil {
+			p.addError("expected key in dictionary literal")
+			return nil
+		}
+		
+		p.nextToken()
+		
+		// Expect arrow
+		if p.curTok.Type != lexer.TokenArrow {
+			p.addError("expected -> after dictionary key")
+			return nil
+		}
+		
+		p.nextToken() // move past ->
+		
+		// Parse value
+		value := p.parsePrimaryExpression()
+		if value == nil {
+			p.addError("expected value in dictionary literal")
+			return nil
+		}
+		
+		pairs = append(pairs, ast.DictionaryPair{Key: key, Value: value})
+		
+		p.nextToken()
+		
+		// Skip optional period between pairs
+		if p.curTok.Type == lexer.TokenPeriod {
+			p.nextToken()
+		}
+	}
+
+	// Expect closing }
+	if p.curTok.Type != lexer.TokenRBrace {
+		p.addError("expected } to close dictionary literal")
+		return nil
+	}
+
+	return &ast.DictionaryLiteral{Pairs: pairs}
 }
 
 // Errors returns the list of accumulated parsing errors.

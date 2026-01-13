@@ -335,9 +335,9 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		// method calls, operator invocations, and all inter-object communication.
 		//
 		// Compilation process:
-		//   1. Compile receiver (pushes receiver on stack)
+		//   1. Compile receiver (pushes receiver on stack) - unless it's a super send
 		//   2. Compile each argument (pushes args on stack)
-		//   3. Emit SEND with selector and arg count
+		//   3. Emit SEND or SUPER_SEND with selector and arg count
 		//
 		// Example: receiver selector: arg1 with: arg2
 		//
@@ -347,13 +347,22 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		//   [receiver, arg1, arg2]     ; after compiling arg2
 		//   [result]                   ; after SEND pops args and receiver, pushes result
 		//
-		// The SEND instruction's operand encodes:
+		// For super sends:
+		//   The receiver is implicitly self, and we use SUPER_SEND instead
+		//   of SEND to start method lookup in the superclass.
+		//
+		// The SEND/SUPER_SEND instruction's operand encodes:
 		//   - Selector index (high bits): where to find the selector in constants
 		//   - Argument count (low 8 bits): how many args to pop from stack
 
-		// Step 1: Compile the receiver expression
-		if err := c.compileExpression(e.Receiver); err != nil {
-			return err
+		// Step 1: Compile the receiver expression (unless it's a super send)
+		if e.IsSuper {
+			// For super sends, push self as the receiver
+			c.emit(bytecode.OpPushSelf, 0)
+		} else {
+			if err := c.compileExpression(e.Receiver); err != nil {
+				return err
+			}
 		}
 
 		// Step 2: Compile all arguments in order
@@ -363,7 +372,7 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 			}
 		}
 
-		// Step 3: Emit the SEND instruction
+		// Step 3: Emit the SEND or SUPER_SEND instruction
 		// Add the selector to the constant pool
 		selectorIdx := c.addConstant(e.Selector)
 		argCount := len(e.Args)
@@ -372,7 +381,12 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		// High bits: selector index
 		// Low 8 bits: argument count
 		operand := (selectorIdx << bytecode.SelectorIndexShift) | argCount
-		c.emit(bytecode.OpSend, operand)
+		
+		if e.IsSuper {
+			c.emit(bytecode.OpSuperSend, operand)
+		} else {
+			c.emit(bytecode.OpSend, operand)
+		}
 		return nil
 
 	case *ast.BlockLiteral:
@@ -414,6 +428,103 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		
 		// Emit MAKE_ARRAY instruction
 		c.emit(bytecode.OpMakeArray, len(e.Elements))
+		return nil
+
+	case *ast.DictionaryLiteral:
+		// Dictionary literals compile to a sequence of key-value pushes
+		// followed by a MAKE_DICTIONARY instruction.
+		//
+		// Process:
+		//   1. Compile each key expression
+		//   2. Compile each value expression
+		//   3. Emit MAKE_DICTIONARY with pair count
+		//
+		// Example: #{'name' -> 'Alice'. 'age' -> 30}
+		//   -> PUSH 'name'
+		//   -> PUSH 'Alice'
+		//   -> PUSH 'age'
+		//   -> PUSH 30
+		//   -> MAKE_DICTIONARY 2
+		//
+		// Stack evolution:
+		//   []
+		//   ['name']
+		//   ['name', 'Alice']
+		//   ['name', 'Alice', 'age']
+		//   ['name', 'Alice', 'age', 30]
+		//   [dictionary]  ; MAKE_DICTIONARY pops 4 elements and pushes dictionary
+		for _, pair := range e.Pairs {
+			if err := c.compileExpression(pair.Key); err != nil {
+				return err
+			}
+			if err := c.compileExpression(pair.Value); err != nil {
+				return err
+			}
+		}
+		c.emit(bytecode.OpMakeDictionary, len(e.Pairs))
+		return nil
+
+	case *ast.CascadeExpression:
+		// Cascade expressions send multiple messages to the same receiver.
+		//
+		// Syntax: receiver msg1; msg2; msg3
+		//
+		// The cascade returns the receiver itself, not the result of any message.
+		//
+		// Compilation strategy:
+		//   1. Compile receiver -> [receiver]
+		//   2. For each message:
+		//      a. DUP receiver -> [receiver, receiver]
+		//      b. Compile args -> [receiver, receiver, arg1, arg2, ...]
+		//      c. SEND -> [receiver, result]
+		//      d. POP result -> [receiver]
+		//   3. Final stack has receiver as result
+		//
+		// Example: point x: 10; y: 20
+		//   PUSH point     ; [point]
+		//   DUP            ; [point, point]
+		//   PUSH 10        ; [point, point, 10]
+		//   SEND x:, 1     ; [point, result]
+		//   POP            ; [point]
+		//   DUP            ; [point, point]
+		//   PUSH 20        ; [point, point, 20]
+		//   SEND y:, 1     ; [point, result]
+		//   POP            ; [point]
+		//   ; Final: point is on stack
+		
+		// Step 1: Compile and push the receiver
+		if err := c.compileExpression(e.Receiver); err != nil {
+			return err
+		}
+		
+		// Step 2: For each message in the cascade
+		for _, msg := range e.Messages {
+			// Duplicate the receiver so we can send a message to it
+			c.emit(bytecode.OpDup, 0)
+			
+			// Compile message arguments
+			for _, arg := range msg.Args {
+				if err := c.compileExpression(arg); err != nil {
+					return err
+				}
+			}
+			
+			// Emit the SEND instruction
+			selectorIdx := c.addConstant(msg.Selector)
+			argCount := len(msg.Args)
+			operand := (selectorIdx << bytecode.SelectorIndexShift) | argCount
+			
+			if msg.IsSuper {
+				c.emit(bytecode.OpSuperSend, operand)
+			} else {
+				c.emit(bytecode.OpSend, operand)
+			}
+			
+			// Pop the result - we don't need it, we want the receiver
+			c.emit(bytecode.OpPop, 0)
+		}
+		
+		// The receiver is now on top of the stack as the result
 		return nil
 
 	default:

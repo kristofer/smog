@@ -676,3 +676,345 @@ func TestParseArrayLiteral(t *testing.T) {
 		}
 	}
 }
+
+// TestParseSelfKeyword tests parsing the 'self' keyword
+func TestParseSelfKeyword(t *testing.T) {
+input := "self"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+ident, ok := stmt.Expression.(*ast.Identifier)
+if !ok {
+t.Fatalf("Expected Identifier, got %T", stmt.Expression)
+}
+
+if ident.Name != "self" {
+t.Errorf("Expected identifier 'self', got %s", ident.Name)
+}
+}
+
+// TestParseSuperUnaryMessage tests parsing super with a unary message
+func TestParseSuperUnaryMessage(t *testing.T) {
+input := "super initialize"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+msgSend, ok := stmt.Expression.(*ast.MessageSend)
+if !ok {
+t.Fatalf("Expected MessageSend, got %T", stmt.Expression)
+}
+
+if !msgSend.IsSuper {
+t.Error("Expected IsSuper to be true")
+}
+
+if msgSend.Selector != "initialize" {
+t.Errorf("Expected selector 'initialize', got %s", msgSend.Selector)
+}
+
+if len(msgSend.Args) != 0 {
+t.Errorf("Expected 0 arguments, got %d", len(msgSend.Args))
+}
+
+if msgSend.Receiver != nil {
+t.Error("Expected nil receiver for super send")
+}
+}
+
+// TestParseSuperKeywordMessage tests parsing super with a keyword message
+func TestParseSuperKeywordMessage(t *testing.T) {
+input := "super at: 5 put: 10"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+msgSend, ok := stmt.Expression.(*ast.MessageSend)
+if !ok {
+t.Fatalf("Expected MessageSend, got %T", stmt.Expression)
+}
+
+if !msgSend.IsSuper {
+t.Error("Expected IsSuper to be true")
+}
+
+if msgSend.Selector != "at:put:" {
+t.Errorf("Expected selector 'at:put:', got %s", msgSend.Selector)
+}
+
+if len(msgSend.Args) != 2 {
+t.Fatalf("Expected 2 arguments, got %d", len(msgSend.Args))
+}
+
+// Check first argument
+arg1, ok := msgSend.Args[0].(*ast.IntegerLiteral)
+if !ok {
+t.Fatalf("Expected first arg to be IntegerLiteral, got %T", msgSend.Args[0])
+}
+if arg1.Value != 5 {
+t.Errorf("Expected first arg value 5, got %d", arg1.Value)
+}
+
+// Check second argument
+arg2, ok := msgSend.Args[1].(*ast.IntegerLiteral)
+if !ok {
+t.Fatalf("Expected second arg to be IntegerLiteral, got %T", msgSend.Args[1])
+}
+if arg2.Value != 10 {
+t.Errorf("Expected second arg value 10, got %d", arg2.Value)
+}
+}
+
+// TestParseSuperBinaryMessage tests parsing super with a binary message
+func TestParseSuperBinaryMessage(t *testing.T) {
+input := "super + 5"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+msgSend, ok := stmt.Expression.(*ast.MessageSend)
+if !ok {
+t.Fatalf("Expected MessageSend, got %T", stmt.Expression)
+}
+
+if !msgSend.IsSuper {
+t.Error("Expected IsSuper to be true")
+}
+
+if msgSend.Selector != "+" {
+t.Errorf("Expected selector '+', got %s", msgSend.Selector)
+}
+
+if len(msgSend.Args) != 1 {
+t.Fatalf("Expected 1 argument, got %d", len(msgSend.Args))
+}
+
+arg, ok := msgSend.Args[0].(*ast.IntegerLiteral)
+if !ok {
+t.Fatalf("Expected arg to be IntegerLiteral, got %T", msgSend.Args[0])
+}
+if arg.Value != 5 {
+t.Errorf("Expected arg value 5, got %d", arg.Value)
+}
+}
+
+// TestParseDictionaryLiteral tests parsing a dictionary literal
+func TestParseDictionaryLiteral(t *testing.T) {
+input := "#{'name' -> 'Alice'. 'age' -> 30}"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+dictLit, ok := stmt.Expression.(*ast.DictionaryLiteral)
+if !ok {
+t.Fatalf("Expected DictionaryLiteral, got %T", stmt.Expression)
+}
+
+if len(dictLit.Pairs) != 2 {
+t.Fatalf("Expected 2 pairs, got %d", len(dictLit.Pairs))
+}
+
+// Check first pair
+key1, ok := dictLit.Pairs[0].Key.(*ast.StringLiteral)
+if !ok || key1.Value != "name" {
+t.Errorf("Expected first key to be 'name'")
+}
+
+value1, ok := dictLit.Pairs[0].Value.(*ast.StringLiteral)
+if !ok || value1.Value != "Alice" {
+t.Errorf("Expected first value to be 'Alice'")
+}
+
+// Check second pair
+key2, ok := dictLit.Pairs[1].Key.(*ast.StringLiteral)
+if !ok || key2.Value != "age" {
+t.Errorf("Expected second key to be 'age'")
+}
+
+value2, ok := dictLit.Pairs[1].Value.(*ast.IntegerLiteral)
+if !ok || value2.Value != 30 {
+t.Errorf("Expected second value to be 30")
+}
+}
+
+// TestParseEmptyDictionaryLiteral tests parsing an empty dictionary
+func TestParseEmptyDictionaryLiteral(t *testing.T) {
+input := "#{}"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+dictLit, ok := stmt.Expression.(*ast.DictionaryLiteral)
+if !ok {
+t.Fatalf("Expected DictionaryLiteral, got %T", stmt.Expression)
+}
+
+if len(dictLit.Pairs) != 0 {
+t.Errorf("Expected 0 pairs, got %d", len(dictLit.Pairs))
+}
+}
+
+// TestParseCascadeExpression tests parsing cascading messages
+func TestParseCascadeExpression(t *testing.T) {
+input := "point x: 10; y: 20"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+if len(program.Statements) != 1 {
+t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+cascade, ok := stmt.Expression.(*ast.CascadeExpression)
+if !ok {
+t.Fatalf("Expected CascadeExpression, got %T", stmt.Expression)
+}
+
+// Check receiver
+receiver, ok := cascade.Receiver.(*ast.Identifier)
+if !ok || receiver.Name != "point" {
+t.Errorf("Expected receiver to be identifier 'point'")
+}
+
+// Check number of messages
+if len(cascade.Messages) != 2 {
+t.Fatalf("Expected 2 messages, got %d", len(cascade.Messages))
+}
+
+// Check first message: x: 10
+if cascade.Messages[0].Selector != "x:" {
+t.Errorf("Expected first selector to be 'x:', got %s", cascade.Messages[0].Selector)
+}
+if len(cascade.Messages[0].Args) != 1 {
+t.Errorf("Expected first message to have 1 arg, got %d", len(cascade.Messages[0].Args))
+}
+
+// Check second message: y: 20
+if cascade.Messages[1].Selector != "y:" {
+t.Errorf("Expected second selector to be 'y:', got %s", cascade.Messages[1].Selector)
+}
+if len(cascade.Messages[1].Args) != 1 {
+t.Errorf("Expected second message to have 1 arg, got %d", len(cascade.Messages[1].Args))
+}
+}
+
+// TestParseCascadeWithUnaryMessages tests cascading unary messages
+func TestParseCascadeWithUnaryMessages(t *testing.T) {
+input := "obj method1; method2; method3"
+
+p := New(input)
+program, err := p.Parse()
+
+if err != nil {
+t.Fatalf("Parse returned error: %v", err)
+}
+
+stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+if !ok {
+t.Fatalf("Expected ExpressionStatement, got %T", program.Statements[0])
+}
+
+cascade, ok := stmt.Expression.(*ast.CascadeExpression)
+if !ok {
+t.Fatalf("Expected CascadeExpression, got %T", stmt.Expression)
+}
+
+if len(cascade.Messages) != 3 {
+t.Fatalf("Expected 3 messages, got %d", len(cascade.Messages))
+}
+
+expectedSelectors := []string{"method1", "method2", "method3"}
+for i, expected := range expectedSelectors {
+if cascade.Messages[i].Selector != expected {
+t.Errorf("Expected message %d to be '%s', got '%s'", i, expected, cascade.Messages[i].Selector)
+}
+}
+}

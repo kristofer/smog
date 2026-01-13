@@ -230,6 +230,17 @@ const (
 	//
 	// Pops N elements from the stack and creates an array containing them.
 	OpMakeArray
+
+	// === Dictionary Operations ===
+
+	// OpMakeDictionary creates a dictionary with key-value pairs from the stack.
+	// Operand: number of pairs
+	//
+	// Stack before: [key1, value1, key2, value2, ..., keyN, valueN]
+	// Stack after:  [dictionary]
+	//
+	// Pops 2*N elements from the stack (N pairs) and creates a dictionary.
+	OpMakeDictionary
 )
 
 // Instruction represents a single bytecode instruction.
@@ -373,6 +384,8 @@ func (op Opcode) String() string {
 		return "CALL_BLOCK"
 	case OpMakeArray:
 		return "MAKE_ARRAY"
+	case OpMakeDictionary:
+		return "MAKE_DICTIONARY"
 	default:
 		return "UNKNOWN"
 	}

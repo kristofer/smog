@@ -1,0 +1,45 @@
+" v0.4.0 Feature Showcase: Super Message Sends "
+
+" This example demonstrates the use of super to call parent class methods "
+" Note: Class parsing is not yet implemented, so this is a syntax example "
+
+Object subclass: #Vehicle [
+    | speed |
+    
+    initialize [
+        speed := 0.
+    ]
+    
+    accelerate [
+        speed := speed + 10.
+        'Vehicle accelerated to ' print.
+        speed println.
+    ]
+]
+
+Vehicle subclass: #Car [
+    | turboBoost |
+    
+    initialize [
+        " Call parent's initialize "
+        super initialize.
+        turboBoost := false.
+    ]
+    
+    accelerate [
+        " Call parent's accelerate method "
+        super accelerate.
+        
+        " Then add car-specific behavior "
+        turboBoost ifTrue: [
+            speed := speed + 20.
+            'Turbo boost activated! Speed: ' print.
+            speed println.
+        ].
+    ]
+    
+    enableTurbo [
+        turboBoost := true.
+        'Turbo boost enabled!' println.
+    ]
+]
