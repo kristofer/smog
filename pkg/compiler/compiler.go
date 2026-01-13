@@ -654,8 +654,9 @@ func (c *Compiler) addConstant(obj interface{}) int {
 func (c *Compiler) CompileIncremental(program *ast.Program) (*bytecode.Bytecode, error) {
 	// Reset instructions and constants for this compilation
 	// but preserve symbols and localCount
-	c.instructions = make([]bytecode.Instruction, 0)
-	c.constants = make([]interface{}, 0)
+	// Use slice reuse pattern to preserve capacity for better performance
+	c.instructions = c.instructions[:0]
+	c.constants = c.constants[:0]
 	
 	// Compile each statement in order
 	for _, stmt := range program.Statements {
