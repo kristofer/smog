@@ -296,25 +296,34 @@ true.`
 		t.Fatalf("Compile failed: %v", err)
 	}
 
-	// Should have: PUSH 42, PUSH "hello", PUSH_TRUE, RETURN
-	if len(bc.Instructions) != 4 {
-		t.Fatalf("Expected 4 instructions, got %d", len(bc.Instructions))
+	// Should have: PUSH 42, POP, PUSH "hello", POP, PUSH_TRUE, RETURN
+	// (POP after each non-last expression statement to clean stack)
+	if len(bc.Instructions) != 6 {
+		t.Fatalf("Expected 6 instructions, got %d", len(bc.Instructions))
 	}
 
 	if bc.Instructions[0].Op != bytecode.OpPush {
 		t.Errorf("Expected first PUSH instruction, got %v", bc.Instructions[0].Op)
 	}
 
-	if bc.Instructions[1].Op != bytecode.OpPush {
-		t.Errorf("Expected second PUSH instruction, got %v", bc.Instructions[1].Op)
+	if bc.Instructions[1].Op != bytecode.OpPop {
+		t.Errorf("Expected first POP instruction, got %v", bc.Instructions[1].Op)
 	}
 
-	if bc.Instructions[2].Op != bytecode.OpPushTrue {
-		t.Errorf("Expected PUSH_TRUE instruction, got %v", bc.Instructions[2].Op)
+	if bc.Instructions[2].Op != bytecode.OpPush {
+		t.Errorf("Expected second PUSH instruction, got %v", bc.Instructions[2].Op)
 	}
 
-	if bc.Instructions[3].Op != bytecode.OpReturn {
-		t.Errorf("Expected RETURN instruction, got %v", bc.Instructions[3].Op)
+	if bc.Instructions[3].Op != bytecode.OpPop {
+		t.Errorf("Expected second POP instruction, got %v", bc.Instructions[3].Op)
+	}
+
+	if bc.Instructions[4].Op != bytecode.OpPushTrue {
+		t.Errorf("Expected PUSH_TRUE instruction, got %v", bc.Instructions[4].Op)
+	}
+
+	if bc.Instructions[5].Op != bytecode.OpReturn {
+		t.Errorf("Expected RETURN instruction, got %v", bc.Instructions[5].Op)
 	}
 }
 

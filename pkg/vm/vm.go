@@ -477,19 +477,21 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 
 		case bytecode.OpMakeClosure:
 			// MAKE_CLOSURE: Create a block (closure) object
-			// Operand: packed value with bytecode index and parameter count
+			// Operand: packed value with bytecode index, parent local count, and parameter count
+			// Format: [blockIdx (high 16 bits)] [parentLocalCount (bits 8-15)] [paramCount (bits 0-7)]
 			//
 			// Process:
-			//   1. Decode bytecode index and parameter count
+			//   1. Decode bytecode index, parent local count, and parameter count
 			//   2. Get the block bytecode from constants
-			//   3. Create a Block object
+			//   3. Create a Block object with closure information
 			//   4. Push the block onto the stack
 			//
 			// The block can later be executed with the 'value' message.
 
 			// Decode operand
-			bytecodeIdx := inst.Operand >> bytecode.SelectorIndexShift
-			paramCount := inst.Operand & bytecode.ArgCountMask
+			bytecodeIdx := inst.Operand >> 16
+			parentLocalCount := (inst.Operand >> 8) & 0xFF
+			paramCount := inst.Operand & 0xFF
 
 			// Get block bytecode from constants
 			if bytecodeIdx < 0 || bytecodeIdx >= len(vm.constants) {
@@ -499,11 +501,11 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			if !ok {
 				return fmt.Errorf("expected Bytecode in constant pool for block")
 			}
-
-			// Create block object
+			
 			block := &Block{
-				Bytecode:   blockBC,
-				ParamCount: paramCount,
+				Bytecode:         blockBC,
+				ParamCount:       paramCount,
+				ParentLocalCount: parentLocalCount,
 			}
 
 			// Push block onto stack
@@ -1038,29 +1040,49 @@ func (vm *VM) executeBlock(block *Block, args []interface{}) (interface{}, error
 	}
 
 	// Create a new VM for block execution
-	// Blocks share locals and globals with parent VM to support closures
+	// Blocks share the parent's locals array to support closures
+	// This allows blocks to access and modify variables from the enclosing scope
 	blockVM := &VM{
 		stack:     make([]interface{}, 1024),
 		sp:        0,
-		locals:    vm.locals,  // Share locals with parent VM (closure support)
+		locals:    vm.locals,  // Share locals with parent for closure support
 		globals:   vm.globals, // Share globals with parent VM
 		constants: block.Bytecode.Constants, // Will be overwritten by Run() anyway
 		classes:   vm.classes, // Share class registry
 		self:      vm.self,    // Share self reference
 	}
 
-	// Set up block parameters as local variables
-	// The block compiler has already allocated slots for parameters
-	// Parameters are locals 0, 1, 2, etc.
-	// We do this BEFORE calling Run() so they don't get reset
+	// Block parameters are stored starting at the parent's local count
+	// The compiler allocated them at slots starting from parent's localCount
+	// We use the ParentLocalCount stored in the block
+	parentLocalCount := block.ParentLocalCount
+	requiredSize := parentLocalCount + block.ParamCount
+	
+	if cap(vm.locals) < requiredSize {
+		// Need to expand capacity
+		newLocals := make([]interface{}, requiredSize)
+		copy(newLocals, vm.locals)
+		vm.locals = newLocals
+		blockVM.locals = newLocals  // Share the new array with blockVM
+	} else if len(vm.locals) < requiredSize {
+		// Just extend the slice
+		vm.locals = vm.locals[:requiredSize]
+		blockVM.locals = vm.locals  // Ensure blockVM has the extended slice
+	}
+
+	// Set block parameters in the locals array
+	// They start at parentLocalCount
 	for i, arg := range args {
-		blockVM.locals[i] = arg
+		blockVM.locals[parentLocalCount+i] = arg
 	}
 
 	// Execute the block bytecode
 	if err := blockVM.Run(block.Bytecode); err != nil {
 		return nil, err
 	}
+
+	// Restore locals length to what it was before (cleanup block parameters)
+	vm.locals = vm.locals[:parentLocalCount]
 
 	// Return the top value from the block's stack
 	result := blockVM.StackTop()
@@ -1337,10 +1359,12 @@ func (vm *VM) StackTop() interface{} {
 // A block contains:
 //   - Bytecode: The compiled code to execute
 //   - ParamCount: Number of parameters the block expects
+//   - ParentLocalCount: Number of locals in the parent context (for closure support)
 //   - Environment: Captured variables (for closures - future enhancement)
 type Block struct {
-	Bytecode   *bytecode.Bytecode // The block's compiled code
-	ParamCount int                // Number of parameters
+	Bytecode         *bytecode.Bytecode // The block's compiled code
+	ParamCount       int                // Number of parameters
+	ParentLocalCount int                // Number of locals in parent context
 }
 
 // Array represents a runtime array object.
