@@ -178,7 +178,25 @@ const (
 	//
 	// Ends execution of the current code context. If there's a value
 	// on the stack, it becomes the return value.
+	// This is a local return - it returns from the immediate context (method or block).
 	OpReturn
+
+	// OpNonLocalReturn performs a non-local return from a block.
+	// Operand: unused
+	//
+	// When executed inside a block, this returns from the method that created
+	// the block, not just from the block itself. This is the Smalltalk-style
+	// non-local return behavior, essential for control flow constructs.
+	//
+	// Example:
+	//   method [
+	//     condition ifTrue: [ ^42 ].  " Returns 42 from method, not just block "
+	//     'Not reached' println.
+	//   ]
+	//
+	// The OpNonLocalReturn triggers special unwinding logic that exits through
+	// block invocations back to the enclosing method context.
+	OpNonLocalReturn
 
 	// === Literal Operations ===
 	//
@@ -398,6 +416,8 @@ func (op Opcode) String() string {
 		return "JUMP_IF_FALSE"
 	case OpReturn:
 		return "RETURN"
+	case OpNonLocalReturn:
+		return "NON_LOCAL_RETURN"
 	case OpPushSelf:
 		return "PUSH_SELF"
 	case OpPushNil:
