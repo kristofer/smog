@@ -1121,20 +1121,9 @@ func (vm *VM) executeBlock(block *Block, args []interface{}) (interface{}, error
 	if err := blockVM.Run(block.Bytecode); err != nil {
 		// Check if this is a non-local return
 		if nlr, ok := err.(*NonLocalReturn); ok {
-			// If the non-local return's target is this block's home context (vm),
-			// we should continue propagating it up. If the target is our parent VM
-			// (where the block was created), that's where it should stop.
-			//
-			// Actually, we need to check if the HomeContext is the block's HomeContext.
-			// Since blocks capture their creation VM as HomeContext, we propagate
-			// the non-local return up unless we ARE the home context.
-			if nlr.HomeContext == block.HomeContext {
-				// This non-local return is targeting the method that created this block.
-				// Since we're in executeBlock (called from the method or nested blocks),
-				// we propagate it up to let the method handle it.
-				return nil, nlr
-			}
-			// Otherwise, propagate it further up
+			// Non-local returns always propagate up through blocks.
+			// The method execution (executeMethod) will catch it and convert
+			// to a normal return when nlr.HomeContext matches the method's VM.
 			return nil, nlr
 		}
 		// Other errors propagate normally
@@ -1698,8 +1687,13 @@ func (vm *VM) executeMethod(instance *Instance, selector string, args []interfac
 	if err := methodVM.Run(method.Code); err != nil {
 		// Check if this is a non-local return targeting this method
 		if nlr, ok := err.(*NonLocalReturn); ok {
-			// If the non-local return's home context is this method's VM,
-			// then this is where the return should stop - convert it to a normal return
+			// Check if this non-local return targets this method's execution.
+			// When a block is created during this method's execution, it captures
+			// methodVM as its HomeContext. The pointer comparison works because:
+			// 1. methodVM is created once at the start of this method execution
+			// 2. All blocks created during this execution capture the same methodVM pointer
+			// 3. When OpNonLocalReturn executes, it uses the captured HomeContext pointer
+			// Thus, nlr.HomeContext == methodVM means "return from this method execution"
 			if nlr.HomeContext == methodVM {
 				// This non-local return is for us - use its value as the return value
 				return nlr.Value, nil
