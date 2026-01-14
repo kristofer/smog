@@ -73,22 +73,27 @@ import (
 //   - l: The lexer that provides tokens
 //   - curTok: The current token being processed
 //   - peekTok: The next token (lookahead)
+//   - peekTok2: Second lookahead token (for distinguishing unary vs keyword messages)
 //   - errors: Accumulated syntax errors
 //
 // The parser is stateful and single-use: create a new parser for each
 // source file or code snippet.
+//
+// Note on lookahead: The parser uses two tokens of lookahead to distinguish
+// between unary messages (identifier) and keyword messages (identifier followed by colon).
 type Parser struct {
-	l       *lexer.Lexer    // Token source
-	curTok  lexer.Token     // Current token
-	peekTok lexer.Token     // Next token (lookahead)
-	errors  []string        // Accumulated error messages
+	l        *lexer.Lexer    // Token source
+	curTok   lexer.Token     // Current token
+	peekTok  lexer.Token     // Next token (1st lookahead)
+	peekTok2 lexer.Token     // Token after next (2nd lookahead)
+	errors   []string        // Accumulated error messages
 }
 
 // New creates a new parser for the given source code.
 //
-// The parser is initialized with the first two tokens from the lexer,
+// The parser is initialized with the first three tokens from the lexer,
 // setting up the two-token lookahead window that the parser uses for
-// decision making.
+// decision making (needed to distinguish unary vs keyword messages).
 //
 // Parameters:
 //   - input: The source code string to parse
@@ -105,8 +110,8 @@ func New(input string) *Parser {
 		errors: []string{},
 	}
 
-	// Read two tokens to populate curTok and peekTok.
-	// After this, curTok has the first token and peekTok has the second.
+	// Read three tokens to populate curTok, peekTok, and peekTok2.
+	p.nextToken()
 	p.nextToken()
 	p.nextToken()
 
@@ -117,12 +122,24 @@ func New(input string) *Parser {
 //
 // This moves the lookahead window forward by one token:
 //   - curTok becomes the old peekTok
-//   - peekTok becomes the next token from the lexer
+//   - peekTok becomes the old peekTok2
+//   - peekTok2 becomes the next token from the lexer
 //
 // This is called after successfully processing curTok to move to the next token.
 func (p *Parser) nextToken() {
 	p.curTok = p.peekTok
-	p.peekTok = p.l.NextToken()
+	p.peekTok = p.peekTok2
+	p.peekTok2 = p.l.NextToken()
+}
+
+// peekIsKeywordStart checks if peekTok starts a keyword message.
+//
+// A keyword message starts with an identifier followed by a colon.
+// With two-token lookahead, we can check this directly.
+//
+// Returns true if peekTok is an identifier and peekTok2 is a colon.
+func (p *Parser) peekIsKeywordStart() bool {
+	return p.peekTok.Type == lexer.TokenIdentifier && p.peekTok2.Type == lexer.TokenColon
 }
 
 // Parse parses the source code and returns an AST.
@@ -413,39 +430,20 @@ func (p *Parser) parseKeywordMessage() ast.Expression {
 		return nil
 	}
 	
-	// DEBUG
-	fmt.Printf("parseKeywordMessage: after receiver: curTok=%s:%s, peekTok=%s:%s\n", p.curTok.Type, p.curTok.Literal, p.peekTok.Type, p.peekTok.Literal)
-	
 	// Check if this is followed by a keyword message
-	// Keyword messages start with identifier followed by colon
-	if p.peekTok.Type != lexer.TokenIdentifier {
-		return receiver
-	}
-	
-	// Look ahead to see if it's actually a keyword (identifier + colon)
-	savedCur := p.curTok
-	savedPeek := p.peekTok
-	p.nextToken() // move to identifier
-	
-	// DEBUG
-	fmt.Printf("parseKeywordMessage: after lookahead: curTok=%s:%s, peekTok=%s:%s\n", p.curTok.Type, p.curTok.Literal, p.peekTok.Type, p.peekTok.Literal)
-	
-	if p.peekTok.Type != lexer.TokenColon {
-		// Not a keyword message, restore and return
-		p.curTok = savedCur
-		p.peekTok = savedPeek
-		return receiver
+	// Use the helper to check for identifier followed by colon
+	if !p.peekIsKeywordStart() {
+		// No keyword message, but might still have a cascade
+		// Check if the receiver is a message send and if so, check for cascade
+		return p.checkForCascade(receiver)
 	}
 	
 	// It's a keyword message - parse all keyword parts
 	var selector string
 	var args []ast.Expression
 	
-	// DEBUG
-	fmt.Printf("parseKeywordMessage: entering loop: curTok=%s:%s, peekTok=%s:%s\n", p.curTok.Type, p.curTok.Literal, p.peekTok.Type, p.peekTok.Literal)
-	
-	for p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
-		// Add keyword part to selector
+	for p.peekIsKeywordStart() {
+		p.nextToken() // move to keyword identifier
 		selector += p.curTok.Literal + ":"
 		p.nextToken() // consume colon
 		
@@ -457,23 +455,6 @@ func (p *Parser) parseKeywordMessage() ast.Expression {
 			return nil
 		}
 		args = append(args, arg)
-		
-		// Check if there's another keyword part
-		if p.peekTok.Type != lexer.TokenIdentifier {
-			break
-		}
-		
-		// Peek ahead to see if next identifier is followed by colon
-		savedCur = p.curTok
-		savedPeek = p.peekTok
-		p.nextToken()
-		
-		if p.peekTok.Type != lexer.TokenColon {
-			// Not another keyword part, restore and stop
-			p.curTok = savedCur
-			p.peekTok = savedPeek
-			break
-		}
 	}
 	
 	msgSend := &ast.MessageSend{
@@ -555,21 +536,9 @@ func (p *Parser) parseUnaryMessage() ast.Expression {
 	}
 	
 	// Chain unary messages (left-to-right)
-	for p.peekTok.Type == lexer.TokenIdentifier {
-		// Need to check that it's not a keyword message (identifier followed by colon)
-		savedCur := p.curTok
-		savedPeek := p.peekTok
-		p.nextToken() // move to identifier
-		
-		// If followed by colon, it's a keyword message, not unary
-		if p.peekTok.Type == lexer.TokenColon {
-			// Restore position and stop
-			p.curTok = savedCur
-			p.peekTok = savedPeek
-			break
-		}
-		
-		// It's a unary message
+	// Only consume identifiers that are NOT followed by colons (which would be keyword messages)
+	for p.peekTok.Type == lexer.TokenIdentifier && !p.peekIsKeywordStart() {
+		p.nextToken() // move to the unary selector
 		selector := p.curTok.Literal
 		receiver = &ast.MessageSend{
 			Receiver: receiver,
@@ -628,7 +597,7 @@ func (p *Parser) checkForCascade(expr ast.Expression) ast.Expression {
 // Returns a MessageSend with nil Receiver.
 // This needs to handle all three types of messages: unary, binary, and keyword.
 func (p *Parser) parseMessageWithoutReceiver() *ast.MessageSend {
-	// Check for keyword message
+	// Check for keyword message (identifier followed by colon)
 	if p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
 		var selector string
 		var args []ast.Expression
@@ -647,20 +616,11 @@ func (p *Parser) parseMessageWithoutReceiver() *ast.MessageSend {
 			}
 			args = append(args, arg)
 			
-			// Check for next keyword part
-			if p.peekTok.Type != lexer.TokenIdentifier {
+			// Check for next keyword part using the helper
+			if !p.peekIsKeywordStart() {
 				break
 			}
-			
-			savedCur := p.curTok
-			savedPeek := p.peekTok
-			p.nextToken()
-			
-			if p.peekTok.Type != lexer.TokenColon {
-				p.curTok = savedCur
-				p.peekTok = savedPeek
-				break
-			}
+			p.nextToken() // move to next keyword identifier
 		}
 		
 		return &ast.MessageSend{
@@ -724,7 +684,7 @@ func (p *Parser) parseSuperMessageSend() ast.Expression {
 	// curTok is TokenSuper
 	p.nextToken() // move to the message selector
 	
-	// Check if it's a keyword message
+	// Check if it's a keyword message (identifier followed by colon)
 	if p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
 		var selector string
 		var args []ast.Expression
@@ -743,20 +703,11 @@ func (p *Parser) parseSuperMessageSend() ast.Expression {
 			}
 			args = append(args, arg)
 			
-			// Check for next keyword part
-			if p.peekTok.Type != lexer.TokenIdentifier {
+			// Check for next keyword part using helper
+			if !p.peekIsKeywordStart() {
 				break
 			}
-			
-			savedCur := p.curTok
-			savedPeek := p.peekTok
-			p.nextToken()
-			
-			if p.peekTok.Type != lexer.TokenColon {
-				p.curTok = savedCur
-				p.peekTok = savedPeek
-				break
-			}
+			p.nextToken() // move to next keyword identifier
 		}
 		
 		return &ast.MessageSend{
