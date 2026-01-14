@@ -71,7 +71,7 @@ Object subclass: #TestClass [
         (true) ifTrue: [
             (true) ifTrue: [
                 ^123
-            ]
+            ].
         ].
         ^456
     ]
