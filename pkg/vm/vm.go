@@ -117,6 +117,7 @@ type VM struct {
 	currentClass *bytecode.ClassDefinition            // Current class context (for super sends)
 	fieldOffset  int                                  // Offset for field indices (for inheritance)
 	classes      map[string]*bytecode.ClassDefinition // Registered classes by name
+	homeContext  *VM                                  // Home context for non-local returns (nil for methods, set for blocks)
 }
 
 // New creates a new virtual machine instance.
@@ -506,6 +507,15 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 				Bytecode:         blockBC,
 				ParamCount:       paramCount,
 				ParentLocalCount: parentLocalCount,
+				// Capture the home context for non-local returns
+				// If we're in a block (vm.homeContext is set), use that
+				// Otherwise, use the current VM (we're in a method)
+				HomeContext:      vm.homeContext,
+			}
+			
+			// If homeContext is nil, we're in a method or top-level, so set it to current VM
+			if block.HomeContext == nil {
+				block.HomeContext = vm
 			}
 
 			// Push block onto stack
@@ -713,11 +723,41 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			}
 
 		case bytecode.OpReturn:
-			// RETURN: End execution
+			// RETURN: End execution (local return)
 			// Operand: unused
 			//
 			// Exits the execution loop. The final value (if any) remains
 			// on the stack and can be retrieved with StackTop().
+			// This is a local return - it only exits the current context.
+			return nil
+
+		case bytecode.OpNonLocalReturn:
+			// NON_LOCAL_RETURN: Perform a non-local return
+			// Operand: unused
+			//
+			// Returns from the method that created the currently executing block,
+			// not just from the block itself. This implements Smalltalk-style
+			// non-local return semantics.
+			//
+			// The return value is the top of the stack. We create a NonLocalReturn
+			// error with the value and the home context.
+			//
+			// If vm.homeContext is set (we're in a block), the home context is
+			// the VM that created the block. Otherwise (we're in a method or top-level),
+			// homeContext is nil and this behaves like a normal return.
+			var returnValue interface{}
+			if vm.sp > 0 {
+				returnValue = vm.stack[vm.sp-1]
+			}
+			
+			if vm.homeContext != nil {
+				// We're in a block - return to the home context
+				return &NonLocalReturn{
+					Value:       returnValue,
+					HomeContext: vm.homeContext,
+				}
+			}
+			// We're at method/top level - treat as normal return
 			return nil
 
 		default:
@@ -1043,13 +1083,14 @@ func (vm *VM) executeBlock(block *Block, args []interface{}) (interface{}, error
 	// Blocks share the parent's locals array to support closures
 	// This allows blocks to access and modify variables from the enclosing scope
 	blockVM := &VM{
-		stack:     make([]interface{}, 1024),
-		sp:        0,
-		locals:    vm.locals,  // Share locals with parent for closure support
-		globals:   vm.globals, // Share globals with parent VM
-		constants: block.Bytecode.Constants, // Will be overwritten by Run() anyway
-		classes:   vm.classes, // Share class registry
-		self:      vm.self,    // Share self reference
+		stack:       make([]interface{}, 1024),
+		sp:          0,
+		locals:      vm.locals,  // Share locals with parent for closure support
+		globals:     vm.globals, // Share globals with parent VM
+		constants:   block.Bytecode.Constants, // Will be overwritten by Run() anyway
+		classes:     vm.classes, // Share class registry
+		self:        vm.self,    // Share self reference
+		homeContext: block.HomeContext, // Set the home context for non-local returns
 	}
 
 	// Block parameters are stored starting at the parent's local count
@@ -1078,6 +1119,14 @@ func (vm *VM) executeBlock(block *Block, args []interface{}) (interface{}, error
 
 	// Execute the block bytecode
 	if err := blockVM.Run(block.Bytecode); err != nil {
+		// Check if this is a non-local return
+		if nlr, ok := err.(*NonLocalReturn); ok {
+			// Non-local returns always propagate up through blocks.
+			// The method execution (executeMethod) will catch it and convert
+			// to a normal return when nlr.HomeContext matches the method's VM.
+			return nil, nlr
+		}
+		// Other errors propagate normally
 		return nil, err
 	}
 
@@ -1360,12 +1409,44 @@ func (vm *VM) StackTop() interface{} {
 //   - Bytecode: The compiled code to execute
 //   - ParamCount: Number of parameters the block expects
 //   - ParentLocalCount: Number of locals in the parent context (for closure support)
-//   - Environment: Captured variables (for closures - future enhancement)
+//   - HomeContext: The VM context where the block was created (for non-local returns)
 type Block struct {
 	Bytecode         *bytecode.Bytecode // The block's compiled code
 	ParamCount       int                // Number of parameters
 	ParentLocalCount int                // Number of locals in parent context
+	HomeContext      *VM                // The VM context that created this block (for non-local returns)
 }
+
+// NonLocalReturn is a special error type used to implement non-local returns.
+//
+// In Smalltalk-style languages, a return statement (^) inside a block doesn't
+// just return from the block - it returns from the method that created the block.
+// This is called a "non-local return" because it exits from a context other than
+// the immediately executing one.
+//
+// When a block executes OpNonLocalReturn, it creates a NonLocalReturn error
+// containing the return value. This error propagates up through executeBlock()
+// calls until it reaches the method execution context, where it's caught and
+// converted into a normal return.
+//
+// Example flow:
+//   1. Method M creates a block B and passes it to ifTrue:
+//   2. ifTrue: calls executeBlock(B)
+//   3. Block B executes OpNonLocalReturn with value 42
+//   4. NonLocalReturn{Value: 42, HomeContext: M's VM} is created
+//   5. executeBlock returns this as an error
+//   6. ifTrue: propagates the error up
+//   7. Method M catches it and returns 42
+type NonLocalReturn struct {
+	Value       interface{} // The value to return
+	HomeContext *VM         // The target context to return to (the method's VM)
+}
+
+// Error implements the error interface for NonLocalReturn.
+func (nlr *NonLocalReturn) Error() string {
+	return "non-local return"
+}
+
 
 // Array represents a runtime array object.
 //
@@ -1531,6 +1612,17 @@ func (vm *VM) superSend(instance *Instance, selector string, args []interface{})
 
 	// Execute the method bytecode
 	if err := methodVM.Run(method.Code); err != nil {
+		// Check if this is a non-local return targeting this method
+		if nlr, ok := err.(*NonLocalReturn); ok {
+			// If the non-local return's home context is this method's VM,
+			// then this is where the return should stop - convert it to a normal return
+			if nlr.HomeContext == methodVM {
+				// This non-local return is for us - use its value as the return value
+				return nlr.Value, nil
+			}
+			// Otherwise, propagate it further up
+			return nil, nlr
+		}
 		return nil, fmt.Errorf("error in super method %s: %w", selector, err)
 	}
 
@@ -1593,6 +1685,22 @@ func (vm *VM) executeMethod(instance *Instance, selector string, args []interfac
 
 	// Execute the method bytecode
 	if err := methodVM.Run(method.Code); err != nil {
+		// Check if this is a non-local return targeting this method
+		if nlr, ok := err.(*NonLocalReturn); ok {
+			// Check if this non-local return targets this method's execution.
+			// When a block is created during this method's execution, it captures
+			// methodVM as its HomeContext. The pointer comparison works because:
+			// 1. methodVM is created once at the start of this method execution
+			// 2. All blocks created during this execution capture the same methodVM pointer
+			// 3. When OpNonLocalReturn executes, it uses the captured HomeContext pointer
+			// Thus, nlr.HomeContext == methodVM means "return from this method execution"
+			if nlr.HomeContext == methodVM {
+				// This non-local return is for us - use its value as the return value
+				return nlr.Value, nil
+			}
+			// Otherwise, propagate it further up (shouldn't normally happen in well-formed code)
+			return nil, nlr
+		}
 		return nil, fmt.Errorf("error in method %s: %w", selector, err)
 	}
 
@@ -1654,6 +1762,17 @@ func (vm *VM) executeClassMethod(classDef *bytecode.ClassDefinition, selector st
 
 	// Execute the method bytecode
 	if err := methodVM.Run(method.Code); err != nil {
+		// Check if this is a non-local return targeting this method
+		if nlr, ok := err.(*NonLocalReturn); ok {
+			// If the non-local return's home context is this method's VM,
+			// then this is where the return should stop - convert it to a normal return
+			if nlr.HomeContext == methodVM {
+				// This non-local return is for us - use its value as the return value
+				return nlr.Value, nil
+			}
+			// Otherwise, propagate it further up
+			return nil, nlr
+		}
 		return nil, fmt.Errorf("error in class method %s: %w", selector, err)
 	}
 

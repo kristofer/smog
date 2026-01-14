@@ -361,6 +361,59 @@ Invoke block:
   Stack: [25]
 ```
 
+### Non-Local Returns
+
+Non-local returns are a fundamental feature of Smalltalk-style blocks. When a return statement (`^`) executes in a block, it doesn't just exit the block - it exits the method that created the block.
+
+**Implementation:**
+
+1. **Block Creation**: Each block captures a reference to its "home context" - the VM executing the method that created it.
+
+2. **OpNonLocalReturn**: When compiled, return statements in blocks generate `OpNonLocalReturn` instead of `OpReturn`.
+
+3. **Exception Propagation**: When `OpNonLocalReturn` executes, it creates a `NonLocalReturn` error containing:
+   - The return value
+   - The home context (target method's VM)
+
+4. **Unwinding**: The error propagates up through nested block calls until it reaches the target method's `executeMethod`, which catches it and converts it to a normal return.
+
+**Example:**
+```smog
+findFirst: predicate [
+    self do: [ :each |
+        (predicate value: each) ifTrue: [
+            ^each    " Non-local return from findFirst: "
+        ].
+    ].
+    ^nil
+]
+```
+
+**Execution Flow:**
+```
+Method VM: findFirst:
+  ↓ creates block1 for do:
+  ↓ Block1 VM executes
+    ↓ creates block2 for ifTrue:
+    ↓ Block2 VM executes
+      ↓ OpNonLocalReturn with value=each, homeContext=Method VM
+      ↑ NonLocalReturn error propagates
+    ↑ Block2 returns error
+  ↑ Block1 returns error
+↑ Method catches error, returns value=each
+```
+
+This mechanism allows natural control flow:
+- Early returns from search methods
+- Breaking out of loops
+- Conditional method termination
+
+**Key Points:**
+- Blocks created in methods have homeContext = method's VM
+- Blocks created in blocks inherit the parent block's homeContext
+- Non-local returns only work within the creating method's execution
+- After the method returns, blocks with non-local returns become invalid
+
 ## Control Flow Implementation
 
 ### Conditional: ifTrue:

@@ -144,11 +144,36 @@ Example: BLOCK_RETURN  ; exits block, leaves value on stack
 
 ### Method Operations
 
-**OpReturn** - Return from method
+**OpReturn** - Return from method (local return)
 ```
 Operand: none
 Example: RETURN  ; exits method, stack top is return value
 ```
+
+**OpNonLocalReturn** - Return from enclosing method (non-local return)
+```
+Operand: none
+Context: Used in blocks to return from the method that created the block
+Example: NON_LOCAL_RETURN  ; exits from home context (enclosing method)
+```
+
+Non-local returns are fundamental to Smalltalk-style control flow. When a return statement (`^expression`) appears in a block, it doesn't just exit the block - it exits the method that created the block. This allows control flow constructs like `ifTrue:`, `ifFalse:`, and loops to work naturally with early returns.
+
+```smog
+" Example: Non-local return in a block "
+findFirst: predicate [
+    self do: [ :each |
+        (predicate value: each) ifTrue: [
+            ^each    " Returns from findFirst:, not just from the ifTrue: block "
+        ]
+    ].
+    ^nil
+]
+```
+
+The compiler emits:
+- `OpReturn` for return statements in methods
+- `OpNonLocalReturn` for return statements in blocks
 
 **OpLoadSelf** - Load 'self' onto stack
 ```

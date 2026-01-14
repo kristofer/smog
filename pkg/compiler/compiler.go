@@ -82,6 +82,7 @@ type Compiler struct {
 	fields       map[string]int                         // Field table: field name -> field index
 	classVars    map[string]int                         // Class variable table: name -> index
 	classes      map[string]*bytecode.ClassDefinition   // Registry of compiled classes
+	inBlock      bool                                   // True if currently compiling inside a block
 }
 
 // New creates a new compiler instance.
@@ -181,22 +182,36 @@ func (c *Compiler) compileStatementWithContext(stmt ast.Statement, isLast bool) 
 		return nil
 
 	case *ast.ReturnStatement:
-		// Return statements compile the return value and emit RETURN.
+		// Return statements compile the return value and emit RETURN or NON_LOCAL_RETURN.
 		//
 		// Process:
 		//   1. Compile the return value expression
-		//   2. Emit RETURN instruction
+		//   2. Emit appropriate return instruction:
+		//      - OpNonLocalReturn if inside a block (returns from the creating method)
+		//      - OpReturn if at method/top level (local return)
 		//
-		// The value will be on the stack when RETURN executes,
-		// and the VM will use it as the method/block result.
+		// The distinction is crucial for Smalltalk semantics:
+		//   - In a block: ^value exits the method that created the block
+		//   - In a method: ^value exits the method normally
 		//
-		// Example: ^count + 1
-		//   -> compile "count + 1" (leaves result on stack)
-		//   -> RETURN
+		// Example in a block: condition ifTrue: [ ^42 ]
+		//   -> compile "42" (leaves result on stack)
+		//   -> NON_LOCAL_RETURN (exits the enclosing method, not just the block)
+		//
+		// Example in a method: myMethod [ ^42 ]
+		//   -> compile "42" (leaves result on stack)
+		//   -> RETURN (exits the method normally)
 		if err := c.compileExpression(s.Value); err != nil {
 			return err
 		}
-		c.emit(bytecode.OpReturn, 0)
+		
+		if c.inBlock {
+			// Inside a block: use non-local return to exit the enclosing method
+			c.emit(bytecode.OpNonLocalReturn, 0)
+		} else {
+			// At method/top level: use normal return
+			c.emit(bytecode.OpReturn, 0)
+		}
 		return nil
 
 	case *ast.Class:
@@ -618,6 +633,9 @@ func (c *Compiler) compileBlockLiteral(block *ast.BlockLiteral) error {
 	// Create a new compiler for the block body
 	// This gives the block its own symbol table and instruction sequence
 	blockCompiler := New()
+	
+	// Mark that we're compiling a block - this affects how return statements are compiled
+	blockCompiler.inBlock = true
 	
 	// Blocks should have access to the same fields and class variables as the parent context
 	// This allows blocks to access instance variables and class variables
