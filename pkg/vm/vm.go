@@ -1038,11 +1038,13 @@ func (vm *VM) executeBlock(block *Block, args []interface{}) (interface{}, error
 	}
 
 	// Create a new VM for block execution
-	// Blocks share locals and globals with parent VM to support closures
+	// Blocks get their own locals array to avoid conflicting with parent locals
+	// Note: True closure support (accessing parent locals) would require
+	// a more sophisticated implementation with captured variables
 	blockVM := &VM{
 		stack:     make([]interface{}, 1024),
 		sp:        0,
-		locals:    vm.locals,  // Share locals with parent VM (closure support)
+		locals:    make([]interface{}, 256),  // Separate locals for block
 		globals:   vm.globals, // Share globals with parent VM
 		constants: block.Bytecode.Constants, // Will be overwritten by Run() anyway
 		classes:   vm.classes, // Share class registry

@@ -124,8 +124,9 @@ func New() *Compiler {
 // Returns an error if any statement fails to compile (e.g., unknown node type).
 func (c *Compiler) Compile(program *ast.Program) (*bytecode.Bytecode, error) {
 	// Compile each statement in order
-	for _, stmt := range program.Statements {
-		if err := c.compileStatement(stmt); err != nil {
+	for i, stmt := range program.Statements {
+		isLast := i == len(program.Statements)-1
+		if err := c.compileStatementWithContext(stmt, isLast); err != nil {
 			return nil, err
 		}
 	}
@@ -139,25 +140,29 @@ func (c *Compiler) Compile(program *ast.Program) (*bytecode.Bytecode, error) {
 	}, nil
 }
 
-// compileStatement compiles a single statement node.
+// compileStatementWithContext compiles a single statement with context about its position.
 //
-// Statements are top-level constructs in the AST. Each type of statement
-// has different compilation requirements:
+// The isLast parameter indicates whether this is the last statement in the current scope.
+// For expression statements that are not the last statement, we emit a POP instruction
+// to discard the result and keep the stack clean.
 //
-//   - ExpressionStatement: Compile the expression (leaves value on stack)
-//   - VariableDeclaration: Register variables in symbol table (no bytecode)
-//   - ReturnStatement: Compile return value and emit RETURN instruction
-//
-// Future statement types might include:
-//   - Class definitions
-//   - Method definitions
-//   - Import statements
-func (c *Compiler) compileStatement(stmt ast.Statement) error {
+// This prevents stack corruption when multiple expression statements are executed
+// in sequence, such as:
+//   numbers do: [ :each | each println ].  " Result left on stack without POP "
+//   | x |  " Next statement would see corrupted stack "
+func (c *Compiler) compileStatementWithContext(stmt ast.Statement, isLast bool) error {
 	switch s := stmt.(type) {
 	case *ast.ExpressionStatement:
 		// Compile the wrapped expression
-		// The result will be left on the stack
-		return c.compileExpression(s.Expression)
+		if err := c.compileExpression(s.Expression); err != nil {
+			return err
+		}
+		// Pop the result from the stack if this is not the last statement
+		// The last statement's value is kept on the stack as the return value
+		if !isLast {
+			c.emit(bytecode.OpPop, 0)
+		}
+		return nil
 
 	case *ast.VariableDeclaration:
 		// Variable declarations don't generate bytecode directly.
@@ -212,6 +217,22 @@ func (c *Compiler) compileStatement(stmt ast.Statement) error {
 		return fmt.Errorf("unknown statement type: %T", stmt)
 	}
 }
+
+// compileStatement compiles a single statement without last-statement context.
+//
+// This is used in contexts where we don't know if the statement is last
+// (such as in blocks and methods where all statements except returns
+// should have their values kept).
+//
+// For top-level program compilation, use compileStatementWithContext instead.
+func (c *Compiler) compileStatement(stmt ast.Statement) error {
+	// In method/block contexts, we want to keep the last expression's value
+	// on the stack, so we pass isLast=true to avoid emitting POP.
+	// This matches the semantics of methods and blocks which return
+	// their last expression's value.
+	return c.compileStatementWithContext(stmt, true)
+}
+
 
 // compileExpression compiles an expression node.
 //
@@ -603,8 +624,9 @@ func (c *Compiler) compileBlockLiteral(block *ast.BlockLiteral) error {
 	}
 	
 	// Compile the block body statements
-	for _, stmt := range block.Body {
-		if err := blockCompiler.compileStatement(stmt); err != nil {
+	for i, stmt := range block.Body {
+		isLast := i == len(block.Body)-1
+		if err := blockCompiler.compileStatementWithContext(stmt, isLast); err != nil {
 			return err
 		}
 	}
@@ -706,8 +728,9 @@ func (c *Compiler) CompileIncremental(program *ast.Program) (*bytecode.Bytecode,
 	c.constants = c.constants[:0]
 	
 	// Compile each statement in order
-	for _, stmt := range program.Statements {
-		if err := c.compileStatement(stmt); err != nil {
+	for i, stmt := range program.Statements {
+		isLast := i == len(program.Statements)-1
+		if err := c.compileStatementWithContext(stmt, isLast); err != nil {
 			return nil, err
 		}
 	}
@@ -862,8 +885,9 @@ func (c *Compiler) compileMethod(method *ast.Method, fields []string, classVars 
 	}
 
 	// Compile method body
-	for _, stmt := range method.Body {
-		if err := methodCompiler.compileStatement(stmt); err != nil {
+	for i, stmt := range method.Body {
+		isLast := i == len(method.Body)-1
+		if err := methodCompiler.compileStatementWithContext(stmt, isLast); err != nil {
 			return nil, err
 		}
 	}
