@@ -18,6 +18,16 @@ Object subclass: #Node [
     getNext [
         ^next
     ]
+
+    " Equality method - compares two nodes by their data "
+    equals: otherNode [
+        | otherData |
+        " Get the other node's data "
+        otherData := otherNode getData.
+
+        " Compare the data values "
+        ^data = otherData
+    ]
 ]
 
 Object subclass: #LinkedList [
@@ -95,3 +105,22 @@ list printList.
 'List size: ' print.
 listSize := list getSize.
 listSize println.
+
+'' println.
+'Testing Node equality:' println.
+
+" Create two nodes with the same data "
+node1 := Node new.
+node1 setData: 42.
+
+node2 := Node new.
+node2 setData: 42.
+
+node3 := Node new.
+node3 setData: 99.
+
+'node1 equals: node2 (both 42): ' print.
+(node1 equals: node2) println.  " Should print: true "
+
+'node1 equals: node3 (42 vs 99): ' print.
+(node1 equals: node3) println.  " Should print: false "
