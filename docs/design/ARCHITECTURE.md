@@ -61,13 +61,21 @@
 
 **Responsibilities**:
 - Define bytecode instruction set
-- Provide bytecode serialization/deserialization
+- Provide bytecode serialization/deserialization (.sg files)
 - Support bytecode analysis and optimization
+- Binary file format with versioning
 
 **Key Types**:
 - `Opcode` - Instruction opcodes
 - `Instruction` - Single bytecode instruction
 - `Bytecode` - Complete bytecode object
+- `Encode/Decode` - Binary serialization functions
+
+**File Format (.sg)**:
+- Magic number: "SMOG" (0x534D4F47)
+- Version tracking for compatibility
+- Binary encoding of instructions and constants
+- Supports all Smog language constructs
 
 ### 6. Virtual Machine
 **Location**: `pkg/vm/`
@@ -109,6 +117,22 @@
 
 ## Data Flow
 
+### Two Execution Paths
+
+**Path 1: Direct Execution (.smog files)**
+```
+Source Code (.smog file)
+    ↓
+[Lexer] → Tokens
+    ↓
+[Parser] → AST
+    ↓
+[Compiler] → Bytecode (in memory)
+    ↓
+[VM] → Execution → Results
+```
+
+**Path 2: Compiled Execution (.sg files)**
 ```
 Source Code (.smog file)
     ↓
@@ -118,8 +142,19 @@ Source Code (.smog file)
     ↓
 [Compiler] → Bytecode
     ↓
+[Encode] → .sg file (binary)
+
+Later execution:
+.sg file
+    ↓
+[Decode] → Bytecode (in memory)
+    ↓
 [VM] → Execution → Results
 ```
+
+**Performance Comparison:**
+- Direct (.smog): Full compilation each run
+- Compiled (.sg): Skip lexer, parser, compiler (5-50x faster startup)
 
 ## Design Principles
 

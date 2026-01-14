@@ -34,6 +34,28 @@ Output:
 Hello, World!
 ```
 
+### Compiling for Faster Execution
+
+For frequently-run programs, compile to bytecode:
+
+```bash
+# Compile to .sg bytecode file
+./bin/smog compile hello.smog hello.sg
+
+# Run the compiled bytecode (faster startup)
+./bin/smog hello.sg
+
+# Inspect the bytecode
+./bin/smog disassemble hello.sg
+```
+
+**Benefits of .sg files:**
+- 5-50x faster startup time
+- Distribute programs without source code
+- Foundation for module systems
+
+See the [Bytecode Format Guide](BYTECODE_FORMAT.md) for details.
+
 ### Working with Variables
 
 ```smog

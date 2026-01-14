@@ -45,6 +45,7 @@ If you want to understand or contribute to Smog's internals:
 | [Parser Documentation](PARSER.md) | AST construction | Implementers, curious users |
 | [Compiler Documentation](COMPILER.md) | Bytecode generation | Implementers, curious users |
 | [Bytecode Generation Guide](BYTECODE_GENERATION.md) | Bytecode format and optimization | Implementers |
+| [Bytecode Format Guide](BYTECODE_FORMAT.md) | .sg file format and CLI usage | Users, Implementers |
 | [VM Deep Dive](VM_DEEP_DIVE.md) | Virtual machine internals | Implementers |
 | [VM Specification](../pkg/vm/SPECIFICATION.md) | Formal VM spec | Implementers |
 
@@ -126,6 +127,14 @@ If you want to understand or contribute to Smog's internals:
 - Bytecode verification
 - Debugging tools (disassembler, tracer)
 
+**[Bytecode Format Guide](BYTECODE_FORMAT.md)** (8k+ lines)
+- Binary .sg file format specification
+- Compilation and execution workflows
+- CLI commands (compile, disassemble)
+- Performance benchmarks
+- Multi-file program patterns
+- Version compatibility
+
 **[Virtual Machine Deep Dive](VM_DEEP_DIVE.md)** (14k+ lines)
 - VM architecture and components
 - Fetch-decode-execute cycle
@@ -178,6 +187,7 @@ What each document covers:
 | AST | | | | | ✅ | ✅ | | |
 | Code Generation | | | | | | ✅ | ✅ | |
 | Bytecode Format | | | | | | | ✅ | ✅ |
+| .sg Files | | ✅ | ✅ | | | ✅ | ✅ | ✅ |
 | VM Execution | | | | | | | | ✅ |
 | Optimization | | | | | | ✅ | ✅ | ✅ |
 | Debugging | ✅ | | | ✅ | ✅ | | ✅ | ✅ |
@@ -191,11 +201,12 @@ What each document covers:
 | Language Spec | ~325 | User/Impl | 30-40 min |
 | Lexer | ~550 | Implementer | 45-60 min |
 | Parser | ~500 | Implementer | 45-60 min |
-| Compiler | ~400 | Implementer | 35-45 min |
+| Compiler | ~430 | Implementer | 35-45 min |
 | Bytecode Guide | ~530 | Implementer | 45-60 min |
+| Bytecode Format | ~330 | User/Impl | 30-40 min |
 | VM Deep Dive | ~600 | Implementer | 60-75 min |
 
-**Total New Documentation**: ~4,200 lines covering all aspects of the language
+**Total Documentation**: ~4,500+ lines covering all aspects of the language
 
 ## How to Use This Documentation
 
@@ -208,16 +219,19 @@ What each document covers:
 ### Scenario 3: "What's the exact syntax for Y?"
 → Refer to [Language Specification](spec/LANGUAGE_SPEC.md)
 
-### Scenario 4: "How does the compiler generate bytecode?"
+### Scenario 4: "How do I compile programs for distribution?"
+→ Read [Bytecode Format Guide](BYTECODE_FORMAT.md) for .sg files
+
+### Scenario 5: "How does the compiler generate bytecode?"
 → Read [Compiler Documentation](COMPILER.md) and [Bytecode Generation Guide](BYTECODE_GENERATION.md)
 
-### Scenario 5: "Why is my code slow?"
-→ Check [VM Deep Dive](VM_DEEP_DIVE.md) performance section
+### Scenario 6: "Why is my code slow?"
+→ Check [VM Deep Dive](VM_DEEP_DIVE.md) performance section, consider compiling to .sg
 
-### Scenario 6: "I want to contribute a feature"
+### Scenario 7: "I want to contribute a feature"
 → Read [Architecture](design/ARCHITECTURE.md), [Design Decisions](design/DECISIONS.md), and relevant technical docs
 
-### Scenario 7: "How does message sending really work?"
+### Scenario 8: "How does message sending really work?"
 → Path: [Learning Guide](LEARNING_GUIDE.md) → [Parser](PARSER.md) → [Compiler](COMPILER.md) → [VM Deep Dive](VM_DEEP_DIVE.md)
 
 ## Feedback and Improvements
