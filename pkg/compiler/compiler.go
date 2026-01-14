@@ -220,11 +220,14 @@ func (c *Compiler) compileStatementWithContext(stmt ast.Statement, isLast bool) 
 
 // compileStatement compiles a single statement without last-statement context.
 //
-// This is used in contexts where we don't know if the statement is last
-// (such as in blocks and methods where all statements except returns
-// should have their values kept).
+// This is a wrapper around compileStatementWithContext that passes isLast=true.
+// It's used in contexts where statements should keep their values on the stack,
+// such as:
+//   - Method bodies (methods return the last expression's value)
+//   - Block bodies (blocks return the last expression's value)
 //
-// For top-level program compilation, use compileStatementWithContext instead.
+// For top-level program compilation where intermediate results should be discarded,
+// use compileStatementWithContext with appropriate isLast values instead.
 func (c *Compiler) compileStatement(stmt ast.Statement) error {
 	// In method/block contexts, we want to keep the last expression's value
 	// on the stack, so we pass isLast=true to avoid emitting POP.
@@ -622,15 +625,16 @@ func (c *Compiler) compileBlockLiteral(block *ast.BlockLiteral) error {
 	blockCompiler.classVars = c.classVars
 	blockCompiler.classes = c.classes
 	
-	// Store parent's local count for closure support
-	parentLocalCount := c.localCount
-	
 	// Copy parent's symbol table to support closures
 	// Blocks can access variables from enclosing scope
 	for name, slot := range c.symbols {
 		blockCompiler.symbols[name] = slot
 	}
 	blockCompiler.localCount = c.localCount
+	
+	// Capture parent's local count AFTER setting up symbol table
+	// This ensures consistency with the copied state
+	parentLocalCount := blockCompiler.localCount
 	
 	// Add block parameters to the symbol table
 	// Parameters become local variables in the block, allocated after parent's locals

@@ -1063,11 +1063,11 @@ func (vm *VM) executeBlock(block *Block, args []interface{}) (interface{}, error
 		newLocals := make([]interface{}, requiredSize)
 		copy(newLocals, vm.locals)
 		vm.locals = newLocals
-		blockVM.locals = vm.locals
+		blockVM.locals = newLocals  // Share the new array with blockVM
 	} else if len(vm.locals) < requiredSize {
 		// Just extend the slice
 		vm.locals = vm.locals[:requiredSize]
-		blockVM.locals = vm.locals
+		blockVM.locals = vm.locals  // Ensure blockVM has the extended slice
 	}
 
 	// Set block parameters in the locals array
