@@ -190,6 +190,45 @@ factorial: n [
 ]
 ```
 
+#### Non-Local Returns
+
+In Smalltalk-style languages, return statements (`^`) in blocks perform **non-local returns** - they return from the method that created the block, not just from the block itself. This is a fundamental feature for control flow.
+
+```smog
+findFirst: predicate [
+    " Returns the first element matching the predicate, or nil "
+    self do: [ :each |
+        (predicate value: each) ifTrue: [
+            ^each    " Returns from findFirst:, not just from the ifTrue: block "
+        ]
+    ].
+    ^nil
+]
+```
+
+In this example, when `^each` executes inside the nested blocks (`do:` → `ifTrue:`), it returns `each` from the `findFirst:` method, skipping the rest of the iteration and the `^nil` at the end.
+
+**Key Points:**
+- `^expression` in a method returns from that method
+- `^expression` in a block returns from the method that created the block
+- This makes control flow constructs like `ifTrue:`, `ifFalse:`, `whileTrue:` work naturally
+- Blocks without explicit returns yield the value of their last expression
+
+**Example with nested blocks:**
+```smog
+method [
+    (true) ifTrue: [
+        (true) ifTrue: [
+            ^42    " Returns 42 from method, not from either ifTrue: block "
+        ]
+    ].
+    'This will not execute' println.
+    ^99
+]
+```
+
+The method returns `42`, not `99`, because the non-local return exits the entire method.
+
 ## Standard Library
 
 ### Core Classes
