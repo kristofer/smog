@@ -34,9 +34,18 @@ go test ./...
 ### 2. Try Running Examples
 
 ```bash
-# Currently shows TODO message as implementation is in progress
+# Run source files directly
 ./bin/smog examples/hello.smog
-./bin/smog examples/factorial.smog
+./bin/smog examples/counter.smog
+
+# Compile to bytecode for faster execution
+./bin/smog compile examples/hello.smog examples/hello.sg
+
+# Run compiled bytecode
+./bin/smog examples/hello.sg
+
+# Inspect bytecode
+./bin/smog disassemble examples/hello.sg
 ```
 
 ### 3. Explore the Codebase
@@ -71,14 +80,21 @@ smog/
 ```
 Source Code (.smog)
     ↓
-[Lexer] → Tokens (TODO)
+[Lexer] → Tokens
     ↓
-[Parser] → AST (TODO)
+[Parser] → AST
     ↓
-[Compiler] → Bytecode (TODO)
+[Compiler] → Bytecode
     ↓
-[VM] → Execution (TODO)
+[Save to .sg file (optional)]
+    ↓
+[VM] → Execution
 ```
+
+**Two Execution Paths:**
+
+1. **Direct Execution**: `.smog` → Lexer → Parser → Compiler → VM
+2. **Compiled Execution**: `.smog` → Compiler → `.sg` file → VM (faster)
 
 ## Development Workflow
 
@@ -119,15 +135,21 @@ go test ./pkg/parser
 - Documentation foundation
 - Language specification
 - Example programs
-- Basic CLI scaffolding
-- Package stubs
+- Full lexer implementation
+- Complete parser
+- Bytecode compiler
+- Stack-based VM
+- **Bytecode file format (.sg)**
+- Classes and inheritance
+- Blocks and closures
+- Standard primitives
 
-### Next Priority (v0.2.0) 🚧
-1. **Lexer**: Tokenize source code
-2. **Parser**: Build AST from tokens
-3. **Compiler**: Generate bytecode from AST
-4. **VM**: Execute bytecode
-5. **Runtime**: Basic object system
+### Next Priority (v0.6.0) 🚧
+1. **Module System**: Import/export for .sg files
+2. **Standard Library**: Comprehensive collection classes
+3. **Exception Handling**: Try/catch mechanisms
+4. **Debugging Support**: Source line mapping in .sg files
+5. **Performance**: JIT compilation optimizations
 
 See the [roadmap](planning/ROADMAP.md) for detailed plans.
 
@@ -177,7 +199,30 @@ See the [roadmap](planning/ROADMAP.md) for detailed plans.
 - [SOM Homepage](http://som-st.github.io/)
 - [SOM Implementations](https://github.com/SOM-st)
 
-## Common Tasks
+### Common Tasks
+
+### Compiling and Running Programs
+
+**Compile source to bytecode:**
+```bash
+# Compile with auto-generated output name
+smog compile program.smog
+
+# Compile with custom output name
+smog compile program.smog output.sg
+```
+
+**Run bytecode:**
+```bash
+# VM automatically detects .sg files
+smog program.sg
+```
+
+**Inspect bytecode:**
+```bash
+# View disassembled bytecode
+smog disassemble program.sg
+```
 
 ### Adding a New Bytecode Opcode
 

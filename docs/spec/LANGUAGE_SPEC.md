@@ -243,7 +243,7 @@ factorial: n [
 
 ## File Structure
 
-A smog source file contains class definitions and optionally a main execution block:
+A smog source file (`.smog`) contains class definitions and optionally a main execution block:
 
 ```smog
 Object subclass: #Hello [
@@ -255,6 +255,32 @@ Object subclass: #Hello [
 "Main execution"
 Hello new greet.
 ```
+
+### Bytecode Files (.sg)
+
+Smog source files can be compiled to binary bytecode files with the `.sg` extension:
+
+```bash
+# Compile source to bytecode
+smog compile hello.smog hello.sg
+
+# Run bytecode directly
+smog hello.sg
+```
+
+**Bytecode File Format:**
+- Magic number: "SMOG" (0x534D4F47)
+- Version tracking for compatibility
+- Binary encoding of instructions and constants
+- Includes all class definitions and methods
+
+**Use cases:**
+- Faster program loading (5-50x improvement)
+- Distribution without source code
+- Multi-file programs with pre-compiled modules
+- Production deployment
+
+See the [Bytecode Format Guide](../BYTECODE_FORMAT.md) for complete specification.
 
 ## Examples
 
@@ -308,11 +334,21 @@ counter value println.  " Prints: 2 "
 1. **Lexing** - Source text → Tokens
 2. **Parsing** - Tokens → AST
 3. **Compilation** - AST → Bytecode
-4. **Execution** - Bytecode → VM execution
+4. **Optional: Serialization** - Bytecode → .sg file
+5. **Execution** - Bytecode (from source or .sg) → VM execution
 
 ### Bytecode Format
 
-The bytecode is a sequence of instructions operating on a stack-based virtual machine. See the bytecode package documentation for details on individual opcodes.
+The bytecode is a sequence of instructions operating on a stack-based virtual machine. Bytecode can be:
+- **Executed directly** from memory after compilation
+- **Saved to .sg files** for faster loading
+- **Loaded from .sg files** and executed without recompilation
+
+See the [Bytecode Format documentation](../BYTECODE_FORMAT.md) for details on:
+- Binary file structure
+- Instruction encoding
+- Constant pool format
+- Class and method serialization
 
 ## Future Considerations
 

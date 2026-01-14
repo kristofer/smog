@@ -318,8 +318,18 @@ go test ./test -v -run TestVersion0_2_0
 
 ## Next Steps
 
-After confirming v0.2.0 works:
+After confirming the features work:
+- **Compile programs to .sg files** for faster execution:
+  ```bash
+  ./bin/smog compile examples/hello.smog examples/hello.sg
+  ./bin/smog examples/hello.sg
+  ```
+- **Inspect bytecode**:
+  ```bash
+  ./bin/smog disassemble examples/hello.sg
+  ```
 - Explore the existing examples in `examples/` directory
+- Read `docs/BYTECODE_FORMAT.md` for .sg file format details
 - Read `docs/IMPLEMENTATION_SUMMARY.md` for implementation details
 - Check `docs/spec/LANGUAGE_SPEC.md` for language syntax reference
 - Review the automated tests in `test/` for more examples
