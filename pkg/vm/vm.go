@@ -765,6 +765,77 @@ func (vm *VM) send(receiver interface{}, selector string, args []interface{}) (i
 		if selector == "value" || (len(selector) >= 6 && selector[:6] == "value:") {
 			return vm.executeBlock(block, args)
 		}
+
+		// Handle whileTrue: and whileFalse:
+		switch selector {
+		case "whileTrue:":
+			if len(args) != 1 {
+				return nil, fmt.Errorf("whileTrue: expects 1 argument (block), got %d", len(args))
+			}
+			bodyBlock, ok := args[0].(*Block)
+			if !ok {
+				return nil, fmt.Errorf("whileTrue: argument must be a block")
+			}
+
+			// Execute the condition block, and while it returns true, execute the body
+			for {
+				result, err := vm.executeBlock(block, []interface{}{})
+				if err != nil {
+					return nil, err
+				}
+
+				// Check if result is a boolean true
+				conditionTrue, ok := result.(bool)
+				if !ok {
+					return nil, fmt.Errorf("whileTrue: condition block must return a boolean")
+				}
+
+				if !conditionTrue {
+					break
+				}
+
+				// Execute the body block
+				_, err = vm.executeBlock(bodyBlock, []interface{}{})
+				if err != nil {
+					return nil, err
+				}
+			}
+			return nil, nil
+
+		case "whileFalse:":
+			if len(args) != 1 {
+				return nil, fmt.Errorf("whileFalse: expects 1 argument (block), got %d", len(args))
+			}
+			bodyBlock, ok := args[0].(*Block)
+			if !ok {
+				return nil, fmt.Errorf("whileFalse: argument must be a block")
+			}
+
+			// Execute the condition block, and while it returns false, execute the body
+			for {
+				result, err := vm.executeBlock(block, []interface{}{})
+				if err != nil {
+					return nil, err
+				}
+
+				// Check if result is a boolean false
+				conditionFalse, ok := result.(bool)
+				if !ok {
+					return nil, fmt.Errorf("whileFalse: condition block must return a boolean")
+				}
+
+				if conditionFalse {
+					break
+				}
+
+				// Execute the body block
+				_, err = vm.executeBlock(bodyBlock, []interface{}{})
+				if err != nil {
+					return nil, err
+				}
+			}
+			return nil, nil
+		}
 	}
 
 	// Check if receiver is a Boolean and handle boolean control flow
@@ -849,6 +920,21 @@ func (vm *VM) send(receiver interface{}, selector string, args []interface{}) (i
 				return nil, fmt.Errorf("array index out of bounds: %d", idx)
 			}
 			return array.Elements[idx-1], nil
+		case "at:put:":
+			// Array element assignment (1-based like Smalltalk)
+			if len(args) != 2 {
+				return nil, fmt.Errorf("at:put: expects 2 arguments, got %d", len(args))
+			}
+			idx, ok := args[0].(int64)
+			if !ok {
+				return nil, fmt.Errorf("array index must be integer")
+			}
+			if idx < 1 || idx > int64(len(array.Elements)) {
+				return nil, fmt.Errorf("array index out of bounds: %d", idx)
+			}
+			value := args[1]
+			array.Elements[idx-1] = value
+			return value, nil
 		case "do:":
 			// Iterate over array elements with a block
 			if len(args) != 1 {
@@ -952,13 +1038,15 @@ func (vm *VM) executeBlock(block *Block, args []interface{}) (interface{}, error
 	}
 
 	// Create a new VM for block execution
-	// This gives the block its own stack and local variables
+	// Blocks share locals and globals with parent VM to support closures
 	blockVM := &VM{
-		stack:   make([]interface{}, 1024),
-		sp:      0,
-		locals:  make([]interface{}, 256),
-		globals: vm.globals, // Share globals with parent VM
+		stack:     make([]interface{}, 1024),
+		sp:        0,
+		locals:    vm.locals,  // Share locals with parent VM (closure support)
+		globals:   vm.globals, // Share globals with parent VM
 		constants: block.Bytecode.Constants, // Will be overwritten by Run() anyway
+		classes:   vm.classes, // Share class registry
+		self:      vm.self,    // Share self reference
 	}
 
 	// Set up block parameters as local variables

@@ -1,0 +1,97 @@
+" Linked List data structure "
+
+Object subclass: #Node [
+    | data next |
+
+    setData: value [
+        data := value.
+    ]
+
+    getData [
+        ^data
+    ]
+
+    setNext: node [
+        next := node.
+    ]
+
+    getNext [
+        ^next
+    ]
+]
+
+Object subclass: #LinkedList [
+    | head size |
+
+    initialize [
+        head := nil.
+        size := 0.
+    ]
+
+    append: value [
+        | newNode current |
+        newNode := Node new.
+        newNode setData: value.
+        newNode setNext: nil.
+
+        (head = nil) ifTrue: [
+            head := newNode.
+            size := 1.
+            ^self
+        ].
+
+        current := head.
+        [current getNext = nil] whileFalse: [
+            current := current getNext.
+        ].
+
+        current setNext: newNode.
+        size := size + 1.
+    ]
+
+    getSize [
+        ^size
+    ]
+
+    printList [
+        | current data |
+        current := head.
+
+        (current = nil) ifTrue: [
+            'List is empty' println.
+            ^self
+        ].
+
+        'List contents: ' print.
+        [current = nil] whileFalse: [
+            data := current getData.
+            data print.
+            current := current getNext.
+            (current = nil) ifFalse: [
+                ' -> ' print.
+            ].
+        ].
+        '' println.
+    ]
+]
+
+" Test the linked list "
+| list listSize |
+list := LinkedList new.
+list initialize.
+
+'Creating linked list...' println.
+list printList.
+'' println.
+
+'Adding elements: 5, 10, 15, 20' println.
+list append: 5.
+list append: 10.
+list append: 15.
+list append: 20.
+
+list printList.
+
+'List size: ' print.
+listSize := list getSize.
+listSize println.

@@ -1,0 +1,94 @@
+" Stack data structure (LIFO - Last In First Out) "
+
+Object subclass: #Stack [
+    | items count capacity |
+
+    initialize [
+        capacity := 10.
+        items := #(0 0 0 0 0 0 0 0 0 0).
+        count := 0.
+    ]
+
+    push: item [
+        (count < capacity) ifTrue: [
+            count := count + 1.
+            items at: count put: item.
+            ^true
+        ].
+        ^false
+    ]
+
+    pop [
+        | item |
+        (count > 0) ifTrue: [
+            item := items at: count.
+            count := count - 1.
+            ^item
+        ].
+        ^nil
+    ]
+
+    peek [
+        | item |
+        (count > 0) ifTrue: [
+            item := items at: count.
+            ^item
+        ].
+        ^nil
+    ]
+
+    isEmpty [
+        ^(count = 0)
+    ]
+
+    size [
+        ^count
+    ]
+
+    isFull [
+        ^(count = capacity)
+    ]
+]
+
+" Test the stack "
+| stack item |
+stack := Stack new.
+stack initialize.
+
+'Creating stack...' println.
+'Is empty: ' print.
+item := stack isEmpty.
+item println.
+'' println.
+
+'Pushing elements 10, 20, 30...' println.
+stack push: 10.
+stack push: 20.
+stack push: 30.
+
+'Stack size: ' print.
+item := stack size.
+item println.
+
+'Peek at top: ' print.
+item := stack peek.
+item println.
+'' println.
+
+'Popping elements:' println.
+item := stack pop.
+'Popped: ' print.
+item println.
+
+item := stack pop.
+'Popped: ' print.
+item println.
+
+item := stack pop.
+'Popped: ' print.
+item println.
+'' println.
+
+'Is empty: ' print.
+item := stack isEmpty.
+item println.

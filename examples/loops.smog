@@ -1,0 +1,39 @@
+" Loop examples using whileTrue: and whileFalse: "
+
+'Example 1: Count from 1 to 5 using whileTrue:' println.
+i := 1.
+[i <= 5] whileTrue: [
+    i println.
+    i := i + 1.
+].
+
+'' println.
+
+'Example 2: Count down from 5 to 1 using whileFalse:' println.
+j := 5.
+[j < 1] whileFalse: [
+    j println.
+    j := j - 1.
+].
+
+'' println.
+
+'Example 3: Sum numbers from 1 to 10' println.
+sum := 0.
+n := 1.
+[n <= 10] whileTrue: [
+    sum := sum + n.
+    n := n + 1.
+].
+'Sum: ' print.
+sum println.
+
+'' println.
+
+'Example 4: Find first power of 2 greater than 100' println.
+power := 1.
+[power <= 100] whileTrue: [
+    power := power * 2.
+].
+'Result: ' print.
+power println.

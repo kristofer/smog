@@ -1,0 +1,108 @@
+" Queue data structure (FIFO - First In First Out) "
+
+Object subclass: #Queue [
+    | items front rear count capacity |
+
+    initialize [
+        capacity := 10.
+        items := #(0 0 0 0 0 0 0 0 0 0).
+        front := 1.
+        rear := 0.
+        count := 0.
+    ]
+
+    enqueue: item [
+        (count < capacity) ifTrue: [
+            rear := rear + 1.
+            (rear > capacity) ifTrue: [
+                rear := 1.
+            ].
+            items at: rear put: item.
+            count := count + 1.
+            ^true
+        ].
+        ^false
+    ]
+
+    dequeue [
+        | item |
+        (count > 0) ifTrue: [
+            item := items at: front.
+            front := front + 1.
+            (front > capacity) ifTrue: [
+                front := 1.
+            ].
+            count := count - 1.
+            ^item
+        ].
+        ^nil
+    ]
+
+    peek [
+        | item |
+        (count > 0) ifTrue: [
+            item := items at: front.
+            ^item
+        ].
+        ^nil
+    ]
+
+    isEmpty [
+        ^(count = 0)
+    ]
+
+    size [
+        ^count
+    ]
+
+    isFull [
+        ^(count = capacity)
+    ]
+]
+
+" Test the queue "
+| queue item |
+queue := Queue new.
+queue initialize.
+
+'Creating queue...' println.
+'Is empty: ' print.
+item := queue isEmpty.
+item println.
+'' println.
+
+'Enqueuing customers: Alice, Bob, Carol...' println.
+queue enqueue: 1.  " Using numbers to represent customers "
+queue enqueue: 2.
+queue enqueue: 3.
+
+'Queue size: ' print.
+item := queue size.
+item println.
+
+'Next customer (peek): ' print.
+item := queue peek.
+item println.
+'' println.
+
+'Serving customers (dequeue):' println.
+item := queue dequeue.
+'Served customer: ' print.
+item println.
+
+item := queue dequeue.
+'Served customer: ' print.
+item println.
+
+'Remaining queue size: ' print.
+item := queue size.
+item println.
+'' println.
+
+'Adding more customers...' println.
+queue enqueue: 4.
+queue enqueue: 5.
+
+'Current queue size: ' print.
+item := queue size.
+item println.

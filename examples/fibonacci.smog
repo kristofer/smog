@@ -1,0 +1,70 @@
+" Fibonacci sequence using recursion and iteration "
+
+" Recursive approach "
+Object subclass: #FibRecursive [
+    <calculate: n [
+        | result |
+        (n <= 1) ifTrue: [
+            ^n
+        ].
+
+        | fib1 fib2 |
+        fib1 := FibRecursive calculate: (n - 1).
+        fib2 := FibRecursive calculate: (n - 2).
+        result := fib1 + fib2.
+        ^result
+    ]>
+]
+
+" Iterative approach "
+Object subclass: #FibIterative [
+    <calculate: n [
+        | a b temp i |
+        (n <= 1) ifTrue: [
+            ^n
+        ].
+
+        a := 0.
+        b := 1.
+        i := 2.
+
+        [i <= n] whileTrue: [
+            temp := a + b.
+            a := b.
+            b := temp.
+            i := i + 1.
+        ].
+
+        ^b
+    ]>
+]
+
+" Test both approaches "
+| n result |
+
+'Fibonacci sequence (first 10 numbers):' println.
+'' println.
+
+'Recursive approach:' println.
+n := 0.
+[n < 10] whileTrue: [
+    'fib(' print.
+    n print.
+    ') = ' print.
+    result := FibRecursive calculate: n.
+    result println.
+    n := n + 1.
+].
+
+'' println.
+
+'Iterative approach:' println.
+n := 0.
+[n < 10] whileTrue: [
+    'fib(' print.
+    n print.
+    ') = ' print.
+    result := FibIterative calculate: n.
+    result println.
+    n := n + 1.
+].

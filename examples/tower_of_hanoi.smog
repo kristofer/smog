@@ -1,0 +1,77 @@
+" Tower of Hanoi - Classic recursive algorithm "
+
+Object subclass: #TowerOfHanoi [
+    <| moveCount |>
+
+    <initialize [
+        moveCount := 0.
+    ]>
+
+    <solve: n from: source to: destination aux: auxiliary [
+        (n = 1) ifTrue: [
+            moveCount := moveCount + 1.
+            'Move ' print.
+            moveCount print.
+            ': Disk 1 from ' print.
+            source print.
+            ' to ' print.
+            destination println.
+            ^self
+        ].
+
+        " Move n-1 disks from source to auxiliary using destination "
+        TowerOfHanoi solve: (n - 1) from: source to: auxiliary aux: destination.
+
+        " Move the nth disk from source to destination "
+        moveCount := moveCount + 1.
+        'Move ' print.
+        moveCount print.
+        ': Disk ' print.
+        n print.
+        ' from ' print.
+        source print.
+        ' to ' print.
+        destination println.
+
+        " Move n-1 disks from auxiliary to destination using source "
+        TowerOfHanoi solve: (n - 1) from: auxiliary to: destination aux: source.
+    ]>
+
+    <getMoveCount [
+        ^moveCount
+    ]>
+]
+
+" Solve Tower of Hanoi "
+| n totalMoves |
+
+'Tower of Hanoi' println.
+'==============' println.
+'' println.
+
+TowerOfHanoi initialize.
+
+n := 3.
+'Solving Tower of Hanoi with ' print.
+n print.
+' disks...' println.
+'' println.
+
+TowerOfHanoi solve: n from: 'A' to: 'C' aux: 'B'.
+
+'' println.
+'Total moves: ' print.
+totalMoves := TowerOfHanoi getMoveCount.
+totalMoves println.
+
+" Formula: 2^n - 1 "
+'Expected moves: ' print.
+| expected power i |
+power := 1.
+i := 0.
+[i < n] whileTrue: [
+    power := power * 2.
+    i := i + 1.
+].
+expected := power - 1.
+expected println.

@@ -8,11 +8,12 @@ Welcome to Smog! This guide will teach you how to use the Smog programming langu
 
 1. [Getting Started](#getting-started)
 2. [Basic Concepts](#basic-concepts)
-3. [Data Structures](#data-structures)
-4. [Sorting and Searching](#sorting-and-searching)
-5. [Object-Oriented Patterns](#object-oriented-patterns)
-6. [Common Algorithms](#common-algorithms)
-7. [Best Practices](#best-practices)
+3. [Built-in Methods Reference](#built-in-methods-reference)
+4. [Data Structures](#data-structures)
+5. [Sorting and Searching](#sorting-and-searching)
+6. [Object-Oriented Patterns](#object-oriented-patterns)
+7. [Common Algorithms](#common-algorithms)
+8. [Best Practices](#best-practices)
 
 ## Getting Started
 
@@ -176,6 +177,315 @@ x > 0
 #(1 2 3) do: [ :each |
     each println.
 ].
+```
+
+## Built-in Methods Reference
+
+Smog provides built-in methods for core types. All computation happens by sending messages to objects.
+
+### Boolean Methods
+
+Booleans (`true` and `false`) respond to conditional messages:
+
+#### `ifTrue: aBlock`
+Execute the block if the boolean is true.
+```smog
+true ifTrue: [ 'This executes' println ].
+false ifTrue: [ 'This does not execute' println ].
+```
+
+#### `ifFalse: aBlock`
+Execute the block if the boolean is false.
+```smog
+false ifFalse: [ 'This executes' println ].
+true ifFalse: [ 'This does not execute' println ].
+```
+
+#### `ifTrue: trueBlock ifFalse: falseBlock`
+Execute the first block if true, otherwise execute the second block.
+```smog
+| x result |
+x := 10.
+result := (x > 5)
+    ifTrue: [ 'greater' ]
+    ifFalse: [ 'not greater' ].
+result println.  " Prints: greater "
+```
+
+### Integer Methods
+
+Integers support arithmetic, comparison, and iteration messages:
+
+#### Arithmetic Operations
+- `+ other` - Addition
+- `- other` - Subtraction
+- `* other` - Multiplication
+- `/ other` - Division (integer division)
+- `\\ other` - Modulo (remainder)
+
+```smog
+10 + 5 println.   " Prints: 15 "
+10 - 3 println.   " Prints: 7 "
+10 * 2 println.   " Prints: 20 "
+10 / 3 println.   " Prints: 3 "
+10 \\ 3 println.  " Prints: 1 "
+```
+
+#### Comparison Operations
+- `< other` - Less than
+- `> other` - Greater than
+- `<= other` - Less than or equal
+- `>= other` - Greater than or equal
+- `= other` - Equal to
+- `~= other` - Not equal to
+
+```smog
+5 < 10 println.   " Prints: true "
+5 > 10 println.   " Prints: false "
+5 = 5 println.    " Prints: true "
+5 ~= 3 println.   " Prints: true "
+```
+
+#### Iteration Methods
+
+#### `timesRepeat: aBlock`
+Execute the block N times.
+```smog
+3 timesRepeat: [ 'Hello' println ].
+" Prints Hello three times "
+```
+
+### String Methods
+
+Strings support printing and comparison:
+
+#### `println`
+Print the string followed by a newline.
+```smog
+'Hello, World!' println.
+```
+
+#### `print`
+Print the string without a newline.
+```smog
+'Name: ' print.
+'Alice' println.
+" Prints: Name: Alice "
+```
+
+#### Comparison
+Strings support `=` and `~=` for equality testing.
+```smog
+'hello' = 'hello' println.  " Prints: true "
+'hello' = 'world' println.  " Prints: false "
+```
+
+### Array Methods
+
+Arrays are ordered collections of elements:
+
+#### `size`
+Return the number of elements in the array.
+```smog
+| arr |
+arr := #(1 2 3 4 5).
+arr size println.  " Prints: 5 "
+```
+
+#### `at: index`
+Get the element at the given index (1-based indexing).
+```smog
+| arr elem |
+arr := #(10 20 30).
+elem := arr at: 1.
+elem println.  " Prints: 10 "
+
+elem := arr at: 2.
+elem println.  " Prints: 20 "
+```
+
+**Note:** Arrays in Smog use 1-based indexing (like Smalltalk), not 0-based indexing.
+
+#### `at: index put: value`
+Set the element at the given index (1-based indexing).
+```smog
+| arr |
+arr := #(1 2 3).
+arr at: 2 put: 99.
+arr at: 2 println.  " Prints: 99 "
+```
+
+#### `do: aBlock`
+Iterate over each element, executing the block with each element as a parameter.
+```smog
+| numbers |
+numbers := #(1 2 3 4 5).
+numbers do: [ :each |
+    each println.
+].
+" Prints: 1 2 3 4 5 (each on a new line) "
+```
+
+#### Advanced Array Methods
+
+The following methods are commonly implemented in user code (not built-in, but shown as patterns):
+
+##### `collect: transformBlock`
+Transform each element and return a new array (also known as "map").
+```smog
+| numbers doubled |
+numbers := #(1 2 3 4 5).
+doubled := numbers collect: [ :each | each * 2 ].
+doubled do: [ :each | each println ].
+" Prints: 2 4 6 8 10 "
+```
+
+##### `select: predicateBlock`
+Filter elements that satisfy a condition (also known as "filter").
+```smog
+| numbers evens |
+numbers := #(1 2 3 4 5 6).
+evens := numbers select: [ :each | (each \\ 2) = 0 ].
+evens do: [ :each | each println ].
+" Prints: 2 4 6 "
+```
+
+##### `inject: initialValue into: binaryBlock`
+Reduce the array to a single value (also known as "fold" or "reduce").
+```smog
+| numbers sum |
+numbers := #(1 2 3 4 5).
+sum := numbers inject: 0 into: [ :acc :each | acc + each ].
+sum println.  " Prints: 15 "
+```
+
+**Note:** The `collect:`, `select:`, and `inject:into:` methods are patterns you implement in your own classes, not built-in VM operations. See the [Data Structures](#data-structures) section for examples.
+
+### Block Methods
+
+Blocks (closures/anonymous functions) respond to value messages:
+
+#### `value`
+Execute a block with no parameters.
+```smog
+| greet |
+greet := [ 'Hello!' println ].
+greet value.  " Prints: Hello! "
+```
+
+#### `value: arg`
+Execute a block with one parameter.
+```smog
+| double |
+double := [ :x | x * 2 ].
+(double value: 5) println.  " Prints: 10 "
+```
+
+#### `value: arg1 value: arg2`
+Execute a block with two parameters.
+```smog
+| add |
+add := [ :x :y | x + y ].
+(add value: 3 value: 7) println.  " Prints: 10 "
+```
+
+Blocks with more parameters follow the same pattern: `value: a value: b value: c` etc.
+
+#### `whileTrue: aBlock`
+Execute the receiver block, and while it returns true, execute the argument block.
+```smog
+i := 1.
+[i <= 5] whileTrue: [
+    i println.
+    i := i + 1.
+].
+" Prints: 1 2 3 4 5 "
+```
+
+**Note:** Due to current closure limitations, variables accessed in loops should be global (not declared with `| var |`). Blocks can access and modify global variables but not local variables from the enclosing scope.
+
+#### `whileFalse: aBlock`
+Execute the receiver block, and while it returns false, execute the argument block.
+```smog
+i := 1.
+[i > 5] whileFalse: [
+    i println.
+    i := i + 1.
+].
+" Prints: 1 2 3 4 5 "
+```
+
+### Class Methods
+
+All classes respond to:
+
+#### `new`
+Create a new instance of the class.
+```smog
+Object subclass: #Person [
+    | name |
+].
+
+| person |
+person := Person new.
+```
+
+### Object Methods
+
+All objects inherit from `Object` and respond to:
+
+#### `class`
+Return the class of the object.
+```smog
+5 class println.         " Prints: Integer "
+'hello' class println.   " Prints: String "
+true class println.      " Prints: True "
+```
+
+#### `println`
+Print the object followed by a newline.
+```smog
+42 println.
+'text' println.
+true println.
+```
+
+#### `print`
+Print the object without a newline.
+```smog
+'Answer: ' print.
+42 println.
+" Prints: Answer: 42 "
+```
+
+### Method Lookup and User-Defined Classes
+
+When you define your own classes, you can add methods that override or extend the built-in behavior:
+
+```smog
+Object subclass: #Point [
+    | x y |
+
+    " Custom initialization "
+    x: xVal y: yVal [
+        x := xVal.
+        y := yVal.
+    ]
+
+    " Custom println "
+    println [
+        '(' print.
+        x print.
+        ', ' print.
+        y print.
+        ')' println.
+    ]
+]
+
+| p |
+p := Point new.
+p x: 10 y: 20.
+p println.  " Prints: (10, 20) "
 ```
 
 ## Data Structures

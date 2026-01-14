@@ -1,0 +1,77 @@
+" Greatest Common Divisor (GCD) using Euclidean algorithm "
+
+Object subclass: #MathUtils [
+    " Iterative approach "
+    <gcd: a with: b [
+        | temp |
+        [b > 0] whileTrue: [
+            temp := b.
+            b := a - ((a / b) * b).  " Modulo operation "
+            a := temp.
+        ].
+        ^a
+    ]>
+
+    " Recursive approach "
+    <gcdRecursive: a with: b [
+        | remainder |
+        (b = 0) ifTrue: [
+            ^a
+        ].
+
+        remainder := a - ((a / b) * b).
+        ^MathUtils gcdRecursive: b with: remainder
+    ]>
+
+    " Least Common Multiple "
+    <lcm: a with: b [
+        | gcd result |
+        gcd := MathUtils gcd: a with: b.
+        result := (a * b) / gcd.
+        ^result
+    ]>
+]
+
+" Test GCD and LCM "
+| a b result |
+
+'Greatest Common Divisor (Euclidean Algorithm)' println.
+'=============================================' println.
+'' println.
+
+a := 48.
+b := 18.
+
+'GCD(' print.
+a print.
+', ' print.
+b print.
+') = ' print.
+result := MathUtils gcd: a with: b.
+result println.
+'' println.
+
+a := 56.
+b := 98.
+
+'GCD(' print.
+a print.
+', ' print.
+b print.
+') using recursion = ' print.
+result := MathUtils gcdRecursive: a with: b.
+result println.
+'' println.
+
+'Least Common Multiple' println.
+'=====================' println.
+a := 12.
+b := 18.
+
+'LCM(' print.
+a print.
+', ' print.
+b print.
+') = ' print.
+result := MathUtils lcm: a with: b.
+result println.

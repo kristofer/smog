@@ -1,0 +1,72 @@
+" Bubble Sort algorithm "
+
+Object subclass: #BubbleSort [
+    <sort: arr [
+        | n i j temp swapped a b |
+        n := arr size.
+
+        i := 1.
+        [i < n] whileTrue: [
+            swapped := false.
+            j := 1.
+
+            [j <= (n - i)] whileTrue: [
+                a := arr at: j.
+                b := arr at: (j + 1).
+
+                (a > b) ifTrue: [
+                    " Swap elements "
+                    arr at: j put: b.
+                    arr at: (j + 1) put: a.
+                    swapped := true.
+                ].
+
+                j := j + 1.
+            ].
+
+            " If no swaps occurred, array is sorted "
+            (swapped = false) ifTrue: [
+                ^arr
+            ].
+
+            i := i + 1.
+        ].
+
+        ^arr
+    ]>
+]
+
+Object subclass: #ArrayPrinter [
+    <print: arr [
+        | size i elem |
+        size := arr size.
+        '[' print.
+        i := 1.
+        [i <= size] whileTrue: [
+            elem := arr at: i.
+            elem print.
+            (i < size) ifTrue: [
+                ', ' print.
+            ].
+            i := i + 1.
+        ].
+        ']' println.
+    ]>
+]
+
+" Test bubble sort "
+| numbers sorted |
+
+'Bubble Sort Algorithm' println.
+'=====================' println.
+'' println.
+
+numbers := #(64 34 25 12 22 11 90).
+
+'Original array: ' print.
+ArrayPrinter print: numbers.
+
+sorted := BubbleSort sort: numbers.
+
+'Sorted array:   ' print.
+ArrayPrinter print: sorted.
