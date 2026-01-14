@@ -616,8 +616,24 @@ func (c *Compiler) compileBlockLiteral(block *ast.BlockLiteral) error {
 	// This gives the block its own symbol table and instruction sequence
 	blockCompiler := New()
 	
+	// Blocks should have access to the same fields and class variables as the parent context
+	// This allows blocks to access instance variables and class variables
+	blockCompiler.fields = c.fields
+	blockCompiler.classVars = c.classVars
+	blockCompiler.classes = c.classes
+	
+	// Store parent's local count for closure support
+	parentLocalCount := c.localCount
+	
+	// Copy parent's symbol table to support closures
+	// Blocks can access variables from enclosing scope
+	for name, slot := range c.symbols {
+		blockCompiler.symbols[name] = slot
+	}
+	blockCompiler.localCount = c.localCount
+	
 	// Add block parameters to the symbol table
-	// Parameters become local variables in the block
+	// Parameters become local variables in the block, allocated after parent's locals
 	for _, param := range block.Parameters {
 		blockCompiler.symbols[param] = blockCompiler.localCount
 		blockCompiler.localCount++
@@ -646,8 +662,9 @@ func (c *Compiler) compileBlockLiteral(block *ast.BlockLiteral) error {
 	paramCount := len(block.Parameters)
 	
 	// Emit MAKE_CLOSURE instruction
-	// Pack block index and parameter count
-	operand := (blockIdx << bytecode.SelectorIndexShift) | paramCount
+	// Pack: block index (high bits) | parent local count (bits 8-15) | param count (bits 0-7)
+	// This allows blocks to properly set up closure parameters
+	operand := (blockIdx << 16) | (parentLocalCount << 8) | paramCount
 	c.emit(bytecode.OpMakeClosure, operand)
 	
 	return nil
