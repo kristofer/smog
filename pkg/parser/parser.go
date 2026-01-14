@@ -365,162 +365,219 @@ func (p *Parser) parseAssignment() ast.Expression {
 	}
 }
 
-// parseMessageSend parses a message send expression.
+// parseMessageSend parses a message send expression with proper Smalltalk precedence.
 //
 // Message sending is the fundamental operation in smog. All computation
 // happens by sending messages to objects.
 //
-// Syntax Types:
+// Smalltalk Message Precedence (from highest to lowest):
+//   1. Unary messages: receiver selector
+//   2. Binary messages: receiver op argument
+//   3. Keyword messages: receiver key: arg
 //
-//   1. Unary messages (no arguments):
-//        receiver selector
-//        Example: 'Hello' println
+// Within each level, messages are evaluated left-to-right.
 //
-//   2. Binary messages (one argument, operator-like):
-//        receiver binaryOp argument
-//        Example: 3 + 4
+// Examples demonstrating precedence:
+//   arr size + 1        -> (arr size) + 1         (unary before binary)
+//   3 + 4 * 2          -> (3 + 4) * 2             (binary left-to-right, no operator precedence)
+//   arr at: i + 1      -> arr at: (i + 1)         (binary in keyword argument)
+//   x sqrt negated     -> (x sqrt) negated        (unary chains left-to-right)
 //
-//   3. Keyword messages (one or more named arguments):
-//        receiver key1: arg1 key2: arg2 ...
-//        Example: array at: 1 put: 'value'
-//
-// Precedence (from highest to lowest):
-//   - Unary messages
-//   - Binary messages
-//   - Keyword messages
-//
-// However, this current implementation uses a simplified left-to-right
-// parsing strategy that handles one message at a time.
-//
-// Process:
-//   1. Parse the receiver (primary expression)
-//   2. Check for a message following the receiver
-//   3. If found, parse it (unary, binary, or keyword)
-//   4. Return MessageSend or just the receiver if no message
-//
-// Examples:
-//
-//   "42" -> just IntegerLiteral{42} (no message)
-//   "x println" -> MessageSend{Receiver: Identifier("x"), Selector: "println"}
-//   "3 + 4" -> MessageSend{Receiver: IntegerLiteral(3), Selector: "+", Args: [IntegerLiteral(4)]}
+// This implementation properly handles the precedence hierarchy by
+// having each precedence level call the next higher level for its components.
 func (p *Parser) parseMessageSend() ast.Expression {
 	// Check for super message send
-	// Syntax: super selector or super keyword: arg
 	if p.curTok.Type == lexer.TokenSuper {
 		return p.parseSuperMessageSend()
 	}
 	
-	// Step 1: Parse the receiver (the object that will receive the message)
-	receiver := p.parsePrimaryExpression()
+	// Start with keyword messages (lowest precedence)
+	// Keyword messages will call binary messages for their receiver and arguments
+	return p.parseKeywordMessage()
+}
+
+// parseKeywordMessage parses keyword messages (lowest precedence).
+//
+// Syntax: receiver keyword1: arg1 keyword2: arg2 ...
+//
+// Examples:
+//   array at: 1
+//   array at: 1 put: 'value'
+//   point x: 10 y: 20
+//
+// The receiver and arguments are parsed as binary messages (next higher precedence).
+func (p *Parser) parseKeywordMessage() ast.Expression {
+	// Parse receiver as a binary message (which will handle unary messages too)
+	receiver := p.parseBinaryMessage()
 	if receiver == nil {
 		return nil
 	}
-
-	// Step 2: Check if there's a message following the receiver
-	// We peek ahead to see if the next token could start a message
-
-	// Check for unary or keyword message (starts with identifier)
-	if p.peekTok.Type == lexer.TokenIdentifier {
-		p.nextToken() // advance to the identifier
-
-		// Now curTok is the identifier, check if it's followed by a colon
-		if p.peekTok.Type == lexer.TokenColon {
-			// It's a keyword message - parse it
-			// The identifier we just read is the first keyword part
-			keyword := p.curTok.Literal
-			p.nextToken() // consume colon
-			selector := keyword + ":"
-			
-			// Parse first argument (move to the argument position)
-			p.nextToken()
-			// Parse argument (primary expression only to avoid token stream issues)
-			// TODO: Support unary/binary messages as arguments (requires refactoring tokenizer for backtracking)
-			arg := p.parsePrimaryExpression()
-			if arg == nil {
-				p.addError("expected argument after keyword")
-				return nil
-			}
-			args := []ast.Expression{arg}
-			
-			// Check for additional keyword parts
-			// Keyword messages can have multiple parts: at: 1 put: 'x'
-			for p.peekTok.Type == lexer.TokenIdentifier {
-				// Save position to check if it's another keyword part
-				savedCur := p.curTok
-				savedPeek := p.peekTok
-				p.nextToken() // advance to identifier
-				
-				if p.peekTok.Type == lexer.TokenColon {
-					// Yes, another keyword part - add it to the selector
-					keyword := p.curTok.Literal
-					p.nextToken() // consume colon
-					selector += keyword + ":"
-					
-					// Parse the argument for this keyword part
-					p.nextToken()
-					// Parse argument (primary expression only to avoid token stream issues)
-					// TODO: Support unary/binary messages as arguments (requires refactoring tokenizer for backtracking)
-					arg := p.parsePrimaryExpression()
-					if arg == nil {
-						p.addError("expected argument after keyword")
-						return nil
-					}
-					args = append(args, arg)
-				} else {
-					// Not a keyword part - restore position and stop
-					p.curTok = savedCur
-					p.peekTok = savedPeek
-					break
-				}
-			}
-			
-			msgSend := &ast.MessageSend{
-				Receiver: receiver,
-				Selector: selector,
-				Args:     args,
-			}
-			
-			// Check for cascade after this message
-			return p.checkForCascade(msgSend)
-		} else {
-			// It's a unary message (no colon after the identifier)
-			// Example: 'hello' println
-			selector := p.curTok.Literal
-			msgSend := &ast.MessageSend{
-				Receiver: receiver,
-				Selector: selector,
-				Args:     []ast.Expression{}, // No arguments for unary messages
-			}
-			
-			// Check for cascade after this message
-			return p.checkForCascade(msgSend)
+	
+	// DEBUG
+	fmt.Printf("parseKeywordMessage: after receiver: curTok=%s:%s, peekTok=%s:%s\n", p.curTok.Type, p.curTok.Literal, p.peekTok.Type, p.peekTok.Literal)
+	
+	// Check if this is followed by a keyword message
+	// Keyword messages start with identifier followed by colon
+	if p.peekTok.Type != lexer.TokenIdentifier {
+		return receiver
+	}
+	
+	// Look ahead to see if it's actually a keyword (identifier + colon)
+	savedCur := p.curTok
+	savedPeek := p.peekTok
+	p.nextToken() // move to identifier
+	
+	// DEBUG
+	fmt.Printf("parseKeywordMessage: after lookahead: curTok=%s:%s, peekTok=%s:%s\n", p.curTok.Type, p.curTok.Literal, p.peekTok.Type, p.peekTok.Literal)
+	
+	if p.peekTok.Type != lexer.TokenColon {
+		// Not a keyword message, restore and return
+		p.curTok = savedCur
+		p.peekTok = savedPeek
+		return receiver
+	}
+	
+	// It's a keyword message - parse all keyword parts
+	var selector string
+	var args []ast.Expression
+	
+	// DEBUG
+	fmt.Printf("parseKeywordMessage: entering loop: curTok=%s:%s, peekTok=%s:%s\n", p.curTok.Type, p.curTok.Literal, p.peekTok.Type, p.peekTok.Literal)
+	
+	for p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
+		// Add keyword part to selector
+		selector += p.curTok.Literal + ":"
+		p.nextToken() // consume colon
+		
+		// Parse argument as binary message (can contain unary and binary messages)
+		p.nextToken() // move to argument position
+		arg := p.parseBinaryMessage()
+		if arg == nil {
+			p.addError("expected argument after keyword")
+			return nil
+		}
+		args = append(args, arg)
+		
+		// Check if there's another keyword part
+		if p.peekTok.Type != lexer.TokenIdentifier {
+			break
+		}
+		
+		// Peek ahead to see if next identifier is followed by colon
+		savedCur = p.curTok
+		savedPeek = p.peekTok
+		p.nextToken()
+		
+		if p.peekTok.Type != lexer.TokenColon {
+			// Not another keyword part, restore and stop
+			p.curTok = savedCur
+			p.peekTok = savedPeek
+			break
 		}
 	}
+	
+	msgSend := &ast.MessageSend{
+		Receiver: receiver,
+		Selector: selector,
+		Args:     args,
+	}
+	
+	// Check for cascade after this message
+	return p.checkForCascade(msgSend)
+}
 
-	// Check for binary message (operator between receiver and argument)
-	// Binary operators: + - * / % < > <= >= = ~=
-	if p.isBinaryOperator(p.peekTok.Type) {
-		p.nextToken() // advance to the operator
+// parseBinaryMessage parses binary messages (middle precedence).
+//
+// Syntax: receiver binaryOp argument
+//
+// Binary operators: + - * / % < > <= >= = ~=
+//
+// Binary messages are left-associative with no operator precedence:
+//   3 + 4 * 2  means  (3 + 4) * 2 = 14  (not 3 + 8 = 11)
+//   10 - 5 + 3 means  (10 - 5) + 3 = 8
+//
+// The receiver and arguments are parsed as unary messages (next higher precedence).
+//
+// Examples:
+//   3 + 4              -> MessageSend{Receiver: 3, Selector: "+", Args: [4]}
+//   arr size + 1       -> MessageSend{Receiver: (arr size), Selector: "+", Args: [1]}
+//   3 + 4 * 2          -> MessageSend{Receiver: (3+4), Selector: "*", Args: [2]}
+func (p *Parser) parseBinaryMessage() ast.Expression {
+	// Parse receiver as unary messages (which will handle primary too)
+	receiver := p.parseUnaryMessage()
+	if receiver == nil {
+		return nil
+	}
+	
+	// Chain binary messages (left-to-right)
+	for p.isBinaryOperator(p.peekTok.Type) {
+		p.nextToken() // advance to operator
 		operator := p.curTok.Literal
 		
-		// Parse the argument
-		p.nextToken()
-		arg := p.parsePrimaryExpression()
+		// Parse argument as unary message
+		p.nextToken() // move to argument
+		arg := p.parseUnaryMessage()
 		if arg == nil {
+			p.addError("expected argument after binary operator")
 			return nil
 		}
 		
-		msgSend := &ast.MessageSend{
+		// Build message send with current receiver
+		receiver = &ast.MessageSend{
 			Receiver: receiver,
 			Selector: operator,
 			Args:     []ast.Expression{arg},
 		}
-		
-		// Check for cascade after this message
-		return p.checkForCascade(msgSend)
 	}
+	
+	return receiver
+}
 
-	// No message found - just return the receiver
+// parseUnaryMessage parses unary messages (highest precedence).
+//
+// Syntax: receiver selector1 selector2 ...
+//
+// Unary messages are chained left-to-right:
+//   x sqrt floor  means  (x sqrt) floor
+//   arr size negated means (arr size) negated
+//
+// The receiver is parsed as a primary expression.
+//
+// Examples:
+//   x println          -> MessageSend{Receiver: x, Selector: "println"}
+//   arr size           -> MessageSend{Receiver: arr, Selector: "size"}
+//   x sqrt floor       -> MessageSend{Receiver: (x sqrt), Selector: "floor"}
+func (p *Parser) parseUnaryMessage() ast.Expression {
+	// Parse the primary expression (literals, identifiers, blocks, etc.)
+	receiver := p.parsePrimaryExpression()
+	if receiver == nil {
+		return nil
+	}
+	
+	// Chain unary messages (left-to-right)
+	for p.peekTok.Type == lexer.TokenIdentifier {
+		// Need to check that it's not a keyword message (identifier followed by colon)
+		savedCur := p.curTok
+		savedPeek := p.peekTok
+		p.nextToken() // move to identifier
+		
+		// If followed by colon, it's a keyword message, not unary
+		if p.peekTok.Type == lexer.TokenColon {
+			// Restore position and stop
+			p.curTok = savedCur
+			p.peekTok = savedPeek
+			break
+		}
+		
+		// It's a unary message
+		selector := p.curTok.Literal
+		receiver = &ast.MessageSend{
+			Receiver: receiver,
+			Selector: selector,
+			Args:     []ast.Expression{},
+		}
+	}
+	
 	return receiver
 }
 
@@ -569,41 +626,37 @@ func (p *Parser) checkForCascade(expr ast.Expression) ast.Expression {
 // without a receiver (used in cascades).
 //
 // Returns a MessageSend with nil Receiver.
+// This needs to handle all three types of messages: unary, binary, and keyword.
 func (p *Parser) parseMessageWithoutReceiver() *ast.MessageSend {
 	// Check for keyword message
 	if p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
-		keyword := p.curTok.Literal
-		p.nextToken() // consume colon
-		selector := keyword + ":"
+		var selector string
+		var args []ast.Expression
 		
-		// Parse first argument
-		p.nextToken()
-		arg := p.parsePrimaryExpression()
-		if arg == nil {
-			p.addError("expected argument after keyword in cascade")
-			return nil
-		}
-		args := []ast.Expression{arg}
-		
-		// Check for additional keyword parts
-		for p.peekTok.Type == lexer.TokenIdentifier {
+		// Parse keyword parts
+		for p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
+			selector += p.curTok.Literal + ":"
+			p.nextToken() // consume colon
+			
+			// Parse argument as binary message (can include unary and binary)
+			p.nextToken()
+			arg := p.parseBinaryMessage()
+			if arg == nil {
+				p.addError("expected argument after keyword in cascade")
+				return nil
+			}
+			args = append(args, arg)
+			
+			// Check for next keyword part
+			if p.peekTok.Type != lexer.TokenIdentifier {
+				break
+			}
+			
 			savedCur := p.curTok
 			savedPeek := p.peekTok
 			p.nextToken()
 			
-			if p.peekTok.Type == lexer.TokenColon {
-				keyword := p.curTok.Literal
-				p.nextToken() // consume colon
-				selector += keyword + ":"
-				
-				p.nextToken()
-				arg := p.parsePrimaryExpression()
-				if arg == nil {
-					p.addError("expected argument after keyword in cascade")
-					return nil
-				}
-				args = append(args, arg)
-			} else {
+			if p.peekTok.Type != lexer.TokenColon {
 				p.curTok = savedCur
 				p.peekTok = savedPeek
 				break
@@ -615,20 +668,13 @@ func (p *Parser) parseMessageWithoutReceiver() *ast.MessageSend {
 			Selector: selector,
 			Args:     args,
 		}
-	} else if p.curTok.Type == lexer.TokenIdentifier {
-		// Unary message
-		selector := p.curTok.Literal
-		return &ast.MessageSend{
-			Receiver: nil,
-			Selector: selector,
-			Args:     []ast.Expression{},
-		}
 	} else if p.isBinaryOperator(p.curTok.Type) {
-		// Binary message
+		// Binary message - parse right side as unary message
 		operator := p.curTok.Literal
 		p.nextToken()
-		arg := p.parsePrimaryExpression()
+		arg := p.parseUnaryMessage()
 		if arg == nil {
+			p.addError("expected argument after binary operator in cascade")
 			return nil
 		}
 		
@@ -636,6 +682,14 @@ func (p *Parser) parseMessageWithoutReceiver() *ast.MessageSend {
 			Receiver: nil,
 			Selector: operator,
 			Args:     []ast.Expression{arg},
+		}
+	} else if p.curTok.Type == lexer.TokenIdentifier {
+		// Unary message
+		selector := p.curTok.Literal
+		return &ast.MessageSend{
+			Receiver: nil,
+			Selector: selector,
+			Args:     []ast.Expression{},
 		}
 	}
 	
@@ -647,13 +701,14 @@ func (p *Parser) parseMessageWithoutReceiver() *ast.MessageSend {
 //
 // Syntax: super selector
 //        or: super keyword: arg
+//        or: super binaryOp arg
 //
 // Super sends start method lookup in the superclass of the current class.
 // They're used to call inherited methods that have been overridden.
 //
 // Process:
 //   1. Verify we're on the 'super' keyword
-//   2. Parse the message selector and arguments
+//   2. Parse the message selector and arguments with proper precedence
 //   3. Return MessageSend with IsSuper flag set
 //
 // Examples:
@@ -662,45 +717,42 @@ func (p *Parser) parseMessageWithoutReceiver() *ast.MessageSend {
 //
 //   super at: index
 //     -> MessageSend{Receiver: nil, Selector: "at:", Args: [index], IsSuper: true}
+//
+//   super + other
+//     -> MessageSend{Receiver: nil, Selector: "+", Args: [other], IsSuper: true}
 func (p *Parser) parseSuperMessageSend() ast.Expression {
 	// curTok is TokenSuper
 	p.nextToken() // move to the message selector
 	
 	// Check if it's a keyword message
 	if p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
-		// It's a keyword message
-		keyword := p.curTok.Literal
-		p.nextToken() // consume colon
-		selector := keyword + ":"
+		var selector string
+		var args []ast.Expression
 		
-		// Parse first argument
-		p.nextToken()
-		arg := p.parsePrimaryExpression()
-		if arg == nil {
-			p.addError("expected argument after keyword in super send")
-			return nil
-		}
-		args := []ast.Expression{arg}
-		
-		// Check for additional keyword parts
-		for p.peekTok.Type == lexer.TokenIdentifier {
+		// Parse keyword parts
+		for p.curTok.Type == lexer.TokenIdentifier && p.peekTok.Type == lexer.TokenColon {
+			selector += p.curTok.Literal + ":"
+			p.nextToken() // consume colon
+			
+			// Parse argument as binary message
+			p.nextToken()
+			arg := p.parseBinaryMessage()
+			if arg == nil {
+				p.addError("expected argument after keyword in super send")
+				return nil
+			}
+			args = append(args, arg)
+			
+			// Check for next keyword part
+			if p.peekTok.Type != lexer.TokenIdentifier {
+				break
+			}
+			
 			savedCur := p.curTok
 			savedPeek := p.peekTok
 			p.nextToken()
 			
-			if p.peekTok.Type == lexer.TokenColon {
-				keyword := p.curTok.Literal
-				p.nextToken() // consume colon
-				selector += keyword + ":"
-				
-				p.nextToken()
-				arg := p.parsePrimaryExpression()
-				if arg == nil {
-					p.addError("expected argument after keyword in super send")
-					return nil
-				}
-				args = append(args, arg)
-			} else {
+			if p.peekTok.Type != lexer.TokenColon {
 				p.curTok = savedCur
 				p.peekTok = savedPeek
 				break
@@ -713,21 +765,13 @@ func (p *Parser) parseSuperMessageSend() ast.Expression {
 			Args:     args,
 			IsSuper:  true,
 		}
-	} else if p.curTok.Type == lexer.TokenIdentifier {
-		// It's a unary message
-		selector := p.curTok.Literal
-		return &ast.MessageSend{
-			Receiver: nil, // receiver is implicit (self)
-			Selector: selector,
-			Args:     []ast.Expression{},
-			IsSuper:  true,
-		}
 	} else if p.isBinaryOperator(p.curTok.Type) {
-		// It's a binary message
+		// Binary message
 		operator := p.curTok.Literal
 		p.nextToken()
-		arg := p.parsePrimaryExpression()
+		arg := p.parseUnaryMessage()
 		if arg == nil {
+			p.addError("expected argument after binary operator in super send")
 			return nil
 		}
 		
@@ -735,6 +779,15 @@ func (p *Parser) parseSuperMessageSend() ast.Expression {
 			Receiver: nil, // receiver is implicit (self)
 			Selector: operator,
 			Args:     []ast.Expression{arg},
+			IsSuper:  true,
+		}
+	} else if p.curTok.Type == lexer.TokenIdentifier {
+		// Unary message
+		selector := p.curTok.Literal
+		return &ast.MessageSend{
+			Receiver: nil, // receiver is implicit (self)
+			Selector: selector,
+			Args:     []ast.Expression{},
 			IsSuper:  true,
 		}
 	}
@@ -1096,16 +1149,18 @@ func (p *Parser) parseDictionaryLiteral() ast.Expression {
 // Syntax: (expression)
 //
 // Parentheses are used for grouping and controlling evaluation order.
+// They override the normal precedence rules.
 //
 // Example:
 //   (x + y) * z
 //   Point x: (a + b) y: (c + d)
+//   (3 + 4) sqrt
 func (p *Parser) parseParenthesizedExpression() ast.Expression {
 	// curTok is '('
 	p.nextToken() // move past '('
 	
-	// Parse the full expression inside (with all message types)
-	expr := p.parseBinaryOrUnaryOrPrimary()
+	// Parse the full expression inside (starting with lowest precedence - keyword messages)
+	expr := p.parseKeywordMessage()
 	if expr == nil {
 		return nil
 	}
@@ -1118,81 +1173,6 @@ func (p *Parser) parseParenthesizedExpression() ast.Expression {
 	}
 	
 	return expr
-}
-
-// parseUnaryOrPrimary parses a primary expression optionally followed by unary messages.
-//
-// This is used when parsing arguments to binary messages, where unary messages
-// have higher precedence.
-//
-// Example: in "x + aPoint x", the argument to + is "aPoint x" (unary message)
-func (p *Parser) parseUnaryOrPrimary() ast.Expression {
-	// Parse the primary expression first
-	receiver := p.parsePrimaryExpression()
-	if receiver == nil {
-		return nil
-	}
-	
-	// Check for unary messages (identifier without colon)
-	for p.peekTok.Type == lexer.TokenIdentifier {
-		// Save position to check if it's really a unary message
-		savedCur := p.curTok
-		savedPeek := p.peekTok
-		p.nextToken()
-		
-		// Make sure it's not a keyword message (no colon after)
-		if p.peekTok.Type == lexer.TokenColon {
-			// This is a keyword message, restore and stop
-			p.curTok = savedCur
-			p.peekTok = savedPeek
-			break
-		}
-		
-		// It's a unary message
-		selector := p.curTok.Literal
-		receiver = &ast.MessageSend{
-			Receiver: receiver,
-			Selector: selector,
-			Args:     []ast.Expression{},
-		}
-	}
-	
-	return receiver
-}
-
-// parseBinaryOrUnaryOrPrimary parses expressions with proper precedence:
-// 1. Primary (highest)
-// 2. Unary messages
-// 3. Binary messages (lowest)
-//
-// This is used when parsing arguments to keyword messages.
-func (p *Parser) parseBinaryOrUnaryOrPrimary() ast.Expression {
-	// Start with primary + unary
-	receiver := p.parseUnaryOrPrimary()
-	if receiver == nil {
-		return nil
-	}
-	
-	// Check for binary messages
-	if p.isBinaryOperator(p.peekTok.Type) {
-		p.nextToken() // advance to operator
-		operator := p.curTok.Literal
-		
-		// Parse argument (unary or primary)
-		p.nextToken()
-		arg := p.parseUnaryOrPrimary()
-		if arg == nil {
-			return nil
-		}
-		
-		return &ast.MessageSend{
-			Receiver: receiver,
-			Selector: operator,
-			Args:     []ast.Expression{arg},
-		}
-	}
-	
-	return receiver
 }
 
 // Errors returns the list of accumulated parsing errors.
