@@ -443,12 +443,13 @@ func (p *Parser) parseKeywordMessage() ast.Expression {
 	var args []ast.Expression
 	
 	for p.peekIsKeywordStart() {
-		p.nextToken() // move to keyword identifier
+		p.nextToken() // move to keyword identifier (e.g., "at" in "at:")
 		selector += p.curTok.Literal + ":"
-		p.nextToken() // consume colon
+		p.nextToken() // consume colon, curTok now at ":"
 		
-		// Parse argument as binary message (can contain unary and binary messages)
-		p.nextToken() // move to argument position
+		// Move to argument and parse it as a binary expression
+		// This allows arguments like: arr at: (index + 1)
+		p.nextToken() // move to first token of argument
 		arg := p.parseBinaryMessage()
 		if arg == nil {
 			p.addError("expected argument after keyword")
@@ -483,6 +484,9 @@ func (p *Parser) parseKeywordMessage() ast.Expression {
 //   3 + 4              -> MessageSend{Receiver: 3, Selector: "+", Args: [4]}
 //   arr size + 1       -> MessageSend{Receiver: (arr size), Selector: "+", Args: [1]}
 //   3 + 4 * 2          -> MessageSend{Receiver: (3+4), Selector: "*", Args: [2]}
+//
+// Note: This builds a left-associative tree which is evaluated recursively at runtime.
+// Very long chains (e.g., 1+2+3+...+10000) will create deep AST structures.
 func (p *Parser) parseBinaryMessage() ast.Expression {
 	// Parse receiver as unary messages (which will handle primary too)
 	receiver := p.parseUnaryMessage()
@@ -491,6 +495,7 @@ func (p *Parser) parseBinaryMessage() ast.Expression {
 	}
 	
 	// Chain binary messages (left-to-right)
+	// Each iteration wraps the previous result as the receiver of the next operation
 	for p.isBinaryOperator(p.peekTok.Type) {
 		p.nextToken() // advance to operator
 		operator := p.curTok.Literal
@@ -504,6 +509,7 @@ func (p *Parser) parseBinaryMessage() ast.Expression {
 		}
 		
 		// Build message send with current receiver
+		// This creates left-associativity: a + b + c becomes (a + b) + c
 		receiver = &ast.MessageSend{
 			Receiver: receiver,
 			Selector: operator,

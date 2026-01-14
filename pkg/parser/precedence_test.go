@@ -1,8 +1,9 @@
 package parser
 
 import (
-"testing"
-"github.com/kristofer/smog/pkg/ast"
+	"testing"
+
+	"github.com/kristofer/smog/pkg/ast"
 )
 
 // TestParseUnaryBinaryPrecedence tests that unary messages have higher precedence than binary
