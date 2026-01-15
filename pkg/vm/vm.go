@@ -1871,5 +1871,3 @@ func (vm *VM) EnableDebugger() *Debugger {
 func (vm *VM) GetDebugger() *Debugger {
 	return vm.debugger
 }
-
-

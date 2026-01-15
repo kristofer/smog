@@ -33,15 +33,15 @@ func (e *RuntimeError) Error() string {
 		b.WriteString("\n\nStack trace:")
 		for i := len(e.StackTrace) - 1; i >= 0; i-- {
 			frame := e.StackTrace[i]
-			b.WriteString(fmt.Sprintf("\n  at %s", frame.Name))
+			fmt.Fprintf(&b, "\n  at %s", frame.Name)
 			if frame.Selector != "" {
-				b.WriteString(fmt.Sprintf(" (selector: %s)", frame.Selector))
+				fmt.Fprintf(&b, " (selector: %s)", frame.Selector)
 			}
 			if frame.SourceLine > 0 {
-				b.WriteString(fmt.Sprintf(" [line %d:%d]", frame.SourceLine, frame.SourceCol))
+				fmt.Fprintf(&b, " [line %d:%d]", frame.SourceLine, frame.SourceCol)
 			}
 			if frame.IP >= 0 {
-				b.WriteString(fmt.Sprintf(" [IP: %d]", frame.IP))
+				fmt.Fprintf(&b, " [IP: %d]", frame.IP)
 			}
 		}
 	}

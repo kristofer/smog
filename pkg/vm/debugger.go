@@ -84,15 +84,19 @@ func (d *Debugger) ShowCurrentInstruction() {
 	
 	inst := d.bytecode.Instructions[d.vm.ip]
 	fmt.Printf("  %4d: %s", d.vm.ip, inst.Op)
-	
-	// Format operand based on opcode
+	d.formatInstructionOperand(inst, d.bytecode.Constants)
+	fmt.Println()
+}
+
+// formatInstructionOperand formats the operand of an instruction based on its opcode.
+func (d *Debugger) formatInstructionOperand(inst bytecode.Instruction, constants []interface{}) {
 	switch inst.Op {
 	case bytecode.OpSend, bytecode.OpSuperSend:
 		selectorIdx := inst.Operand >> bytecode.SelectorIndexShift
 		argCount := inst.Operand & bytecode.ArgCountMask
 		fmt.Printf(" selector=%d args=%d", selectorIdx, argCount)
-		if selectorIdx < len(d.bytecode.Constants) {
-			if sel, ok := d.bytecode.Constants[selectorIdx].(string); ok {
+		if selectorIdx < len(constants) {
+			if sel, ok := constants[selectorIdx].(string); ok {
 				fmt.Printf(" (%s)", sel)
 			}
 		}
@@ -105,7 +109,6 @@ func (d *Debugger) ShowCurrentInstruction() {
 			fmt.Printf(" %d", inst.Operand)
 		}
 	}
-	fmt.Println()
 }
 
 // ShowStack displays the current VM stack.
@@ -292,26 +295,7 @@ func (d *Debugger) listInstructions(bc *bytecode.Bytecode) {
 		}
 		
 		fmt.Printf("%s %4d: %s", marker, i, inst.Op)
-		
-		switch inst.Op {
-		case bytecode.OpSend, bytecode.OpSuperSend:
-			selectorIdx := inst.Operand >> bytecode.SelectorIndexShift
-			argCount := inst.Operand & bytecode.ArgCountMask
-			fmt.Printf(" selector=%d args=%d", selectorIdx, argCount)
-			if selectorIdx < len(bc.Constants) {
-				if sel, ok := bc.Constants[selectorIdx].(string); ok {
-					fmt.Printf(" (%s)", sel)
-				}
-			}
-		case bytecode.OpMakeClosure:
-			codeIdx := inst.Operand >> bytecode.SelectorIndexShift
-			paramCount := inst.Operand & bytecode.ArgCountMask
-			fmt.Printf(" code=%d params=%d", codeIdx, paramCount)
-		default:
-			if inst.Operand != 0 {
-				fmt.Printf(" %d", inst.Operand)
-			}
-		}
+		d.formatInstructionOperand(inst, bc.Constants)
 		fmt.Println()
 	}
 }
