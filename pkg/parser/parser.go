@@ -379,6 +379,10 @@ func (p *Parser) parseAssignment() ast.Expression {
 	return &ast.Assignment{
 		Name:  name,
 		Value: value,
+		Loc: ast.SourceLocation{
+			Line:   p.curTok.Line,
+			Column: p.curTok.Column,
+		},
 	}
 }
 
@@ -462,6 +466,10 @@ func (p *Parser) parseKeywordMessage() ast.Expression {
 		Receiver: receiver,
 		Selector: selector,
 		Args:     args,
+		Loc: ast.SourceLocation{
+			Line:   p.curTok.Line,
+			Column: p.curTok.Column,
+		},
 	}
 	
 	// Check for cascade after this message
@@ -514,6 +522,10 @@ func (p *Parser) parseBinaryMessage() ast.Expression {
 			Receiver: receiver,
 			Selector: operator,
 			Args:     []ast.Expression{arg},
+			Loc: ast.SourceLocation{
+				Line:   p.curTok.Line,
+				Column: p.curTok.Column,
+			},
 		}
 	}
 	
@@ -546,8 +558,13 @@ func (p *Parser) parseUnaryMessage() ast.Expression {
 	for p.peekTok.Type == lexer.TokenIdentifier && !p.peekIsKeywordStart() {
 		p.nextToken() // move to the unary selector
 		selector := p.curTok.Literal
+		loc := ast.SourceLocation{
+			Line:   p.curTok.Line,
+			Column: p.curTok.Column,
+		}
 		receiver = &ast.MessageSend{
 			Receiver: receiver,
+			Loc:      loc,
 			Selector: selector,
 			Args:     []ast.Expression{},
 		}
@@ -816,9 +833,21 @@ func (p *Parser) parsePrimaryExpression() ast.Expression {
 		return &ast.NilLiteral{}
 	case lexer.TokenSelf:
 		// self is represented as a special identifier
-		return &ast.Identifier{Name: "self"}
+		return &ast.Identifier{
+			Name: "self",
+			Loc: ast.SourceLocation{
+				Line:   p.curTok.Line,
+				Column: p.curTok.Column,
+			},
+		}
 	case lexer.TokenIdentifier:
-		return &ast.Identifier{Name: p.curTok.Literal}
+		return &ast.Identifier{
+			Name: p.curTok.Literal,
+			Loc: ast.SourceLocation{
+				Line:   p.curTok.Line,
+				Column: p.curTok.Column,
+			},
+		}
 	case lexer.TokenLBracket:
 		return p.parseBlockLiteral()
 	case lexer.TokenHashLParen:
@@ -853,7 +882,13 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 		p.addError(fmt.Sprintf("could not parse %q as integer", p.curTok.Literal))
 		return nil
 	}
-	return &ast.IntegerLiteral{Value: value}
+	return &ast.IntegerLiteral{
+		Value: value,
+		Loc: ast.SourceLocation{
+			Line:   p.curTok.Line,
+			Column: p.curTok.Column,
+		},
+	}
 }
 
 // parseFloatLiteral parses a floating-point literal.
