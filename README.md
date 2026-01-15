@@ -162,6 +162,7 @@ Start here if you're new to Smog or want to learn how to use the language:
 - **[Learning Guide](docs/LEARNING_GUIDE.md)** - ⭐ **START HERE** - Beginner's mental model and learning path
 - **[User's Guide](docs/USERS_GUIDE.md)** - Practical guide with examples for common programming tasks
 - **[REPL Guide](docs/REPL.md)** - Interactive Read-Eval-Print Loop for experimentation
+- **[Debugger Guide](docs/DEBUGGER.md)** - Interactive debugger for step-by-step execution
 - **[Bytecode Format Guide](docs/BYTECODE_FORMAT.md)** - Working with .sg compiled bytecode files
 - **[Language Specification](docs/spec/LANGUAGE_SPEC.md)** - Complete language reference and syntax guide
 - **[Example Programs](examples/)** - Working code examples you can run and study
@@ -202,6 +203,8 @@ Smog has completed advanced class features implementation. Current features:
 - ✅ Self keyword
 - ✅ Control flow primitives (ifTrue:, ifFalse:, timesRepeat:, do:)
 - ✅ Interactive REPL
+- ✅ Interactive debugger with breakpoints and stepping
+- ✅ Stack traces for runtime errors
 - ✅ Comprehensive documentation (teaching-quality comments)
 - ✅ Extensive test suite (85+ tests, benchmarks)
 
@@ -210,7 +213,7 @@ Smog has completed advanced class features implementation. Current features:
 - **v0.2.0**: Core language features - variables, message sends, primitives
 - **v0.3.0**: Blocks, arrays, control flow, extensive documentation
 - **v0.4.0**: Enhanced features - super, cascading, dictionaries, REPL
-- **v0.5.0**: Advanced classes - inheritance, class methods, class variables
+- **v0.5.0**: Advanced classes - inheritance, class methods, class variables, debugger, stack traces
 
 See the [roadmap](docs/planning/ROADMAP.md) for planned features and timeline.
 

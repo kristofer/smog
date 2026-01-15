@@ -91,15 +91,15 @@ Add features for more complex programs and better developer experience.
 
 ### Language Features
 - [ ] Instance variable initialization (deferred - requires class parsing infrastructure)
-- [ ] Class variables and methods (deferred - requires class parsing infrastructure)
+- [ ] Class variables and methods (completed in v0.5.0)
 - [x] Super message sends
 - [x] Cascading messages
 - [x] Array and dictionary literals
 
 ### Development Tools
-- [ ] Better error messages with source locations
-- [ ] Stack traces for runtime errors
-- [ ] Basic debugger support
+- [x] Better error messages with source locations
+- [x] Stack traces for runtime errors
+- [x] Basic debugger support
 - [x] REPL (Read-Eval-Print Loop)
 
 ### Testing

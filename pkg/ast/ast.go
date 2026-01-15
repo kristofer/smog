@@ -24,6 +24,13 @@
 //         └─ MessageSend (receiver selector: arg)
 package ast
 
+// SourceLocation tracks the source position of an AST node.
+// This is used for error reporting and debugging.
+type SourceLocation struct {
+	Line   int // Line number in source (1-based)
+	Column int // Column number in source (1-based)
+}
+
 // Node is the interface that all AST nodes implement.
 //
 // Every construct in the smog language - whether a class definition,
@@ -114,6 +121,7 @@ func (p *Program) TokenLiteral() string {
 // where statements are expected (like at the program level or in method bodies).
 type ExpressionStatement struct {
 	Expression Expression
+	Loc        SourceLocation
 }
 
 // TokenLiteral returns the token literal of the wrapped expression.
@@ -138,7 +146,8 @@ func (es *ExpressionStatement) statementNode() {}
 // Note: Variable declarations don't generate bytecode themselves - they just
 // inform the compiler to allocate local variable slots.
 type VariableDeclaration struct {
-	Names []string // List of variable names being declared
+	Names []string       // List of variable names being declared
+	Loc   SourceLocation // Source location of the declaration
 }
 
 // TokenLiteral returns an empty string since variable declarations
@@ -162,8 +171,9 @@ func (vd *VariableDeclaration) statementNode()       {}
 // The compiler will check if the variable is local (in the symbol table)
 // or global, and emit the appropriate STORE instruction.
 type Assignment struct {
-	Name  string     // Name of the variable being assigned
-	Value Expression // Expression whose value will be assigned
+	Name  string         // Name of the variable being assigned
+	Value Expression     // Expression whose value will be assigned
+	Loc   SourceLocation // Source location of the assignment
 }
 
 // TokenLiteral returns the variable name being assigned.
@@ -184,7 +194,8 @@ func (a *Assignment) expressionNode()      {}
 // The compiler will add the integer value to the constant pool and emit
 // a PUSH instruction to load it onto the stack at runtime.
 type IntegerLiteral struct {
-	Value int64 // The integer value
+	Value int64          // The integer value
+	Loc   SourceLocation // Source location of the literal
 }
 
 // TokenLiteral returns an empty string (the value itself is in the Value field).
@@ -287,7 +298,8 @@ func (nl *NilLiteral) expressionNode()      {}
 //
 // At runtime, this will load the value of the variable onto the stack.
 type Identifier struct {
-	Name string // The variable name
+	Name string         // The variable name
+	Loc  SourceLocation // Source location of the identifier
 }
 
 // TokenLiteral returns the identifier name.
@@ -492,10 +504,11 @@ func (m *Method) TokenLiteral() string { return "method" }
 //   3. Execute the method with the arguments
 //   4. Push the result back onto the stack
 type MessageSend struct {
-	Receiver Expression   // The object receiving the message (nil for super sends)
-	Selector string       // The message selector (e.g., "+", "println", "at:put:")
-	Args     []Expression // Arguments to the message (empty for unary messages)
-	IsSuper  bool         // true if this is a super message send
+	Receiver Expression     // The object receiving the message (nil for super sends)
+	Selector string         // The message selector (e.g., "+", "println", "at:put:")
+	Args     []Expression   // Arguments to the message (empty for unary messages)
+	IsSuper  bool           // true if this is a super message send
+	Loc      SourceLocation // Source location of the message send
 }
 
 // TokenLiteral returns the selector of the message.

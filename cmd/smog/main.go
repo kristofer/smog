@@ -36,6 +36,14 @@ func main() {
 			os.Exit(1)
 		}
 		runFile(os.Args[2])
+	case "debug":
+		// Run a file with the debugger enabled
+		if len(os.Args) < 3 {
+			fmt.Println("Error: no file specified")
+			fmt.Println("\nUsage: smog debug <file.smog>")
+			os.Exit(1)
+		}
+		debugFile(os.Args[2])
 	case "compile":
 		// Compile a .smog file to .sg bytecode
 		if len(os.Args) < 3 {
@@ -69,6 +77,7 @@ func printUsage() {
 	fmt.Println("  smog                       Start interactive REPL")
 	fmt.Println("  smog [file]                Run a .smog or .sg file")
 	fmt.Println("  smog run [file]            Run a .smog or .sg file")
+	fmt.Println("  smog debug [file]          Run a .smog file with debugger")
 	fmt.Println("  smog compile <in> [out]    Compile .smog to .sg bytecode")
 	fmt.Println("  smog disassemble <file>    Disassemble .sg bytecode file")
 	fmt.Println("  smog repl                  Start interactive REPL")
@@ -170,6 +179,55 @@ func runBytecodeFile(filename string) {
 		fmt.Fprintf(os.Stderr, "Runtime error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// debugFile reads, parses, compiles, and executes a .smog file with debugger enabled.
+//
+// This enables interactive debugging of the program, allowing step-by-step execution,
+// breakpoints, and inspection of VM state.
+func debugFile(filename string) {
+	// Read the source file
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Parse the source code into an AST
+	p := parser.New(string(data))
+	program, err := p.Parse()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Parse error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Compile the AST to bytecode
+	c := compiler.New()
+	bc, err := c.Compile(program)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Compile error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Run the bytecode on the VM with debugger enabled
+	v := vm.New()
+	debugger := v.EnableDebugger()
+	
+	fmt.Println("=== Smog Debugger ===")
+	fmt.Println("Type 'help' at the debug prompt for available commands")
+	fmt.Println("Starting in step mode...")
+	fmt.Println()
+	
+	// Start in step mode
+	debugger.SetStepMode(true)
+	
+	err = v.Run(bc)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Runtime error: %v\n", err)
+		os.Exit(1)
+	}
+	
+	fmt.Println("\nProgram completed successfully")
 }
 
 // compileFile compiles a .smog source file to a .sg bytecode file.
