@@ -107,7 +107,49 @@ Add features for more complex programs and better developer experience.
 - [x] Integration tests for example programs
 - [x] Performance benchmarks
 
-## Version 0.5.0 - Optimization
+## Version 0.5.0 - Advanced Classes ✅
+
+### Goals
+Implement complete class system with inheritance, class methods, and class variables.
+
+### Language Features
+- [x] Full inheritance with method lookup
+- [x] Class methods (factory methods)
+- [x] Class variables (shared state)
+- [x] Complete super message send support
+- [x] Method resolution and inheritance chain
+- [x] Metaclass system
+
+### Testing and Documentation
+- [x] Comprehensive test suite (85+ tests)
+- [x] Advanced class features documentation
+- [x] Teaching-quality comments throughout codebase
+- [x] Integration tests for inheritance scenarios
+
+## Version 0.6.0 - Module System and Advanced Features
+
+### Goals
+Add module system for code organization and additional advanced language features.
+
+### Module System (Planned)
+- [ ] Module/package declaration syntax
+- [ ] Import/require mechanism
+- [ ] Namespace management
+- [ ] Multi-file program support
+- [ ] Module system specification
+- [ ] Module compilation and linking
+
+### Additional Language Features
+- [ ] Exception handling (try-catch-finally)
+- [ ] First-class continuations
+- [ ] Meta-programming capabilities
+
+### Ecosystem
+- [ ] Package manager foundation
+- [ ] Build system improvements
+- [ ] Documentation generator
+
+## Version 0.7.0 - Optimization
 
 ### Goals
 Improve performance and add optimization capabilities.
@@ -129,24 +171,7 @@ Improve performance and add optimization capabilities.
 - [ ] Performance profiling tools
 - [ ] Comparison with other Smalltalk implementations
 
-## Version 0.6.0 - Advanced Features
-
-### Goals
-Add advanced language features and ecosystem tools.
-
-### Language Features
-- [ ] Module system
-- [ ] Exception handling (try-catch-finally)
-- [ ] First-class continuations
-- [ ] Meta-programming capabilities
-
-### Ecosystem
-- [ ] Package manager
-- [ ] Build system
-- [ ] Documentation generator
-- [ ] Code formatter
-
-## Version 1.0.0 - Production Ready
+## Version 0.8.0 - Production Ready
 
 ### Goals
 Stabilize the language and provide production-quality implementation.
@@ -237,6 +262,6 @@ Smog compiler written in Smog (aspirational).
 
 ## Current Status
 
-**Version**: 0.4.0  
-**Status**: Enhanced features complete  
-**Next Release**: 0.5.0 (optimization)
+**Version**: 0.5.0  
+**Status**: Advanced class features complete (inheritance, class methods, class variables)  
+**Next Release**: 0.6.0 (module system and advanced features)
