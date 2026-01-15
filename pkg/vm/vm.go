@@ -120,6 +120,7 @@ type VM struct {
 	homeContext  *VM                                  // Home context for non-local returns (nil for methods, set for blocks)
 	callStack    []StackFrame                         // Call stack for debugging and error reporting
 	ip           int                                  // Current instruction pointer (for error reporting)
+	debugger     *Debugger                            // Optional debugger for interactive debugging
 }
 
 // New creates a new virtual machine instance.
@@ -212,6 +213,14 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 	// Process instructions sequentially using instruction pointer (ip)
 	for vm.ip = 0; vm.ip < len(bc.Instructions); vm.ip++ {
 		inst := bc.Instructions[vm.ip]
+
+		// Check for debugger breakpoints
+		if vm.debugger != nil && vm.debugger.ShouldPause() {
+			if !vm.debugger.InteractivePrompt(bc) {
+				// User chose to quit
+				return fmt.Errorf("debugging session terminated")
+			}
+		}
 
 		// Dispatch to instruction handler based on opcode
 		switch inst.Op {
@@ -1848,4 +1857,19 @@ func (vm *VM) runtimeError(message string) error {
 	
 	return newRuntimeError(message, stack)
 }
+
+// EnableDebugger creates and enables a debugger for this VM.
+func (vm *VM) EnableDebugger() *Debugger {
+	if vm.debugger == nil {
+		vm.debugger = NewDebugger(vm)
+	}
+	vm.debugger.Enable()
+	return vm.debugger
+}
+
+// GetDebugger returns the debugger instance if debugging is enabled.
+func (vm *VM) GetDebugger() *Debugger {
+	return vm.debugger
+}
+
 
