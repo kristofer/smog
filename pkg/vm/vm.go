@@ -118,6 +118,8 @@ type VM struct {
 	fieldOffset  int                                  // Offset for field indices (for inheritance)
 	classes      map[string]*bytecode.ClassDefinition // Registered classes by name
 	homeContext  *VM                                  // Home context for non-local returns (nil for methods, set for blocks)
+	callStack    []StackFrame                         // Call stack for debugging and error reporting
+	ip           int                                  // Current instruction pointer (for error reporting)
 }
 
 // New creates a new virtual machine instance.
@@ -134,11 +136,12 @@ type VM struct {
 // stack and locals are reset.
 func New() *VM {
 	return &VM{
-		stack:   make([]interface{}, 1024),
-		sp:      0,
-		locals:  make([]interface{}, 256),
-		globals: make(map[string]interface{}),
-		classes: make(map[string]*bytecode.ClassDefinition),
+		stack:     make([]interface{}, 1024),
+		sp:        0,
+		locals:    make([]interface{}, 256),
+		globals:   make(map[string]interface{}),
+		classes:   make(map[string]*bytecode.ClassDefinition),
+		callStack: make([]StackFrame, 0, 64), // Preallocate space for 64 frames
 	}
 }
 
@@ -200,10 +203,15 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 	// Load the constant pool from the bytecode
 	vm.constants = bc.Constants
 
+	// Push a frame for the main program execution
+	vm.pushFrame("main program", "")
+	// Use defer to ensure frame is popped even on error
+	defer vm.popFrame()
+
 	// Main execution loop
 	// Process instructions sequentially using instruction pointer (ip)
-	for ip := 0; ip < len(bc.Instructions); ip++ {
-		inst := bc.Instructions[ip]
+	for vm.ip = 0; vm.ip < len(bc.Instructions); vm.ip++ {
+		inst := bc.Instructions[vm.ip]
 
 		// Dispatch to instruction handler based on opcode
 		switch inst.Op {
@@ -213,10 +221,10 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			//
 			// Example: PUSH 2 loads constant[2] onto stack
 			if inst.Operand < 0 || inst.Operand >= len(vm.constants) {
-				return fmt.Errorf("constant index out of bounds: %d", inst.Operand)
+				return vm.runtimeError(fmt.Sprintf("constant index out of bounds: %d", inst.Operand))
 			}
 			if err := vm.push(vm.constants[inst.Operand]); err != nil {
-				return err
+				return vm.runtimeError(err.Error())
 			}
 
 		case bytecode.OpPop:
@@ -239,11 +247,11 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			// This is used in cascading messages to keep the receiver
 			// available for multiple message sends.
 			if vm.sp == 0 {
-				return fmt.Errorf("stack underflow: cannot duplicate empty stack")
+				return vm.runtimeError("stack underflow: cannot duplicate empty stack")
 			}
 			topValue := vm.stack[vm.sp-1]
 			if err := vm.push(topValue); err != nil {
-				return err
+				return vm.runtimeError(err.Error())
 			}
 
 		case bytecode.OpPushTrue:
@@ -383,11 +391,11 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 
 			// Get the selector string from constants
 			if selectorIdx < 0 || selectorIdx >= len(vm.constants) {
-				return fmt.Errorf("selector index out of bounds: %d", selectorIdx)
+				return vm.runtimeError(fmt.Sprintf("selector index out of bounds: %d", selectorIdx))
 			}
 			selector, ok := vm.constants[selectorIdx].(string)
 			if !ok {
-				return fmt.Errorf("expected string constant for selector")
+				return vm.runtimeError("expected string constant for selector")
 			}
 
 			// Pop arguments in reverse order
@@ -397,7 +405,7 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			for i := argCount - 1; i >= 0; i-- {
 				arg, err := vm.pop()
 				if err != nil {
-					return err
+					return vm.runtimeError(err.Error())
 				}
 				args[i] = arg
 			}
@@ -405,18 +413,29 @@ func (vm *VM) Run(bc *bytecode.Bytecode) error {
 			// Pop receiver
 			receiver, err := vm.pop()
 			if err != nil {
-				return err
+				return vm.runtimeError(err.Error())
 			}
+
+			// Push call frame for stack trace
+			vm.pushFrame("message send", selector)
 
 			// Execute the message send
 			result, err := vm.send(receiver, selector, args)
+			
+			// Pop call frame
+			vm.popFrame()
+			
 			if err != nil {
-				return err
+				// Preserve NonLocalReturn errors without wrapping
+				if _, isNonLocal := err.(*NonLocalReturn); isNonLocal {
+					return err
+				}
+				return vm.runtimeError(err.Error())
 			}
 
 			// Push result onto stack
 			if err := vm.push(result); err != nil {
-				return err
+				return vm.runtimeError(err.Error())
 			}
 
 		case bytecode.OpSuperSend:
@@ -1795,5 +1814,38 @@ func (vm *VM) executeClassMethod(classDef *bytecode.ClassDefinition, selector st
 // Returns:
 //   - The value of the global, or nil if not found
 func (vm *VM) GetGlobal(name string) interface{} {
-return vm.globals[name]
+	return vm.globals[name]
 }
+
+// pushFrame adds a new call frame to the call stack.
+// This is used for stack trace generation.
+func (vm *VM) pushFrame(name, selector string) {
+	frame := StackFrame{
+		Name:     name,
+		Selector: selector,
+		IP:       vm.ip,
+	}
+	vm.callStack = append(vm.callStack, frame)
+}
+
+// popFrame removes the top call frame from the call stack.
+func (vm *VM) popFrame() {
+	if len(vm.callStack) > 0 {
+		vm.callStack = vm.callStack[:len(vm.callStack)-1]
+	}
+}
+
+// runtimeError creates a RuntimeError with the current call stack.
+func (vm *VM) runtimeError(message string) error {
+	// Make a copy of the call stack
+	stack := make([]StackFrame, len(vm.callStack))
+	copy(stack, vm.callStack)
+	
+	// Add current instruction pointer to the last frame if there is one
+	if len(stack) > 0 {
+		stack[len(stack)-1].IP = vm.ip
+	}
+	
+	return newRuntimeError(message, stack)
+}
+
