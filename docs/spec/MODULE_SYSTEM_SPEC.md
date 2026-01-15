@@ -210,7 +210,7 @@ Object subclass: #Settings [
 ]
 ```
 
-The `"! init !"` marker indicates code that runs during module initialization.
+The `"! init !"` marker is a **required keyword** that indicates code that runs during module initialization. Only the exact string `"! init !"` is recognized as an initialization block marker.
 
 ## Namespace Access
 
@@ -258,9 +258,9 @@ Math/
   Geometry.smog       - Point, Rectangle, etc.
 
 IO/
-  File.smog           - File operations
-  Stream.smog         - Stream abstraction
-  Console.smog        - Console I/O
+  File.smog             - File operations
+  Stream.smog           - Stream abstraction
+  Console.smog          - Console I/O
 
 Blocks/
   Block.smog          - Block/closure class
@@ -355,8 +355,8 @@ Object subclass: #HashMap [
 "! import: Collections.HashMap !"
 
 | list map |
-list := ArrayList new initialize.
-map := HashMap new initialize.
+list := ArrayList new.
+map := HashMap new.
 
 list add: 'item1'.
 map at: 'key' put: 'value'.

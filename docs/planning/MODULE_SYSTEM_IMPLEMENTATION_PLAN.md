@@ -458,15 +458,15 @@ type Module struct {
 
 ## Timeline Summary
 
-| Phase | Description | Estimated Duration | Target Version |
-|-------|-------------|-------------------|----------------|
-| 1 | Foundation | 15-20 days | v0.6.0-alpha |
-| 2 | Import Resolution | 17-22 days | v0.6.0-beta |
-| 3 | Module Initialization | 12-16 days | v0.6.0-rc1 |
-| 4 | Bytecode Format | 10-14 days | v0.6.0-rc2 |
-| 5 | Stdlib Reorganization | 17-23 days | v0.6.1 |
-| 6 | Advanced Features | 10-15 days | v0.6.2 |
-| 7 | Tooling | 14-19 days | v0.6.3 |
+| Phase | Description | Estimated Duration | Cumulative Time | Target Version |
+|-------|-------------|-------------------|-----------------|----------------|
+| 1 | Foundation | 15-20 days | 15-20 days | v0.6.0-alpha |
+| 2 | Import Resolution | 17-22 days | 32-42 days | v0.6.0-beta |
+| 3 | Module Initialization | 12-16 days | 44-58 days | v0.6.0-rc1 |
+| 4 | Bytecode Format | 10-14 days | 54-72 days | v0.6.0-rc2 |
+| 5 | Stdlib Reorganization | 17-23 days | 71-95 days | v0.6.1 |
+| 6 | Advanced Features | 10-15 days | 81-110 days | v0.6.2 |
+| 7 | Tooling | 14-19 days | 95-129 days | v0.6.3 |
 
 **Total Estimated Time**: 95-129 days (~3-4 months)
 
