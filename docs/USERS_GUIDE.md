@@ -1209,9 +1209,33 @@ Object subclass: #Divider [
 4. **Read Examples**: Study the examples in the `examples/` directory
 5. **Practice OOP**: Smog is pure object-oriented - embrace it!
 
+## Standard Library
+
+Smog includes a growing standard library with common data structures and utilities. The library is organized into modules:
+
+### Collections
+- **Set** - Unordered collection of unique elements
+- **OrderedCollection** - Growable, ordered list
+- **Bag** - Multiset that tracks element occurrences
+
+### Core Utilities
+- **Math** - Mathematical functions (sqrt, factorial, fibonacci, gcd, etc.)
+- **Stream** - Sequential data access (ReadStream, WriteStream)
+
+### I/O, Crypto, and Compression
+- **HTTP** - HTTP client (interface ready, requires VM primitives)
+- **AES** - AES-256 encryption (interface ready, requires VM primitives)
+- **ZIP/GZIP** - Compression (interface ready, requires VM primitives)
+
+For detailed documentation and examples, see:
+- [Standard Library README](../stdlib/README.md)
+- [Standard Library Index](../stdlib/INDEX.md)
+- [Standard Library Examples](../examples/stdlib/)
+
 ## Next Steps
 
-- Explore the [Language Specification](../docs/spec/LANGUAGE_SPEC.md) for complete syntax reference
+- Explore the [Standard Library](../stdlib/README.md) for common utilities
+- Read the [Language Specification](../docs/spec/LANGUAGE_SPEC.md) for complete syntax reference
 - Read the [Learning Guide](LEARNING_GUIDE.md) for conceptual understanding
 - Check out [Example Programs](../examples/) for more inspiration
 - Study the [Architecture](design/ARCHITECTURE.md) to understand how Smog works internally
