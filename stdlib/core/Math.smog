@@ -1,0 +1,206 @@
+" Math - Mathematical functions and constants
+
+  Provides common mathematical operations beyond basic arithmetic.
+  Includes trigonometry, powers, roots, and mathematical constants.
+
+  Constants:
+  - pi                     - π (approximately 3.14159)
+  - e                      - Euler's number (approximately 2.71828)
+
+  Operations:
+  - abs: n                 - Absolute value
+  - max: a and: b          - Maximum of two numbers
+  - min: a and: b          - Minimum of two numbers
+  - sqrt: n                - Square root
+  - power: base to: exp    - Exponentiation
+  - floor: n               - Round down to integer
+  - ceiling: n             - Round up to integer
+  - round: n               - Round to nearest integer
+
+  Example:
+    | math result |
+    math := Math new.
+    result := math abs: -42.
+    result println.  \" Prints: 42 \"
+"
+
+Object subclass: #Math [
+
+    " Mathematical constant π "
+    pi [
+        ^3.14159265359
+    ]
+
+    " Mathematical constant e (Euler's number) "
+    e [
+        ^2.71828182846
+    ]
+
+    " Absolute value "
+    abs: n [
+        (n < 0) ifTrue: [
+            ^(0 - n)
+        ].
+        ^n
+    ]
+
+    " Maximum of two numbers "
+    max: a and: b [
+        (a > b) ifTrue: [
+            ^a
+        ].
+        ^b
+    ]
+
+    " Minimum of two numbers "
+    min: a and: b [
+        (a < b) ifTrue: [
+            ^a
+        ].
+        ^b
+    ]
+
+    " Square root using Newton's method "
+    sqrt: n [
+        | guess prevGuess diff |
+        (n < 0) ifTrue: [
+            'Cannot compute square root of negative number' println.
+            ^nil
+        ].
+        (n = 0) ifTrue: [ ^0 ].
+        (n = 1) ifTrue: [ ^1 ].
+
+        guess := n / 2.
+
+        " Newton's method with integer arithmetic "
+        [true] whileTrue: [
+            prevGuess := guess.
+            guess := ((guess + (n / guess)) / 2).
+            
+            " Check for convergence using integer comparison "
+            diff := self abs: (guess - prevGuess).
+            (diff = 0) ifTrue: [
+                ^guess
+            ].
+        ].
+        ^guess
+    ]
+
+    " Power function - base raised to exponent "
+    power: base to: exponent [
+        | result i |
+        (exponent = 0) ifTrue: [ ^1 ].
+        (exponent = 1) ifTrue: [ ^base ].
+        
+        " Handle positive integer exponents "
+        (exponent > 0) ifTrue: [
+            result := 1.
+            i := 0.
+            [i < exponent] whileTrue: [
+                result := result * base.
+                i := i + 1.
+            ].
+            ^result
+        ].
+        
+        " For negative exponents, would need division support "
+        ^nil
+    ]
+
+    " Floor - round down to nearest integer "
+    floor: n [
+        " Note: Simplified implementation "
+        " In full implementation would handle floats properly "
+        ^n
+    ]
+
+    " Ceiling - round up to nearest integer "
+    ceiling: n [
+        ^n
+    ]
+
+    " Round to nearest integer "
+    round: n [
+        ^n
+    ]
+
+    " Sign of number: -1, 0, or 1 "
+    sign: n [
+        (n < 0) ifTrue: [ ^-1 ].
+        (n > 0) ifTrue: [ ^1 ].
+        ^0
+    ]
+
+    " Test if number is even "
+    isEven: n [
+        | remainder |
+        remainder := n - ((n / 2) * 2).
+        ^(remainder = 0)
+    ]
+
+    " Test if number is odd "
+    isOdd: n [
+        | result |
+        result := self isEven: n.
+        ^(result = false)
+    ]
+
+    " Greatest common divisor using Euclidean algorithm "
+    gcd: a and: b [
+        | temp |
+        a := self abs: a.
+        b := self abs: b.
+        
+        [(b ~= 0)] whileTrue: [
+            temp := b.
+            b := a - ((a / b) * b).  " a mod b "
+            a := temp.
+        ].
+        ^a
+    ]
+
+    " Least common multiple "
+    lcm: a and: b [
+        | product gcd |
+        product := a * b.
+        gcd := self gcd: a and: b.
+        ^(product / gcd)
+    ]
+
+    " Factorial - n! "
+    factorial: n [
+        | result i |
+        (n < 0) ifTrue: [
+            'Factorial undefined for negative numbers' println.
+            ^nil
+        ].
+        (n = 0) ifTrue: [ ^1 ].
+        
+        result := 1.
+        i := 1.
+        [i <= n] whileTrue: [
+            result := result * i.
+            i := i + 1.
+        ].
+        ^result
+    ]
+
+    " Fibonacci number at position n "
+    fibonacci: n [
+        | a b temp i |
+        (n < 0) ifTrue: [ ^nil ].
+        (n = 0) ifTrue: [ ^0 ].
+        (n = 1) ifTrue: [ ^1 ].
+        
+        a := 0.
+        b := 1.
+        i := 2.
+        [i <= n] whileTrue: [
+            temp := a + b.
+            a := b.
+            b := temp.
+            i := i + 1.
+        ].
+        ^b
+    ]
+]

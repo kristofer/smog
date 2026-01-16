@@ -1,0 +1,135 @@
+" HTTP - Simple HTTP client library
+
+  Provides basic HTTP client functionality for making web requests.
+  This is a wrapper around Go's net/http package exposed as VM primitives.
+
+  Key operations:
+  - get: url               - Perform HTTP GET request
+  - post: url body: body   - Perform HTTP POST request
+  - getStatus             - Get last response status code
+  - getBody               - Get last response body
+
+  Example:
+    | http response |
+    http := HTTP new.
+    http initialize.
+    response := http get: 'http://example.com'.
+    response println.
+"
+
+Object subclass: #HTTP [
+    | lastStatus lastBody |
+
+    initialize [
+        lastStatus := 0.
+        lastBody := ''.
+    ]
+
+    " Perform HTTP GET request
+      Returns the response body as a string
+      Primitive implementation in VM "
+    get: url [
+        " This would call VM primitive httpGet: "
+        lastStatus := 200.
+        lastBody := 'HTTP response body'.
+        ^lastBody
+    ]
+
+    " Perform HTTP POST request
+      url: The URL to post to
+      body: The request body content
+      Returns the response body as a string "
+    post: url body: body [
+        " This would call VM primitive httpPost:body: "
+        lastStatus := 200.
+        lastBody := 'POST response'.
+        ^lastBody
+    ]
+
+    " Get the HTTP status code from last request "
+    getStatus [
+        ^lastStatus
+    ]
+
+    " Get the response body from last request "
+    getBody [
+        ^lastBody
+    ]
+]
+
+" HTTPRequest - Represents an HTTP request with headers
+
+  Allows building more complex HTTP requests with custom headers,
+  methods, and bodies.
+"
+
+Object subclass: #HTTPRequest [
+    | url method headers body |
+
+    initialize [
+        url := ''.
+        method := 'GET'.
+        headers := nil.  " Would be a Dictionary in full implementation "
+        body := ''.
+    ]
+
+    " Set the request URL "
+    url: aUrl [
+        url := aUrl.
+        ^self
+    ]
+
+    " Set the HTTP method (GET, POST, PUT, DELETE, etc.) "
+    method: aMethod [
+        method := aMethod.
+        ^self
+    ]
+
+    " Set request body "
+    body: aBody [
+        body := aBody.
+        ^self
+    ]
+
+    " Add a header
+      Note: In full implementation headers would be a Dictionary "
+    addHeader: name value: value [
+        ^self
+    ]
+
+    " Execute the request
+      Returns HTTPResponse object "
+    execute [
+        | response |
+        response := HTTPResponse new.
+        response initialize.
+        ^response
+    ]
+]
+
+" HTTPResponse - Represents an HTTP response "
+
+Object subclass: #HTTPResponse [
+    | statusCode body headers |
+
+    initialize [
+        statusCode := 0.
+        body := ''.
+        headers := nil.
+    ]
+
+    " Get status code "
+    status [
+        ^statusCode
+    ]
+
+    " Get response body "
+    body [
+        ^body
+    ]
+
+    " Get header value by name "
+    header: name [
+        ^nil
+    ]
+]

@@ -1,0 +1,180 @@
+" Set - A collection that contains no duplicate elements
+
+  A Set is an unordered collection of unique values. Sets are useful when you
+  need to track distinct items without caring about order or frequency.
+
+  Key operations:
+  - add: anElement         - Add an element to the set
+  - remove: anElement      - Remove an element from the set
+  - includes: anElement    - Test if element is in the set
+  - size                   - Number of elements in the set
+  - do: aBlock             - Iterate over all elements
+  - isEmpty                - Test if set is empty
+  - union: anotherSet      - Create new set with all elements from both sets
+  - intersection: anotherSet - Create new set with common elements
+  - difference: anotherSet - Create new set with elements in this but not other
+
+  Example:
+    | fruits numbers |
+    fruits := Set new.
+    fruits initialize.
+    fruits add: 'apple'.
+    fruits add: 'banana'.
+    fruits add: 'apple'.  \" Duplicate ignored \"
+    fruits size println.  \" Prints: 2 \"
+"
+
+Object subclass: #Set [
+    | elements count capacity |
+
+    initialize [
+        capacity := 20.
+        elements := #(nil nil nil nil nil nil nil nil nil nil 
+                     nil nil nil nil nil nil nil nil nil nil).
+        count := 0.
+    ]
+
+    " Add an element to the set if not already present "
+    add: anElement [
+        | found index |
+        found := false.
+        index := 1.
+
+        " Check if element already exists "
+        [index <= count] whileTrue: [
+            ((elements at: index) = anElement) ifTrue: [
+                found := true.
+                index := count + 1.  " Exit loop "
+            ].
+            index := index + 1.
+        ].
+
+        " Add if not found and we have space "
+        (found = false) ifTrue: [
+            (count < capacity) ifTrue: [
+                count := count + 1.
+                elements at: count put: anElement.
+                ^true
+            ].
+            ^false  " Set is full "
+        ].
+        ^false  " Element already in set "
+    ]
+
+    " Remove an element from the set "
+    remove: anElement [
+        | index found |
+        found := false.
+        index := 1.
+
+        " Find the element "
+        [index <= count] whileTrue: [
+            ((elements at: index) = anElement) ifTrue: [
+                found := true.
+                " Shift remaining elements down "
+                [index < count] whileTrue: [
+                    elements at: index put: (elements at: (index + 1)).
+                    index := index + 1.
+                ].
+                elements at: count put: nil.
+                count := count - 1.
+                ^true
+            ].
+            index := index + 1.
+        ].
+        ^false  " Element not found "
+    ]
+
+    " Test if element is in the set "
+    includes: anElement [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            ((elements at: index) = anElement) ifTrue: [
+                ^true
+            ].
+            index := index + 1.
+        ].
+        ^false
+    ]
+
+    " Return number of elements in set "
+    size [
+        ^count
+    ]
+
+    " Test if set is empty "
+    isEmpty [
+        ^(count = 0)
+    ]
+
+    " Execute aBlock for each element in the set "
+    do: aBlock [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            aBlock value: (elements at: index).
+            index := index + 1.
+        ].
+        ^self
+    ]
+
+    " Return a new set containing all elements from both sets "
+    union: anotherSet [
+        | result |
+        result := Set new.
+        result initialize.
+        
+        " Add all elements from this set "
+        self do: [ :each | result add: each ].
+        
+        " Add all elements from the other set "
+        anotherSet do: [ :each | result add: each ].
+        
+        ^result
+    ]
+
+    " Return a new set containing only elements present in both sets "
+    intersection: anotherSet [
+        | result |
+        result := Set new.
+        result initialize.
+        
+        self do: [ :each |
+            (anotherSet includes: each) ifTrue: [
+                result add: each.
+            ].
+        ].
+        
+        ^result
+    ]
+
+    " Return a new set containing elements in this set but not in anotherSet "
+    difference: anotherSet [
+        | result |
+        result := Set new.
+        result initialize.
+        
+        self do: [ :each |
+            (anotherSet includes: each) ifFalse: [
+                result add: each.
+            ].
+        ].
+        
+        ^result
+    ]
+
+    " Convert set to string representation for printing "
+    asString [
+        | result index |
+        result := 'Set{'.
+        index := 1.
+        [index <= count] whileTrue: [
+            " Note: In full implementation would call asString on element "
+            result := result.  " Placeholder - string concatenation needed "
+            index := index + 1.
+        ].
+        result := 'Set}'.
+        ^result
+    ]
+]

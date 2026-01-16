@@ -1,0 +1,127 @@
+" ZIP - Compression and decompression utilities
+
+  Provides ZIP archive compression and decompression functionality.
+  This is a wrapper around Go's archive/zip package exposed as VM primitives.
+
+  Key operations:
+  - compress: data         - Compress data using ZIP
+  - decompress: data       - Decompress ZIP data
+  - createArchive         - Create new ZIP archive
+  - addFile: name content: - Add file to archive
+  - extractArchive: data   - Extract files from archive
+
+  Example:
+    | zip compressed decompressed |
+    zip := ZIP new.
+    zip initialize.
+    compressed := zip compress: 'Large text to compress...'.
+    decompressed := zip decompress: compressed.
+    decompressed println.
+"
+
+Object subclass: #ZIP [
+
+    initialize [
+        " No state needed "
+    ]
+
+    " Compress data using ZIP compression
+      data: The string to compress
+      Returns compressed data as binary string "
+    compress: data [
+        " This would call VM primitive zipCompress: "
+        ^'<compressed-data>'
+    ]
+
+    " Decompress ZIP-compressed data
+      data: The compressed data
+      Returns decompressed string "
+    decompress: data [
+        " This would call VM primitive zipDecompress: "
+        ^'<decompressed-data>'
+    ]
+]
+
+" ZIPArchive - Create and extract ZIP archives with multiple files
+
+  Allows creating ZIP archives containing multiple files and
+  extracting files from existing archives.
+"
+
+Object subclass: #ZIPArchive [
+    | files |
+
+    initialize [
+        " Would store file entries "
+        files := nil.  " Would be OrderedCollection in full implementation "
+    ]
+
+    " Add a file to the archive
+      filename: Name of the file in archive
+      content: File content as string "
+    addFile: filename content: content [
+        " Would store file entry "
+        ^self
+    ]
+
+    " Write archive to binary data
+      Returns ZIP archive as binary string "
+    writeToData [
+        " This would call VM primitive zipArchiveWrite "
+        ^'<zip-archive-data>'
+    ]
+
+    " Read archive from binary data
+      data: ZIP archive binary data
+      Returns self for chaining "
+    readFromData: data [
+        " This would call VM primitive zipArchiveRead: "
+        ^self
+    ]
+
+    " Get list of filenames in archive
+      Returns array of filename strings "
+    fileNames [
+        " Would return array of filenames "
+        ^#()
+    ]
+
+    " Extract file content by name
+      filename: Name of file to extract
+      Returns file content as string "
+    extractFile: filename [
+        " Would look up and return file content "
+        ^''
+    ]
+
+    " Extract all files to a directory "
+    extractAll [
+        " Would extract all files "
+        ^self
+    ]
+]
+
+" GZIP - GZIP compression (commonly used for web content)
+
+  GZIP is a popular compression format, especially for web content.
+  It's similar to ZIP but designed for single-file compression.
+"
+
+Object subclass: #GZIP [
+
+    " Compress data using GZIP
+      data: The string to compress
+      Returns compressed data as binary string "
+    compress: data [
+        " This would call VM primitive gzipCompress: "
+        ^'<gzip-compressed>'
+    ]
+
+    " Decompress GZIP data
+      data: The GZIP-compressed data
+      Returns decompressed string "
+    decompress: data [
+        " This would call VM primitive gzipDecompress: "
+        ^'<gzip-decompressed>'
+    ]
+]

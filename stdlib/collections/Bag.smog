@@ -1,0 +1,172 @@
+" Bag - An unordered collection that can contain duplicate elements
+
+  A Bag is like a Set, but it tracks how many times each element appears.
+  It's useful for counting occurrences of items.
+
+  Key operations:
+  - add: anElement         - Add one occurrence of element
+  - add: anElement withOccurrences: n - Add n occurrences
+  - remove: anElement      - Remove one occurrence
+  - occurrencesOf: anElement - Count occurrences of element
+  - includes: anElement    - Test if element is present
+  - size                   - Total number of elements (counting duplicates)
+  - uniqueSize             - Number of unique elements
+  - do: aBlock             - Iterate over unique elements
+
+  Example:
+    | wordCount |
+    wordCount := Bag new.
+    wordCount initialize.
+    wordCount add: 'hello'.
+    wordCount add: 'world'.
+    wordCount add: 'hello'.
+    wordCount occurrencesOf: 'hello' println.  \" Prints: 2 \"
+"
+
+Object subclass: #Bag [
+    | elements counts capacity uniqueCount |
+
+    initialize [
+        capacity := 20.
+        elements := #(nil nil nil nil nil nil nil nil nil nil
+                     nil nil nil nil nil nil nil nil nil nil).
+        counts := #(0 0 0 0 0 0 0 0 0 0
+                   0 0 0 0 0 0 0 0 0 0).
+        uniqueCount := 0.
+    ]
+
+    " Add one occurrence of element "
+    add: anElement [
+        ^self add: anElement withOccurrences: 1
+    ]
+
+    " Add n occurrences of element "
+    add: anElement withOccurrences: n [
+        | index found |
+        found := false.
+        index := 1.
+
+        " Find if element already exists "
+        [index <= uniqueCount] whileTrue: [
+            ((elements at: index) = anElement) ifTrue: [
+                " Increment count "
+                counts at: index put: ((counts at: index) + n).
+                found := true.
+                index := uniqueCount + 1.  " Exit loop "
+            ].
+            index := index + 1.
+        ].
+
+        " Add new element if not found "
+        (found = false) ifTrue: [
+            (uniqueCount < capacity) ifTrue: [
+                uniqueCount := uniqueCount + 1.
+                elements at: uniqueCount put: anElement.
+                counts at: uniqueCount put: n.
+                ^true
+            ].
+            ^false  " Bag is full "
+        ].
+        ^true
+    ]
+
+    " Remove one occurrence of element "
+    remove: anElement [
+        | index found |
+        found := false.
+        index := 1.
+
+        [index <= uniqueCount] whileTrue: [
+            ((elements at: index) = anElement) ifTrue: [
+                found := true.
+                " Decrement count "
+                counts at: index put: ((counts at: index) - 1).
+                
+                " Remove element if count reaches zero "
+                ((counts at: index) = 0) ifTrue: [
+                    " Shift remaining elements down "
+                    [index < uniqueCount] whileTrue: [
+                        elements at: index put: (elements at: (index + 1)).
+                        counts at: index put: (counts at: (index + 1)).
+                        index := index + 1.
+                    ].
+                    elements at: uniqueCount put: nil.
+                    counts at: uniqueCount put: 0.
+                    uniqueCount := uniqueCount - 1.
+                ].
+                ^true
+            ].
+            index := index + 1.
+        ].
+        ^false  " Element not found "
+    ]
+
+    " Count occurrences of element "
+    occurrencesOf: anElement [
+        | index |
+        index := 1.
+        [index <= uniqueCount] whileTrue: [
+            ((elements at: index) = anElement) ifTrue: [
+                ^counts at: index
+            ].
+            index := index + 1.
+        ].
+        ^0  " Element not found "
+    ]
+
+    " Test if element is present (at least once) "
+    includes: anElement [
+        | count |
+        count := self occurrencesOf: anElement.
+        ^(count > 0)
+    ]
+
+    " Total number of elements including duplicates "
+    size [
+        | total index |
+        total := 0.
+        index := 1.
+        [index <= uniqueCount] whileTrue: [
+            total := total + (counts at: index).
+            index := index + 1.
+        ].
+        ^total
+    ]
+
+    " Number of unique elements "
+    uniqueSize [
+        ^uniqueCount
+    ]
+
+    " Test if bag is empty "
+    isEmpty [
+        ^(uniqueCount = 0)
+    ]
+
+    " Execute aBlock for each unique element "
+    do: aBlock [
+        | index |
+        index := 1.
+        [index <= uniqueCount] whileTrue: [
+            aBlock value: (elements at: index).
+            index := index + 1.
+        ].
+        ^self
+    ]
+
+    " Execute aBlock for each element (repeated per occurrence) "
+    doWithOccurrences: aBlock [
+        | index count i |
+        index := 1.
+        [index <= uniqueCount] whileTrue: [
+            count := counts at: index.
+            i := 0.
+            [i < count] whileTrue: [
+                aBlock value: (elements at: index).
+                i := i + 1.
+            ].
+            index := index + 1.
+        ].
+        ^self
+    ]
+]
