@@ -1,0 +1,178 @@
+" Set Example - Demonstrating Set operations
+
+  This example shows how to use the Set collection class
+  for managing unique elements.
+"
+
+" Define Set class inline for demonstration "
+Object subclass: #Set [
+    | elements count capacity |
+
+    initialize [
+        capacity := 10.
+        elements := #(nil nil nil nil nil nil nil nil nil nil).
+        count := 0.
+    ]
+
+    add: anElement [
+        | found index |
+        found := false.
+        index := 1.
+
+        [index <= count] whileTrue: [
+            ((elements at: index) = anElement) ifTrue: [
+                found := true.
+                index := count + 1.
+            ].
+            index := index + 1.
+        ].
+
+        (found = false) ifTrue: [
+            (count < capacity) ifTrue: [
+                count := count + 1.
+                elements at: count put: anElement.
+                ^true
+            ].
+            ^false
+        ].
+        ^false
+    ]
+
+    includes: anElement [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            ((elements at: index) = anElement) ifTrue: [
+                ^true
+            ].
+            index := index + 1.
+        ].
+        ^false
+    ]
+
+    size [
+        ^count
+    ]
+
+    getElements [
+        ^elements
+    ]
+
+    do: aBlock [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            aBlock value: (elements at: index).
+            index := index + 1.
+        ].
+        ^self
+    ]
+
+    union: anotherSet [
+        | result index otherElements otherCount |
+        result := Set new.
+        result initialize.
+        
+        " Add all elements from this set "
+        index := 1.
+        [index <= count] whileTrue: [
+            result add: (elements at: index).
+            index := index + 1.
+        ].
+        
+        " Add all elements from the other set "
+        " Note: Accessing internal state directly since closure issue "
+        otherElements := anotherSet getElements.
+        otherCount := anotherSet size.
+        index := 1.
+        [index <= otherCount] whileTrue: [
+            result add: (otherElements at: index).
+            index := index + 1.
+        ].
+        ^result
+    ]
+
+    intersection: anotherSet [
+        | result index element |
+        result := Set new.
+        result initialize.
+        
+        index := 1.
+        [index <= count] whileTrue: [
+            element := elements at: index.
+            (anotherSet includes: element) ifTrue: [
+                result add: element.
+            ].
+            index := index + 1.
+        ].
+        ^result
+    ]
+]
+
+" Test the Set class "
+| fruits vegetables both common |
+
+'Creating Sets...' println.
+'' println.
+
+fruits := Set new.
+fruits initialize.
+fruits add: 'apple'.
+fruits add: 'banana'.
+fruits add: 'orange'.
+fruits add: 'apple'.  " Duplicate - will be ignored "
+
+vegetables := Set new.
+vegetables initialize.
+vegetables add: 'carrot'.
+vegetables add: 'broccoli'.
+vegetables add: 'tomato'.  " Botanically a fruit! "
+
+'Fruits set:' println.
+fruits do: [ :fruit | 
+    '  - ' print.
+    fruit println.
+].
+
+'Fruits size: ' print.
+fruits size println.
+'' println.
+
+'Vegetables set:' println.
+vegetables do: [ :veg |
+    '  - ' print.
+    veg println.
+].
+'' println.
+
+'Testing includes:' println.
+'fruits includes apple: ' print.
+(fruits includes: 'apple') println.
+
+'fruits includes carrot: ' print.
+(fruits includes: 'carrot') println.
+'' println.
+
+" Union operation "
+both := fruits union: vegetables.
+'Union of fruits and vegetables:' println.
+both do: [ :item |
+    '  - ' print.
+    item println.
+].
+'Union size: ' print.
+both size println.
+'' println.
+
+" Add tomato to fruits "
+fruits add: 'tomato'.
+
+" Intersection operation "
+common := fruits intersection: vegetables.
+'Intersection of fruits and vegetables:' println.
+common do: [ :item |
+    '  - ' print.
+    item println.
+].
+'Intersection size: ' print.
+common size println.

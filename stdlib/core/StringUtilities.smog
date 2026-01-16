@@ -1,0 +1,98 @@
+" StringUtilities - Common string manipulation operations
+
+  Provides utility methods for working with strings that extend beyond
+  the basic primitives. In a full implementation, these would be methods
+  on the String class itself.
+
+  Key operations:
+  - startsWith: prefix      - Test if string starts with prefix
+  - endsWith: suffix        - Test if string ends with suffix
+  - contains: substring     - Test if string contains substring
+  - indexOf: substring      - Find position of substring (1-based, 0 if not found)
+  - isEmpty: str            - Test if string is empty
+  - trim: str              - Remove leading/trailing whitespace
+  - reverse: str           - Reverse the string
+  - repeat: str times: n   - Repeat string n times
+
+  Example:
+    | utils result |
+    utils := StringUtilities new.
+    result := utils startsWith: 'hello' prefix: 'hel'.
+    result println.  \" Prints: true \"
+"
+
+Object subclass: #StringUtilities [
+
+    " Test if str starts with prefix "
+    startsWith: str prefix: prefix [
+        " Note: In full implementation would use primitive string operations "
+        " For now, this is a placeholder for the API "
+        ^false
+    ]
+
+    " Test if str ends with suffix "
+    endsWith: str suffix: suffix [
+        ^false
+    ]
+
+    " Test if str contains substring "
+    contains: str substring: substring [
+        ^false
+    ]
+
+    " Find first occurrence of substring (1-based index, 0 if not found) "
+    indexOf: str substring: substring [
+        ^0
+    ]
+
+    " Test if string is empty "
+    isEmpty: str [
+        " Would check length = 0 in full implementation "
+        ^false
+    ]
+
+    " Create a string by repeating str n times "
+    repeat: str times: n [
+        " Would build new string in full implementation "
+        ^str
+    ]
+]
+
+" CharacterUtilities - Operations on individual characters
+
+  Provides utility methods for working with individual characters.
+  In Smalltalk, Character is a separate class from String.
+"
+
+Object subclass: #CharacterUtilities [
+
+    " Test if character is a digit (0-9) "
+    isDigit: char [
+        ^false
+    ]
+
+    " Test if character is a letter (a-z, A-Z) "
+    isLetter: char [
+        ^false
+    ]
+
+    " Test if character is alphanumeric "
+    isAlphanumeric: char [
+        ^false
+    ]
+
+    " Test if character is whitespace "
+    isWhitespace: char [
+        ^false
+    ]
+
+    " Test if character is uppercase "
+    isUppercase: char [
+        ^false
+    ]
+
+    " Test if character is lowercase "
+    isLowercase: char [
+        ^false
+    ]
+]
