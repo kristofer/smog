@@ -56,6 +56,7 @@ If you want to understand or contribute to Smog's internals:
 | [Architecture](design/ARCHITECTURE.md) | System design overview | Implementers, contributors |
 | [Design Decisions](design/DECISIONS.md) | Rationale for key choices | Implementers, contributors |
 | [Roadmap](planning/ROADMAP.md) | Development plans | Contributors, curious users |
+| [Microcontroller Porting Plan](planning/MICROCONTROLLER_PORTING_PLAN.md) | C VM and TinyGo analysis for embedded systems | Implementers, embedded developers |
 
 ### 🚀 Getting Started
 

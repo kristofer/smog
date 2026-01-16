@@ -183,6 +183,7 @@ Deep-dive technical documentation for understanding how Smog works internally:
 - **[Architecture](docs/design/ARCHITECTURE.md)** - System architecture overview
 - **[Design Decisions](docs/design/DECISIONS.md)** - Key design decisions and rationale
 - **[Roadmap](docs/planning/ROADMAP.md)** - Development roadmap and milestones
+- **[Microcontroller Porting Plan](docs/planning/MICROCONTROLLER_PORTING_PLAN.md)** - Analysis of C VM and TinyGo approaches for embedded systems
 
 ## Development Status
 
