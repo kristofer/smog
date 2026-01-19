@@ -1,0 +1,199 @@
+" Math Example - Demonstrating mathematical utilities "
+
+Object subclass: #Math [
+
+    pi [ ^3.14159265359 ]
+
+    e [ ^2.71828182846 ]
+
+    abs: n [
+        (n < 0) ifTrue: [ ^(0 - n) ].
+        ^n
+    ]
+
+    max: a and: b [
+        (a > b) ifTrue: [ ^a ].
+        ^b
+    ]
+
+    min: a and: b [
+        (a < b) ifTrue: [ ^a ].
+        ^b
+    ]
+
+    sqrt: n [
+        | guess prevGuess diff |
+        (n < 0) ifTrue: [
+            'Cannot compute square root of negative number' println.
+            ^nil
+        ].
+        (n = 0) ifTrue: [ ^0 ].
+        (n = 1) ifTrue: [ ^1 ].
+
+        guess := n / 2.
+
+        " Newton's method with integer arithmetic "
+        [true] whileTrue: [
+            prevGuess := guess.
+            guess := ((guess + (n / guess)) / 2).
+            
+            " Check for convergence using integer comparison "
+            diff := self abs: (guess - prevGuess).
+            (diff = 0) ifTrue: [
+                ^guess
+            ].
+        ].
+        ^guess
+    ]
+
+    power: base to: exponent [
+        | result i |
+        (exponent = 0) ifTrue: [ ^1 ].
+        (exponent = 1) ifTrue: [ ^base ].
+        
+        (exponent > 0) ifTrue: [
+            result := 1.
+            i := 0.
+            [i < exponent] whileTrue: [
+                result := result * base.
+                i := i + 1.
+            ].
+            ^result
+        ].
+        ^nil
+    ]
+
+    factorial: n [
+        | result i |
+        (n < 0) ifTrue: [
+            'Factorial undefined for negative numbers' println.
+            ^nil
+        ].
+        (n = 0) ifTrue: [ ^1 ].
+        
+        result := 1.
+        i := 1.
+        [i <= n] whileTrue: [
+            result := result * i.
+            i := i + 1.
+        ].
+        ^result
+    ]
+
+    fibonacci: n [
+        | a b temp i |
+        (n < 0) ifTrue: [ ^nil ].
+        (n = 0) ifTrue: [ ^0 ].
+        (n = 1) ifTrue: [ ^1 ].
+        
+        a := 0.
+        b := 1.
+        i := 2.
+        [i <= n] whileTrue: [
+            temp := a + b.
+            a := b.
+            b := temp.
+            i := i + 1.
+        ].
+        ^b
+    ]
+
+    gcd: a and: b [
+        | temp |
+        a := self abs: a.
+        b := self abs: b.
+        
+        [(b ~= 0)] whileTrue: [
+            temp := b.
+            b := a - ((a / b) * b).
+            a := temp.
+        ].
+        ^a
+    ]
+]
+
+" Test the Math class "
+| math result |
+
+math := Math new.
+
+'=== Mathematical Constants ===' println.
+'Pi: ' print.
+math pi println.
+
+'e (Euler): ' print.
+math e println.
+'' println.
+
+'=== Basic Operations ===' println.
+'abs(-42): ' print.
+result := math abs: -42.
+result println.
+
+'max(15, 23): ' print.
+result := math max: 15 and: 23.
+result println.
+
+'min(15, 23): ' print.
+result := math min: 15 and: 23.
+result println.
+'' println.
+
+'=== Powers and Roots ===' println.
+'2^8: ' print.
+result := math power: 2 to: 8.
+result println.
+
+'3^4: ' print.
+result := math power: 3 to: 4.
+result println.
+
+'sqrt(16): ' print.
+result := math sqrt: 16.
+result println.
+
+'sqrt(25): ' print.
+result := math sqrt: 25.
+result println.
+
+'sqrt(100): ' print.
+result := math sqrt: 100.
+result println.
+'' println.
+
+'=== Factorial ===' println.
+'5!: ' print.
+result := math factorial: 5.
+result println.
+
+'7!: ' print.
+result := math factorial: 7.
+result println.
+
+'10!: ' print.
+result := math factorial: 10.
+result println.
+'' println.
+
+'=== Fibonacci Sequence ===' println.
+'First 15 Fibonacci numbers:' println.
+| i fib |
+i := 0.
+[i <= 14] whileTrue: [
+    'fib(' print.
+    i print.
+    ') = ' print.
+    fib := math fibonacci: i.
+    fib println.
+    i := i + 1.
+].
+'' println.
+
+'=== Greatest Common Divisor ===' println.
+'gcd(48, 18): ' print.
+result := math gcd: 48 and: 18.
+result println.
+
+'gcd(100, 35): ' print.
+result := math gcd: 100 and: 35.
+result println.

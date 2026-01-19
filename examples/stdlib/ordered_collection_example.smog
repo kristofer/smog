@@ -1,0 +1,200 @@
+" OrderedCollection Example - Demonstrating collection operations "
+
+Object subclass: #OrderedCollection [
+    | items count capacity |
+
+    initialize [
+        capacity := 20.
+        items := #(nil nil nil nil nil nil nil nil nil nil
+                  nil nil nil nil nil nil nil nil nil nil).
+        count := 0.
+    ]
+
+    add: anElement [
+        (count < capacity) ifTrue: [
+            count := count + 1.
+            items at: count put: anElement.
+            ^anElement
+        ].
+        ^nil
+    ]
+
+    at: index [
+        (index > 0) ifTrue: [
+            (index <= count) ifTrue: [
+                ^items at: index
+            ].
+        ].
+        ^nil
+    ]
+
+    first [
+        (count > 0) ifTrue: [ ^items at: 1 ].
+        ^nil
+    ]
+
+    last [
+        (count > 0) ifTrue: [ ^items at: count ].
+        ^nil
+    ]
+
+    size [
+        ^count
+    ]
+
+    isEmpty [
+        ^(count = 0)
+    ]
+
+    do: aBlock [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            aBlock value: (items at: index).
+            index := index + 1.
+        ].
+        ^self
+    ]
+
+    collect: aBlock [
+        | result index |
+        result := OrderedCollection new.
+        result initialize.
+        
+        index := 1.
+        [index <= count] whileTrue: [
+            result add: (aBlock value: (items at: index)).
+            index := index + 1.
+        ].
+        ^result
+    ]
+
+    select: aBlock [
+        | result index element |
+        result := OrderedCollection new.
+        result initialize.
+        
+        index := 1.
+        [index <= count] whileTrue: [
+            element := items at: index.
+            (aBlock value: element) ifTrue: [
+                result add: element.
+            ].
+            index := index + 1.
+        ].
+        ^result
+    ]
+
+    detect: aBlock [
+        | index element |
+        index := 1.
+        [index <= count] whileTrue: [
+            element := items at: index.
+            (aBlock value: element) ifTrue: [
+                ^element
+            ].
+            index := index + 1.
+        ].
+        ^nil
+    ]
+
+    anySatisfy: aBlock [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            (aBlock value: (items at: index)) ifTrue: [
+                ^true
+            ].
+            index := index + 1.
+        ].
+        ^false
+    ]
+
+    allSatisfy: aBlock [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            (aBlock value: (items at: index)) ifFalse: [
+                ^false
+            ].
+            index := index + 1.
+        ].
+        ^true
+    ]
+]
+
+" Test OrderedCollection "
+| numbers doubled evens odds first big allBig anyBig |
+
+'Creating ordered collection of numbers...' println.
+numbers := OrderedCollection new.
+numbers initialize.
+
+numbers add: 1.
+numbers add: 2.
+numbers add: 3.
+numbers add: 4.
+numbers add: 5.
+numbers add: 6.
+numbers add: 7.
+numbers add: 8.
+numbers add: 9.
+numbers add: 10.
+
+'Original collection:' println.
+numbers do: [ :n | n println ].
+'' println.
+
+'Size: ' print.
+numbers size println.
+
+'First: ' print.
+first := numbers first.
+first println.
+
+'Last: ' print.
+numbers last println.
+'' println.
+
+'=== Collect: Double each number ===' println.
+doubled := numbers collect: [ :n | n * 2 ].
+doubled do: [ :n | n println ].
+'' println.
+
+'=== Select: Even numbers ===' println.
+evens := numbers select: [ :n | (n - ((n / 2) * 2)) = 0 ].
+evens do: [ :n | n println ].
+'' println.
+
+'=== Select: Odd numbers ===' println.
+odds := numbers select: [ :n | (n - ((n / 2) * 2)) ~= 0 ].
+odds do: [ :n | n println ].
+'' println.
+
+'=== Detect: First number > 5 ===' println.
+big := numbers detect: [ :n | n > 5 ].
+'Found: ' print.
+big println.
+'' println.
+
+'=== Any/All Satisfy ===' println.
+anyBig := numbers anySatisfy: [ :n | n > 8 ].
+'Any number > 8? ' print.
+anyBig println.
+
+allBig := numbers allSatisfy: [ :n | n > 8 ].
+'All numbers > 8? ' print.
+allBig println.
+
+allBig := numbers allSatisfy: [ :n | n > 0 ].
+'All numbers > 0? ' print.
+allBig println.
+'' println.
+
+'=== Complex Example: Squares of even numbers ===' println.
+| squaredEvens evenNums |
+evenNums := numbers select: [ :n | (n - ((n / 2) * 2)) = 0 ].
+squaredEvens := evenNums collect: [ :n | n * n ].
+
+'Squares of even numbers:' println.
+squaredEvens do: [ :n | n println ].

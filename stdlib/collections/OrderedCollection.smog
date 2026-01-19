@@ -1,0 +1,268 @@
+" OrderedCollection - A growable, ordered collection of elements
+
+  An OrderedCollection maintains elements in insertion order and allows
+  duplicates. It's similar to arrays but provides more flexible operations
+  like adding/removing at any position.
+
+  Key operations:
+  - add: anElement         - Add element at end
+  - addFirst: anElement    - Add element at beginning
+  - addLast: anElement     - Add element at end (same as add:)
+  - at: index              - Get element at position (1-based)
+  - at: index put: value   - Set element at position
+  - removeAt: index        - Remove element at position
+  - removeFirst            - Remove and return first element
+  - removeLast             - Remove and return last element
+  - first                  - Get first element
+  - last                   - Get last element
+  - size                   - Number of elements
+  - isEmpty                - Test if empty
+  - do: aBlock             - Iterate over elements
+  - collect: aBlock        - Transform each element
+  - select: aBlock         - Filter elements
+
+  Example:
+    | list |
+    list := OrderedCollection new.
+    list initialize.
+    list add: 10.
+    list add: 20.
+    list add: 30.
+    list first println.  \" Prints: 10 \"
+    list last println.   \" Prints: 30 \"
+"
+
+Object subclass: #OrderedCollection [
+    | items count capacity |
+
+    initialize [
+        capacity := 20.
+        items := #(nil nil nil nil nil nil nil nil nil nil
+                  nil nil nil nil nil nil nil nil nil nil).
+        count := 0.
+    ]
+
+    " Add element at the end of the collection "
+    add: anElement [
+        ^self addLast: anElement
+    ]
+
+    " Add element at the end of the collection "
+    addLast: anElement [
+        (count < capacity) ifTrue: [
+            count := count + 1.
+            items at: count put: anElement.
+            ^anElement
+        ].
+        ^nil  " Collection is full "
+    ]
+
+    " Add element at the beginning of the collection "
+    addFirst: anElement [
+        | index |
+        (count < capacity) ifTrue: [
+            " Shift all elements right "
+            index := count.
+            [index > 0] whileTrue: [
+                items at: (index + 1) put: (items at: index).
+                index := index - 1.
+            ].
+            
+            " Insert at beginning "
+            items at: 1 put: anElement.
+            count := count + 1.
+            ^anElement
+        ].
+        ^nil  " Collection is full "
+    ]
+
+    " Get element at index (1-based) "
+    at: index [
+        (index > 0) ifTrue: [
+            (index <= count) ifTrue: [
+                ^items at: index
+            ].
+        ].
+        ^nil  " Index out of bounds "
+    ]
+
+    " Set element at index (1-based) "
+    at: index put: value [
+        (index > 0) ifTrue: [
+            (index <= count) ifTrue: [
+                items at: index put: value.
+                ^value
+            ].
+        ].
+        ^nil  " Index out of bounds "
+    ]
+
+    " Remove element at index "
+    removeAt: index [
+        | element |
+        (index > 0) ifTrue: [
+            (index <= count) ifTrue: [
+                element := items at: index.
+                
+                " Shift remaining elements left "
+                [index < count] whileTrue: [
+                    items at: index put: (items at: (index + 1)).
+                    index := index + 1.
+                ].
+                
+                items at: count put: nil.
+                count := count - 1.
+                ^element
+            ].
+        ].
+        ^nil  " Index out of bounds "
+    ]
+
+    " Remove and return first element "
+    removeFirst [
+        (count > 0) ifTrue: [
+            ^self removeAt: 1
+        ].
+        ^nil
+    ]
+
+    " Remove and return last element "
+    removeLast [
+        | element |
+        (count > 0) ifTrue: [
+            element := items at: count.
+            items at: count put: nil.
+            count := count - 1.
+            ^element
+        ].
+        ^nil
+    ]
+
+    " Get first element without removing "
+    first [
+        (count > 0) ifTrue: [
+            ^items at: 1
+        ].
+        ^nil
+    ]
+
+    " Get last element without removing "
+    last [
+        (count > 0) ifTrue: [
+            ^items at: count
+        ].
+        ^nil
+    ]
+
+    " Return number of elements "
+    size [
+        ^count
+    ]
+
+    " Test if collection is empty "
+    isEmpty [
+        ^(count = 0)
+    ]
+
+    " Execute aBlock for each element "
+    do: aBlock [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            aBlock value: (items at: index).
+            index := index + 1.
+        ].
+        ^self
+    ]
+
+    " Create new collection with transformed elements "
+    collect: aBlock [
+        | result index |
+        result := OrderedCollection new.
+        result initialize.
+        
+        index := 1.
+        [index <= count] whileTrue: [
+            result add: (aBlock value: (items at: index)).
+            index := index + 1.
+        ].
+        
+        ^result
+    ]
+
+    " Create new collection with elements that satisfy condition "
+    select: aBlock [
+        | result index element |
+        result := OrderedCollection new.
+        result initialize.
+        
+        index := 1.
+        [index <= count] whileTrue: [
+            element := items at: index.
+            (aBlock value: element) ifTrue: [
+                result add: element.
+            ].
+            index := index + 1.
+        ].
+        
+        ^result
+    ]
+
+    " Create new collection with elements that don't satisfy condition "
+    reject: aBlock [
+        | result index element |
+        result := OrderedCollection new.
+        result initialize.
+        
+        index := 1.
+        [index <= count] whileTrue: [
+            element := items at: index.
+            (aBlock value: element) ifFalse: [
+                result add: element.
+            ].
+            index := index + 1.
+        ].
+        
+        ^result
+    ]
+
+    " Find first element satisfying condition "
+    detect: aBlock [
+        | index element |
+        index := 1.
+        [index <= count] whileTrue: [
+            element := items at: index.
+            (aBlock value: element) ifTrue: [
+                ^element
+            ].
+            index := index + 1.
+        ].
+        ^nil
+    ]
+
+    " Test if any element satisfies condition "
+    anySatisfy: aBlock [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            (aBlock value: (items at: index)) ifTrue: [
+                ^true
+            ].
+            index := index + 1.
+        ].
+        ^false
+    ]
+
+    " Test if all elements satisfy condition "
+    allSatisfy: aBlock [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            (aBlock value: (items at: index)) ifFalse: [
+                ^false
+            ].
+            index := index + 1.
+        ].
+        ^true
+    ]
+]

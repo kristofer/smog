@@ -145,12 +145,19 @@ smog/
 │   ├── compiler/      # AST to bytecode compiler
 │   ├── bytecode/      # Bytecode format and opcodes
 │   └── vm/            # Virtual machine
+├── stdlib/            # Standard library
+│   ├── collections/   # Data structures (Set, OrderedCollection, Bag)
+│   ├── core/          # Core utilities (Math, Stream)
+│   ├── io/            # I/O operations (HTTP)
+│   ├── crypto/        # Cryptography (AES, Hash)
+│   └── compression/   # Compression (ZIP, GZIP)
 ├── internal/          # Internal implementation details
 ├── docs/
 │   ├── spec/          # Language specification
 │   ├── design/        # Design documents
 │   └── planning/      # Development planning
 └── examples/          # Example programs
+    └── stdlib/        # Standard library examples
 ```
 
 ## Documentation
@@ -161,6 +168,7 @@ Start here if you're new to Smog or want to learn how to use the language:
 
 - **[Learning Guide](docs/LEARNING_GUIDE.md)** - ⭐ **START HERE** - Beginner's mental model and learning path
 - **[User's Guide](docs/USERS_GUIDE.md)** - Practical guide with examples for common programming tasks
+- **[Standard Library](stdlib/README.md)** - Common data structures and utilities (Set, OrderedCollection, Math, etc.)
 - **[REPL Guide](docs/REPL.md)** - Interactive Read-Eval-Print Loop for experimentation
 - **[Debugger Guide](docs/DEBUGGER.md)** - Interactive debugger for step-by-step execution
 - **[Bytecode Format Guide](docs/BYTECODE_FORMAT.md)** - Working with .sg compiled bytecode files

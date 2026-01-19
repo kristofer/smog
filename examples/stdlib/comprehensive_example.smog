@@ -1,0 +1,348 @@
+" Comprehensive Standard Library Example
+  
+  This example demonstrates multiple standard library features working together
+  to solve a practical problem: analyzing a collection of numbers.
+"
+
+" Math utilities "
+Object subclass: #Math [
+    abs: n [ (n < 0) ifTrue: [ ^(0 - n) ]. ^n ]
+    max: a and: b [ (a > b) ifTrue: [ ^a ]. ^b ]
+    min: a and: b [ (a < b) ifTrue: [ ^a ]. ^b ]
+    
+    sqrt: n [
+        | guess prevGuess diff |
+        (n < 0) ifTrue: [ ^nil ].
+        (n = 0) ifTrue: [ ^0 ].
+        (n = 1) ifTrue: [ ^1 ].
+        guess := n / 2.
+        [true] whileTrue: [
+            prevGuess := guess.
+            guess := ((guess + (n / guess)) / 2).
+            diff := self abs: (guess - prevGuess).
+            (diff = 0) ifTrue: [ ^guess ].
+        ].
+        ^guess
+    ]
+]
+
+" OrderedCollection for flexible lists "
+Object subclass: #OrderedCollection [
+    | items count capacity |
+    
+    initialize [
+        capacity := 20.
+        items := #(nil nil nil nil nil nil nil nil nil nil
+                  nil nil nil nil nil nil nil nil nil nil).
+        count := 0.
+    ]
+    
+    add: anElement [
+        (count < capacity) ifTrue: [
+            count := count + 1.
+            items at: count put: anElement.
+            ^anElement
+        ].
+        ^nil
+    ]
+    
+    at: index [
+        (index > 0) ifTrue: [
+            (index <= count) ifTrue: [ ^items at: index ].
+        ].
+        ^nil
+    ]
+    
+    size [ ^count ]
+    
+    do: aBlock [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            aBlock value: (items at: index).
+            index := index + 1.
+        ].
+        ^self
+    ]
+    
+    collect: aBlock [
+        | result index |
+        result := OrderedCollection new.
+        result initialize.
+        index := 1.
+        [index <= count] whileTrue: [
+            result add: (aBlock value: (items at: index)).
+            index := index + 1.
+        ].
+        ^result
+    ]
+    
+    select: aBlock [
+        | result index element |
+        result := OrderedCollection new.
+        result initialize.
+        index := 1.
+        [index <= count] whileTrue: [
+            element := items at: index.
+            (aBlock value: element) ifTrue: [ result add: element ].
+            index := index + 1.
+        ].
+        ^result
+    ]
+]
+
+" Set for unique elements "
+Object subclass: #Set [
+    | elements count capacity |
+    
+    initialize [
+        capacity := 10.
+        elements := #(nil nil nil nil nil nil nil nil nil nil).
+        count := 0.
+    ]
+    
+    add: anElement [
+        | found index |
+        found := false.
+        index := 1.
+        [index <= count] whileTrue: [
+            ((elements at: index) = anElement) ifTrue: [
+                found := true.
+                index := count + 1.
+            ].
+            index := index + 1.
+        ].
+        (found = false) ifTrue: [
+            (count < capacity) ifTrue: [
+                count := count + 1.
+                elements at: count put: anElement.
+                ^true
+            ].
+            ^false
+        ].
+        ^false
+    ]
+    
+    size [ ^count ]
+    
+    do: aBlock [
+        | index |
+        index := 1.
+        [index <= count] whileTrue: [
+            aBlock value: (elements at: index).
+            index := index + 1.
+        ].
+        ^self
+    ]
+]
+
+" NumberAnalyzer - combines stdlib features "
+Object subclass: #NumberAnalyzer [
+    | numbers math |
+    
+    initialize [
+        numbers := OrderedCollection new.
+        numbers initialize.
+        math := Math new.
+    ]
+    
+    addNumber: n [
+        numbers add: n.
+    ]
+    
+    " Calculate sum "
+    sum [
+        | total index |
+        total := 0.
+        index := 1.
+        [index <= numbers size] whileTrue: [
+            total := total + (numbers at: index).
+            index := index + 1.
+        ].
+        ^total
+    ]
+    
+    " Calculate mean (average) "
+    mean [
+        | total |
+        total := self sum.
+        ^(total / numbers size)
+    ]
+    
+    " Find maximum "
+    max [
+        | maximum index n |
+        maximum := numbers at: 1.
+        index := 2.
+        [index <= numbers size] whileTrue: [
+            n := numbers at: index.
+            maximum := math max: maximum and: n.
+            index := index + 1.
+        ].
+        ^maximum
+    ]
+    
+    " Find minimum "
+    min [
+        | minimum index n |
+        minimum := numbers at: 1.
+        index := 2.
+        [index <= numbers size] whileTrue: [
+            n := numbers at: index.
+            minimum := math min: minimum and: n.
+            index := index + 1.
+        ].
+        ^minimum
+    ]
+    
+    " Get unique values using Set "
+    uniqueValues [
+        | uniqueSet index |
+        uniqueSet := Set new.
+        uniqueSet initialize.
+        index := 1.
+        [index <= numbers size] whileTrue: [
+            uniqueSet add: (numbers at: index).
+            index := index + 1.
+        ].
+        ^uniqueSet
+    ]
+    
+    " Get even numbers (inline implementation) "
+    evens [
+        | result index element |
+        result := OrderedCollection new.
+        result initialize.
+        index := 1.
+        [index <= numbers size] whileTrue: [
+            element := numbers at: index.
+            ((element - ((element / 2) * 2)) = 0) ifTrue: [
+                result add: element.
+            ].
+            index := index + 1.
+        ].
+        ^result
+    ]
+    
+    " Get odd numbers (inline implementation) "
+    odds [
+        | result index element |
+        result := OrderedCollection new.
+        result initialize.
+        index := 1.
+        [index <= numbers size] whileTrue: [
+            element := numbers at: index.
+            ((element - ((element / 2) * 2)) ~= 0) ifTrue: [
+                result add: element.
+            ].
+            index := index + 1.
+        ].
+        ^result
+    ]
+    
+    " Get positive numbers (inline implementation) "
+    positives [
+        | result index element |
+        result := OrderedCollection new.
+        result initialize.
+        index := 1.
+        [index <= numbers size] whileTrue: [
+            element := numbers at: index.
+            (element > 0) ifTrue: [
+                result add: element.
+            ].
+            index := index + 1.
+        ].
+        ^result
+    ]
+    
+    " Get squares (inline implementation) "
+    squares [
+        | result index element |
+        result := OrderedCollection new.
+        result initialize.
+        index := 1.
+        [index <= numbers size] whileTrue: [
+            element := numbers at: index.
+            result add: (element * element).
+            index := index + 1.
+        ].
+        ^result
+    ]
+]
+
+" Main program "
+'=== Number Analysis Demo ===' println.
+'' println.
+
+| analyzer evens odds positives squares uniqueSet |
+
+analyzer := NumberAnalyzer new.
+analyzer initialize.
+
+'Adding numbers: 5, -3, 8, 5, 12, -3, 7, 8...' println.
+analyzer addNumber: 5.
+analyzer addNumber: -3.
+analyzer addNumber: 8.
+analyzer addNumber: 5.
+analyzer addNumber: 12.
+analyzer addNumber: -3.
+analyzer addNumber: 7.
+analyzer addNumber: 8.
+'' println.
+
+'=== Basic Statistics ===' println.
+'Sum: ' print.
+analyzer sum println.
+
+'Mean: ' print.
+analyzer mean println.
+
+'Maximum: ' print.
+analyzer max println.
+
+'Minimum: ' print.
+analyzer min println.
+'' println.
+
+'=== Filtered Results ===' println.
+evens := analyzer evens.
+'Even numbers:' println.
+evens do: [ :n | 
+    '  ' print.
+    n println.
+].
+
+odds := analyzer odds.
+'Odd numbers:' println.
+odds do: [ :n |
+    '  ' print.
+    n println.
+].
+
+positives := analyzer positives.
+'Positive numbers:' println.
+positives do: [ :n |
+    '  ' print.
+    n println.
+].
+'' println.
+
+'=== Transformations ===' println.
+squares := analyzer squares.
+'Squares:' println.
+squares do: [ :n |
+    '  ' print.
+    n println.
+].
+'' println.
+
+'=== Unique Values (using Set) ===' println.
+uniqueSet := analyzer uniqueValues.
+'Unique values:' println.
+uniqueSet do: [ :n |
+    '  ' print.
+    n println.
+].
+'Count of unique values: ' print.
+uniqueSet size println.

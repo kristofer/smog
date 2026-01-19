@@ -1,0 +1,197 @@
+" Stream - Abstract stream for reading and writing sequences
+
+  Streams provide a uniform interface for sequential access to data.
+  They're fundamental in Smalltalk for I/O operations.
+
+  Key operations:
+  - next                   - Read next element
+  - next: n                - Read n elements
+  - nextPut: element       - Write element
+  - atEnd                  - Test if at end of stream
+  - peek                   - Look at next element without consuming
+  - position               - Get current position
+  - position: n            - Set position
+
+  Subclasses:
+  - ReadStream            - For reading from collections
+  - WriteStream           - For writing to collections
+  - ReadWriteStream       - For both reading and writing
+"
+
+Object subclass: #Stream [
+    | position |
+
+    initialize [
+        position := 0.
+    ]
+
+    " Read and return next element "
+    next [
+        ^nil
+    ]
+
+    " Read n elements and return as collection "
+    next: n [
+        ^nil
+    ]
+
+    " Write element to stream "
+    nextPut: element [
+        ^element
+    ]
+
+    " Test if at end of stream "
+    atEnd [
+        ^true
+    ]
+
+    " Return next element without advancing position "
+    peek [
+        ^nil
+    ]
+
+    " Get current position in stream "
+    position [
+        ^position
+    ]
+
+    " Set position in stream "
+    position: n [
+        position := n.
+        ^self
+    ]
+
+    " Reset position to beginning "
+    reset [
+        position := 0.
+        ^self
+    ]
+
+    " Skip n elements "
+    skip: n [
+        position := position + n.
+        ^self
+    ]
+]
+
+" ReadStream - Stream for reading from a collection "
+
+Object subclass: #ReadStream [
+    | collection position size |
+
+    " Create stream on collection "
+    on: aCollection [
+        collection := aCollection.
+        position := 0.
+        size := aCollection size.
+        ^self
+    ]
+
+    initialize [
+        position := 0.
+        size := 0.
+    ]
+
+    " Read next element "
+    next [
+        | element |
+        (self atEnd) ifTrue: [ ^nil ].
+        position := position + 1.
+        element := collection at: position.
+        ^element
+    ]
+
+    " Read n elements "
+    next: n [
+        | result i |
+        result := OrderedCollection new.
+        result initialize.
+        i := 0.
+        [i < n] whileTrue: [
+            (self atEnd) ifFalse: [
+                result add: self next.
+            ].
+            i := i + 1.
+        ].
+        ^result
+    ]
+
+    " Look at next element without consuming "
+    peek [
+        (self atEnd) ifTrue: [ ^nil ].
+        ^collection at: (position + 1)
+    ]
+
+    " Test if at end "
+    atEnd [
+        ^(position >= size)
+    ]
+
+    " Reset to beginning "
+    reset [
+        position := 0.
+        ^self
+    ]
+
+    " Get position "
+    position [
+        ^position
+    ]
+
+    " Set position "
+    position: n [
+        position := n.
+        ^self
+    ]
+]
+
+" WriteStream - Stream for writing to a collection "
+
+Object subclass: #WriteStream [
+    | collection position capacity |
+
+    initialize [
+        capacity := 20.
+        collection := OrderedCollection new.
+        collection initialize.
+        position := 0.
+    ]
+
+    " Write element to stream "
+    nextPut: element [
+        collection add: element.
+        position := position + 1.
+        ^element
+    ]
+
+    " Write all elements from aCollection "
+    nextPutAll: aCollection [
+        aCollection do: [ :each |
+            self nextPut: each.
+        ].
+        ^aCollection
+    ]
+
+    " Get the contents written so far "
+    contents [
+        ^collection
+    ]
+
+    " Reset stream to empty "
+    reset [
+        collection := OrderedCollection new.
+        collection initialize.
+        position := 0.
+        ^self
+    ]
+
+    " Get position "
+    position [
+        ^position
+    ]
+
+    " Get size of contents "
+    size [
+        ^collection size
+    ]
+]
