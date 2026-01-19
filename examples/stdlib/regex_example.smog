@@ -11,11 +11,11 @@ regex := Regex new.
 
 " Test pattern matching "
 '=== Pattern Matching ===' println.
-matched := regex match: '\d+' text: 'abc123def'.
+matched := regex regexMatch: '\d+' text: 'abc123def'.
 'Pattern \d+ matches "abc123def": ' print.
 matched println.
 
-matched := regex match: '\d+' text: 'abcdef'.
+matched := regex regexMatch: '\d+' text: 'abcdef'.
 'Pattern \d+ matches "abcdef": ' print.
 matched println.
 '' println.
@@ -26,7 +26,7 @@ text := 'The numbers are 123, 456, and 789'.
 'Text: ' print.
 text println.
 
-matches := regex findAll: '\d+' text: text.
+matches := regex regexFindAll: '\d+' text: text.
 'Matches: ' print.
 matches println.
 '' println.
@@ -37,7 +37,7 @@ text := 'Price: 100 dollars, Discount: 20 dollars'.
 'Original: ' print.
 text println.
 
-replaced := regex replace: '\d+' text: text with: 'XXX'.
+replaced := regex regexReplace: '\d+' text: text with: 'XXX'.
 'Replaced: ' print.
 replaced println.
 '' println.

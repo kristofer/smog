@@ -36,18 +36,17 @@ data := 'Secret message'.
 'Original: ' print.
 data println.
 
-encoded := base64 encode: data.
+encoded := base64 base64Encode: data.
 'Encoded: ' print.
 encoded println.
 
-decoded := base64 decode: encoded.
+decoded := base64 base64Decode: encoded.
 'Decoded: ' print.
 decoded println.
 '' println.
 
 " AES encryption "
 '=== AES Encryption ===' println.
-aes initialize.
 
 key := '12345678901234567890123456789012'.  " 32 bytes for AES-256 "
 plaintext := 'This is a secret message that needs encryption!'.
@@ -58,19 +57,19 @@ plaintext println.
 key println.
 '' println.
 
-encrypted := aes encrypt: plaintext key: key.
+encrypted := aes aesEncrypt: plaintext key: key.
 'Encrypted: ' print.
 encrypted println.
 '' println.
 
-decrypted := aes decrypt: encrypted key: key.
+decrypted := aes aesDecrypt: encrypted key: key.
 'Decrypted: ' print.
 decrypted println.
 '' println.
 
 " Generate a random key "
 '=== Generate Random Key ===' println.
-generatedKey := aes generateKey.
+generatedKey := aes aesGenerateKey.
 'Generated AES-256 key: ' print.
 generatedKey println.
 

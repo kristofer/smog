@@ -13,16 +13,16 @@ random := Random new.
 '=== Random Integers ===' println.
 'Generating 5 random integers between 1 and 100:' println.
 5 timesRepeat: [
-    num := random int: 1 max: 100.
+    num := random randomInt: 1 max: 100.
     num println.
 ].
 '' println.
 
-" Generate random floats "
+" Generate random randomFloats "
 '=== Random Floats ===' println.
-'Generating 5 random floats between 0.0 and 1.0:' println.
+'Generating 5 random randomFloats between 0.0 and 1.0:' println.
 5 timesRepeat: [
-    flt := random float.
+    flt := random randomFloat.
     flt println.
 ].
 '' println.
@@ -30,13 +30,13 @@ random := Random new.
 " Generate random bytes "
 '=== Random Bytes ===' println.
 'Generating 16 random bytes (base64 encoded):' println.
-bytes := random bytes: 16.
+bytes := random randomBytes: 16.
 bytes println.
 '' println.
 
 " Generate 32 random bytes for a key "
 'Generating 32 random bytes for encryption key:' println.
-bytes := random bytes: 32.
+bytes := random randomBytes: 32.
 bytes println.
 
 'Done!' println.
