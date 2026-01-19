@@ -1,5 +1,18 @@
 " Example demonstrating Date and Time functionality "
-| date now formatted year month day |
+| date now formatted year month day parsed |
+
+" Date class definition "
+Object subclass: #Date [
+    now [ ^self dateNow ]
+    format: ts format: fmt [ ^self dateFormat: ts format: fmt ]
+    parse: dateStr format: fmt [ ^self dateParse: dateStr format: fmt ]
+    year: ts [ ^self timeYear: ts ]
+    month: ts [ ^self timeMonth: ts ]
+    day: ts [ ^self timeDay: ts ]
+    hour: ts [ ^self timeHour: ts ]
+    minute: ts [ ^self timeMinute: ts ]
+    second: ts [ ^self timeSecond: ts ]
+]
 
 '=== Date and Time Example ===' println.
 '' println.
@@ -58,7 +71,6 @@ day println.
 
 " Parse a date string "
 '=== Date Parsing ===' println.
-| parsed |
 parsed := date parse: '2024-01-15T10:30:00Z' format: 'iso8601'.
 'Parsed timestamp: ' print.
 parsed println.

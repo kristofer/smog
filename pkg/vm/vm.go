@@ -1438,6 +1438,78 @@ func (vm *VM) send(receiver interface{}, selector string, args []interface{}) (i
 	}
 }
 
+// tryPrimitive attempts to execute a primitive operation.
+// Returns (result, nil) if the primitive was handled, or (nil, error) if not a primitive.
+// This allows falling back to method lookup when primitives don't apply.
+func (vm *VM) tryPrimitive(receiver interface{}, selector string, args []interface{}) (interface{}, error) {
+	// Handle primitive operations
+	// These are built directly into the VM for efficiency
+	switch selector {
+	case "+":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.add(receiver, args[0])
+	case "-":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.subtract(receiver, args[0])
+	case "*":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.multiply(receiver, args[0])
+	case "/":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.divide(receiver, args[0])
+	case "<":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.lessThan(receiver, args[0])
+	case ">":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.greaterThan(receiver, args[0])
+	case "<=":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.lessOrEqual(receiver, args[0])
+	case ">=":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.greaterOrEqual(receiver, args[0])
+	case "=":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.equal(receiver, args[0])
+	case "~=":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.notEqual(receiver, args[0])
+	case "println":
+		// Print the receiver followed by a newline
+		fmt.Println(receiver)
+		// Return the receiver (allows method chaining)
+		return receiver, nil
+	case "print":
+		// Print the receiver without a newline
+		fmt.Print(receiver)
+		return receiver, nil
+	default:
+		// Not a basic primitive
+		return nil, fmt.Errorf("not a primitive")
+	}
+}
+
 // executeBlock executes a block with the given arguments.
 //
 // Process:
@@ -2040,7 +2112,13 @@ func (vm *VM) executeMethod(instance *Instance, selector string, args []interfac
 	method, class := vm.lookupMethod(instance.Class, selector)
 
 	if method == nil {
-		// Method not found in class hierarchy
+		// Method not found in class hierarchy - try primitives
+		result, err := vm.tryPrimitive(instance, selector, args)
+		if err == nil {
+			// Primitive handled it
+			return result, nil
+		}
+		// Not a primitive - report error
 		return nil, fmt.Errorf("instance of %s does not understand message '%s'", 
 			instance.Class.Name, selector)
 	}

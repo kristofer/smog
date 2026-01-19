@@ -1,6 +1,13 @@
 " Example demonstrating Random number generation "
 | random num flt bytes |
 
+" Random class definition "
+Object subclass: #Random [
+    int: min max: max [ ^self randomInt: min max: max ]
+    float [ ^self randomFloat ]
+    bytes: length [ ^self randomBytes: length ]
+]
+
 '=== Random Number Generation Example ===' println.
 '' println.
 

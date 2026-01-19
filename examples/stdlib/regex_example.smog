@@ -1,5 +1,12 @@
 " Example demonstrating Regular Expression functionality "
-| regex matched matches replaced |
+| regex matched matches replaced text |
+
+" Regex class definition "
+Object subclass: #Regex [
+    match: pattern text: text [ ^self regexMatch: pattern text: text ]
+    findAll: pattern text: text [ ^self regexFindAll: pattern text: text ]
+    replace: pattern text: text with: replacement [ ^self regexReplace: pattern text: text with: replacement ]
+]
 
 '=== Regular Expression Example ===' println.
 '' println.
@@ -19,7 +26,6 @@ matched println.
 
 " Find all matches "
 '=== Find All Matches ===' println.
-| text |
 text := 'The numbers are 123, 456, and 789'.
 'Text: ' print.
 text println.

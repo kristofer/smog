@@ -1,6 +1,14 @@
 " Example demonstrating File I/O functionality "
 | file testPath content exists |
 
+" File class definition "
+Object subclass: #File [
+    read: path [ ^self fileRead: path ]
+    write: path content: content [ ^self fileWrite: path content: content ]
+    exists: path [ ^self fileExists: path ]
+    delete: path [ ^self fileDelete: path ]
+]
+
 '=== File I/O Example ===' println.
 '' println.
 

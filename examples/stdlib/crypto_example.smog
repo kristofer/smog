@@ -1,5 +1,24 @@
 " Example demonstrating Crypto functionality "
-| hash base64 aes key plaintext encrypted decrypted |
+| hash base64 aes key plaintext encrypted decrypted data encoded decoded generatedKey |
+
+" Crypto class definitions "
+Object subclass: #Hash [
+    sha256: data [ ^self sha256: data ]
+    sha512: data [ ^self sha512: data ]
+    md5: data [ ^self md5: data ]
+]
+
+Object subclass: #Base64 [
+    encode: data [ ^self base64Encode: data ]
+    decode: encodedData [ ^self base64Decode: encodedData ]
+]
+
+Object subclass: #AES [
+    initialize [ " No state needed " ]
+    encrypt: data key: key [ ^self aesEncrypt: data key: key ]
+    decrypt: data key: key [ ^self aesDecrypt: data key: key ]
+    generateKey [ ^self aesGenerateKey ]
+]
 
 '=== Cryptography Example ===' println.
 '' println.
@@ -10,7 +29,6 @@ aes := AES new.
 
 " Hash functions "
 '=== Hash Functions ===' println.
-| data |
 data := 'Hello, World!'.
 'Data: ' print.
 data println.
@@ -28,7 +46,6 @@ data println.
 
 " Base64 encoding "
 '=== Base64 Encoding ===' println.
-| encoded decoded |
 data := 'Secret message'.
 'Original: ' print.
 data println.
@@ -67,7 +84,6 @@ decrypted println.
 
 " Generate a random key "
 '=== Generate Random Key ===' println.
-| generatedKey |
 generatedKey := aes generateKey.
 'Generated AES-256 key: ' print.
 generatedKey println.
