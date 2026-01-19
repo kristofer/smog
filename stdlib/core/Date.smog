@@ -1,0 +1,95 @@
+" Date - Date and time handling
+  
+  Provides date and time functionality using Unix timestamps.
+  Internally uses VM primitives for date/time operations.
+  
+  Key operations:
+  - now                        - Get current timestamp
+  - format: format             - Format timestamp to string
+  - parse: dateStr format: fmt - Parse date string to timestamp
+  - year                       - Extract year
+  - month                      - Extract month
+  - day                        - Extract day
+  - hour                       - Extract hour
+  - minute                     - Extract minute
+  - second                     - Extract second
+  
+  Example:
+    | date now formatted |
+    date := Date new.
+    now := date now.
+    formatted := date format: now format: 'iso8601'.
+    formatted println.
+"
+
+Object subclass: #Date [
+    | timestamp |
+    
+    initialize [
+        timestamp := 0.
+    ]
+    
+    " Get the current Unix timestamp "
+    now [
+        ^self dateNow
+    ]
+    
+    " Format a timestamp to a string
+      timestamp: Unix timestamp (integer)
+      format: Format string ('iso8601', 'date', 'time', 'datetime', or custom)
+      Returns formatted string "
+    format: ts format: fmt [
+        ^self dateFormat: ts format: fmt
+    ]
+    
+    " Parse a date string to Unix timestamp
+      dateStr: Date string to parse
+      format: Format string ('iso8601', 'date', 'time', 'datetime', or custom)
+      Returns Unix timestamp "
+    parse: dateStr format: fmt [
+        ^self dateParse: dateStr format: fmt
+    ]
+    
+    " Extract year from timestamp "
+    year: ts [
+        ^self timeYear: ts
+    ]
+    
+    " Extract month from timestamp (1-12) "
+    month: ts [
+        ^self timeMonth: ts
+    ]
+    
+    " Extract day from timestamp (1-31) "
+    day: ts [
+        ^self timeDay: ts
+    ]
+    
+    " Extract hour from timestamp (0-23) "
+    hour: ts [
+        ^self timeHour: ts
+    ]
+    
+    " Extract minute from timestamp (0-59) "
+    minute: ts [
+        ^self timeMinute: ts
+    ]
+    
+    " Extract second from timestamp (0-59) "
+    second: ts [
+        ^self timeSecond: ts
+    ]
+]
+
+" Time - Time utilities
+  
+  Provides additional time utilities and constants.
+"
+
+Object subclass: #Time [
+    
+    " Get current timestamp "
+    now [
+        ^self dateNow
+    ]
+]

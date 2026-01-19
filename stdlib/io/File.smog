@@ -1,0 +1,55 @@
+" File - File I/O operations
+  
+  Provides file input/output functionality.
+  Uses VM primitives for actual file operations.
+  
+  Key operations:
+  - read: path          - Read entire file contents
+  - write: path content: - Write content to file
+  - exists: path        - Check if file exists
+  - delete: path        - Delete a file
+  
+  Example:
+    | file content |
+    file := File new.
+    file write: '/tmp/test.txt' content: 'Hello, World!'.
+    content := file read: '/tmp/test.txt'.
+    content println.
+    file delete: '/tmp/test.txt'.
+"
+
+Object subclass: #File [
+    
+    initialize [
+        " No state needed "
+    ]
+    
+    " Read entire file contents
+      path: File path to read
+      Returns file contents as string "
+    read: path [
+        ^self fileRead: path
+    ]
+    
+    " Write content to a file
+      path: File path to write
+      content: Content to write (string)
+      Returns nil "
+    write: path content: content [
+        ^self fileWrite: path content: content
+    ]
+    
+    " Check if a file exists
+      path: File path to check
+      Returns boolean "
+    exists: path [
+        ^self fileExists: path
+    ]
+    
+    " Delete a file
+      path: File path to delete
+      Returns nil "
+    delete: path [
+        ^self fileDelete: path
+    ]
+]

@@ -195,9 +195,9 @@ Deep-dive technical documentation for understanding how Smog works internally:
 
 ## Development Status
 
-**Current Version**: 0.5.0 (Advanced Classes)
+**Current Version**: 0.6.0 (Standard Library Support)
 
-Smog has completed advanced class features implementation. Current features:
+Smog has completed VM primitives for standard library support. Current features:
 - ✅ Complete lexer and parser
 - ✅ AST-based intermediate representation
 - ✅ Bytecode compiler
@@ -215,7 +215,13 @@ Smog has completed advanced class features implementation. Current features:
 - ✅ Interactive debugger with breakpoints and stepping
 - ✅ Stack traces for runtime errors
 - ✅ Comprehensive documentation (teaching-quality comments)
-- ✅ Extensive test suite (85+ tests, benchmarks)
+- ✅ Extensive test suite (100+ tests, benchmarks)
+- ✅ **VM primitives for HTTP, crypto, compression**
+- ✅ **Date and Time classes**
+- ✅ **File I/O classes**
+- ✅ **JSON parsing and generation**
+- ✅ **Regular expression support**
+- ✅ **Random number generation**
 
 ### Version History
 - **v0.1.0**: Foundation - project structure and documentation
@@ -223,6 +229,7 @@ Smog has completed advanced class features implementation. Current features:
 - **v0.3.0**: Blocks, arrays, control flow, extensive documentation
 - **v0.4.0**: Enhanced features - super, cascading, dictionaries, REPL
 - **v0.5.0**: Advanced classes - inheritance, class methods, class variables, debugger, stack traces
+- **v0.6.0**: Standard library support - HTTP, crypto, compression, file I/O, JSON, regex, random, date/time
 
 See the [roadmap](docs/planning/ROADMAP.md) for planned features and timeline.
 

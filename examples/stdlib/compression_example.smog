@@ -1,0 +1,50 @@
+" Example demonstrating Compression functionality "
+
+'=== Compression Example ===' println.
+'' println.
+
+| zip gzip data compressed decompressed |
+zip := ZIP new.
+gzip := GZIP new.
+
+" Create test data "
+data := 'This is a test string for compression. '.
+data := data, data, data, data, data.  " Repeat to make it more compressible "
+data := data, data, data, data.
+
+'Original data length: ' print.
+(data size) println.
+'' println.
+
+" GZIP compression "
+'=== GZIP Compression ===' println.
+compressed := gzip compress: data.
+'Compressed data (base64):' println.
+compressed println.
+'' println.
+
+decompressed := gzip decompress: compressed.
+'Decompressed successfully!' println.
+'Decompressed length: ' print.
+(decompressed size) println.
+
+'Match original: ' print.
+(decompressed = data) println.
+'' println.
+
+" ZIP compression "
+'=== ZIP Compression ===' println.
+compressed := zip compress: data.
+'Compressed data (base64):' println.
+compressed println.
+'' println.
+
+decompressed := zip decompress: compressed.
+'Decompressed successfully!' println.
+'Decompressed length: ' print.
+(decompressed size) println.
+
+'Match original: ' print.
+(decompressed = data) println.
+
+'Done!' println.

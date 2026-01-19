@@ -1,0 +1,54 @@
+" Random - Random number generation
+  
+  Provides cryptographically secure random number generation.
+  Uses VM primitives for actual random operations.
+  
+  Key operations:
+  - int: min max: max   - Generate random integer
+  - float               - Generate random float (0.0 to 1.0)
+  - bytes: length       - Generate random bytes (base64 encoded)
+  
+  Example:
+    | random num flt |
+    random := Random new.
+    
+    " Generate random integer between 1 and 100 "
+    num := random int: 1 max: 100.
+    num println.
+    
+    " Generate random float between 0.0 and 1.0 "
+    flt := random float.
+    flt println.
+    
+    " Generate 16 random bytes "
+    bytes := random bytes: 16.
+    bytes println.
+"
+
+Object subclass: #Random [
+    
+    initialize [
+        " No state needed "
+    ]
+    
+    " Generate random integer between min and max (inclusive)
+      min: Minimum value (inclusive)
+      max: Maximum value (inclusive)
+      Returns random integer "
+    int: min max: max [
+        ^self randomInt: min max: max
+    ]
+    
+    " Generate random float between 0.0 and 1.0
+      Returns random float "
+    float [
+        ^self randomFloat
+    ]
+    
+    " Generate random bytes
+      length: Number of bytes to generate
+      Returns base64-encoded string of random bytes "
+    bytes: length [
+        ^self randomBytes: length
+    ]
+]

@@ -1080,6 +1080,359 @@ func (vm *VM) send(receiver interface{}, selector string, args []interface{}) (i
 		// Print the receiver without a newline
 		fmt.Print(receiver)
 		return receiver, nil
+
+	// HTTP primitives
+	case "httpGet:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("httpGet: expects 1 argument")
+		}
+		url, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("httpGet: URL must be a string")
+		}
+		return vm.httpGet(url)
+
+	case "httpPost:body:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("httpPost:body: expects 2 arguments")
+		}
+		url, ok1 := args[0].(string)
+		body, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("httpPost:body: arguments must be strings")
+		}
+		return vm.httpPost(url, body)
+
+	// Crypto primitives
+	case "aesEncrypt:key:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("aesEncrypt:key: expects 2 arguments")
+		}
+		data, ok1 := args[0].(string)
+		key, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("aesEncrypt:key: arguments must be strings")
+		}
+		return vm.aesEncrypt(data, key)
+
+	case "aesDecrypt:key:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("aesDecrypt:key: expects 2 arguments")
+		}
+		data, ok1 := args[0].(string)
+		key, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("aesDecrypt:key: arguments must be strings")
+		}
+		return vm.aesDecrypt(data, key)
+
+	case "aesGenerateKey":
+		return vm.aesGenerateKey()
+
+	case "sha256:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("sha256: expects 1 argument")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("sha256: argument must be a string")
+		}
+		return vm.sha256Hash(data), nil
+
+	case "sha512:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("sha512: expects 1 argument")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("sha512: argument must be a string")
+		}
+		return vm.sha512Hash(data), nil
+
+	case "md5:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("md5: expects 1 argument")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("md5: argument must be a string")
+		}
+		return vm.md5Hash(data), nil
+
+	case "base64Encode:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("base64Encode: expects 1 argument")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("base64Encode: argument must be a string")
+		}
+		return vm.base64Encode(data), nil
+
+	case "base64Decode:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("base64Decode: expects 1 argument")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("base64Decode: argument must be a string")
+		}
+		return vm.base64Decode(data)
+
+	// Compression primitives
+	case "zipCompress:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("zipCompress: expects 1 argument")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("zipCompress: argument must be a string")
+		}
+		return vm.zipCompress(data)
+
+	case "zipDecompress:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("zipDecompress: expects 1 argument")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("zipDecompress: argument must be a string")
+		}
+		return vm.zipDecompress(data)
+
+	case "gzipCompress:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("gzipCompress: expects 1 argument")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("gzipCompress: argument must be a string")
+		}
+		return vm.gzipCompress(data)
+
+	case "gzipDecompress:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("gzipDecompress: expects 1 argument")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("gzipDecompress: argument must be a string")
+		}
+		return vm.gzipDecompress(data)
+
+	// File I/O primitives
+	case "fileRead:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("fileRead: expects 1 argument")
+		}
+		path, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("fileRead: path must be a string")
+		}
+		return vm.fileRead(path)
+
+	case "fileWrite:content:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("fileWrite:content: expects 2 arguments")
+		}
+		path, ok1 := args[0].(string)
+		content, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("fileWrite:content: arguments must be strings")
+		}
+		err := vm.fileWrite(path, content)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+
+	case "fileExists:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("fileExists: expects 1 argument")
+		}
+		path, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("fileExists: path must be a string")
+		}
+		return vm.fileExists(path), nil
+
+	case "fileDelete:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("fileDelete: expects 1 argument")
+		}
+		path, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("fileDelete: path must be a string")
+		}
+		err := vm.fileDelete(path)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+
+	// JSON primitives
+	case "jsonParse:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("jsonParse: expects 1 argument")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("jsonParse: argument must be a string")
+		}
+		return vm.jsonParse(data)
+
+	case "jsonGenerate:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("jsonGenerate: expects 1 argument")
+		}
+		return vm.jsonGenerate(args[0])
+
+	// Regex primitives
+	case "regexMatch:text:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("regexMatch:text: expects 2 arguments")
+		}
+		pattern, ok1 := args[0].(string)
+		text, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("regexMatch:text: arguments must be strings")
+		}
+		return vm.regexMatch(pattern, text)
+
+	case "regexFindAll:text:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("regexFindAll:text: expects 2 arguments")
+		}
+		pattern, ok1 := args[0].(string)
+		text, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("regexFindAll:text: arguments must be strings")
+		}
+		return vm.regexFindAll(pattern, text)
+
+	case "regexReplace:text:with:":
+		if len(args) != 3 {
+			return nil, fmt.Errorf("regexReplace:text:with: expects 3 arguments")
+		}
+		pattern, ok1 := args[0].(string)
+		text, ok2 := args[1].(string)
+		replacement, ok3 := args[2].(string)
+		if !ok1 || !ok2 || !ok3 {
+			return nil, fmt.Errorf("regexReplace:text:with: arguments must be strings")
+		}
+		return vm.regexReplace(pattern, text, replacement)
+
+	// Random number generation primitives
+	case "randomInt:max:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("randomInt:max: expects 2 arguments")
+		}
+		min, ok1 := args[0].(int64)
+		max, ok2 := args[1].(int64)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("randomInt:max: arguments must be integers")
+		}
+		return vm.randomInt(min, max)
+
+	case "randomFloat":
+		return vm.randomFloat()
+
+	case "randomBytes:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("randomBytes: expects 1 argument")
+		}
+		length, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("randomBytes: argument must be an integer")
+		}
+		return vm.randomBytes(length)
+
+	// Date/Time primitives
+	case "dateNow":
+		return vm.dateNow(), nil
+
+	case "dateFormat:format:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("dateFormat:format: expects 2 arguments")
+		}
+		timestamp, ok1 := args[0].(int64)
+		format, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("dateFormat:format: arguments must be integer and string")
+		}
+		return vm.dateFormat(timestamp, format), nil
+
+	case "dateParse:format:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("dateParse:format: expects 2 arguments")
+		}
+		dateStr, ok1 := args[0].(string)
+		format, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("dateParse:format: arguments must be strings")
+		}
+		return vm.dateParse(dateStr, format)
+
+	case "timeYear:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("timeYear: expects 1 argument")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeYear: argument must be an integer")
+		}
+		return vm.timeYear(timestamp), nil
+
+	case "timeMonth:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("timeMonth: expects 1 argument")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeMonth: argument must be an integer")
+		}
+		return vm.timeMonth(timestamp), nil
+
+	case "timeDay:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("timeDay: expects 1 argument")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeDay: argument must be an integer")
+		}
+		return vm.timeDay(timestamp), nil
+
+	case "timeHour:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("timeHour: expects 1 argument")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeHour: argument must be an integer")
+		}
+		return vm.timeHour(timestamp), nil
+
+	case "timeMinute:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("timeMinute: expects 1 argument")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeMinute: argument must be an integer")
+		}
+		return vm.timeMinute(timestamp), nil
+
+	case "timeSecond:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("timeSecond: expects 1 argument")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeSecond: argument must be an integer")
+		}
+		return vm.timeSecond(timestamp), nil
+
 	default:
 		return nil, fmt.Errorf("unknown message: %s", selector)
 	}

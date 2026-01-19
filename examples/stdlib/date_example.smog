@@ -1,0 +1,69 @@
+" Example demonstrating Date and Time functionality "
+
+'=== Date and Time Example ===' println.
+'' println.
+
+" Create a Date instance "
+| date now formatted year month day |
+date := Date new.
+
+" Get current timestamp "
+now := date now.
+'Current timestamp: ' print.
+now println.
+'' println.
+
+" Format the date in different ways "
+'=== Date Formatting ===' println.
+formatted := date format: now format: 'iso8601'.
+'ISO8601: ' print.
+formatted println.
+
+formatted := date format: now format: 'date'.
+'Date only: ' print.
+formatted println.
+
+formatted := date format: now format: 'time'.
+'Time only: ' print.
+formatted println.
+
+formatted := date format: now format: 'datetime'.
+'Date and time: ' print.
+formatted println.
+'' println.
+
+" Extract date components "
+'=== Date Components ===' println.
+year := date year: now.
+'Year: ' print.
+year println.
+
+month := date month: now.
+'Month: ' print.
+month println.
+
+day := date day: now.
+'Day: ' print.
+day println.
+
+'Hour: ' print.
+(date hour: now) println.
+
+'Minute: ' print.
+(date minute: now) println.
+
+'Second: ' print.
+(date second: now) println.
+'' println.
+
+" Parse a date string "
+'=== Date Parsing ===' println.
+| parsed |
+parsed := date parse: '2024-01-15T10:30:00Z' format: 'iso8601'.
+'Parsed timestamp: ' print.
+parsed println.
+
+'Formatted back: ' print.
+(date format: parsed format: 'iso8601') println.
+
+'Done!' println.

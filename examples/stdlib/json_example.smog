@@ -1,0 +1,28 @@
+" Example demonstrating JSON functionality "
+
+'=== JSON Example ===' println.
+'' println.
+
+| json jsonString parsed generated |
+json := JSON new.
+
+" Parse JSON string "
+'=== Parsing JSON ===' println.
+jsonString := '{"name":"Alice","age":30,"active":true,"items":[1,2,3]}'.
+'Input JSON: ' print.
+jsonString println.
+'' println.
+
+parsed := json parse: jsonString.
+'Parsed successfully!' println.
+parsed println.
+'' println.
+
+" Generate JSON from object "
+'=== Generating JSON ===' println.
+generated := json generate: parsed.
+'Generated JSON: ' print.
+generated println.
+'' println.
+
+'Done!' println.

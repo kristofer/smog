@@ -1,0 +1,57 @@
+" Regex - Regular expression support
+  
+  Provides regular expression matching, searching, and replacement.
+  Uses VM primitives for actual regex operations.
+  
+  Key operations:
+  - match: pattern text: text       - Check if pattern matches text
+  - findAll: pattern text: text     - Find all matches
+  - replace: pattern text: with:    - Replace matches with replacement
+  
+  Example:
+    | regex matches replaced |
+    regex := Regex new.
+    
+    " Check if pattern matches "
+    (regex match: '\\d+' text: 'abc123def') println.
+    
+    " Find all matches "
+    matches := regex findAll: '\\d+' text: 'The numbers are 123, 456, and 789'.
+    matches println.
+    
+    " Replace all matches "
+    replaced := regex replace: '\\d+' text: 'Price: 100 dollars' with: 'XXX'.
+    replaced println.
+"
+
+Object subclass: #Regex [
+    
+    initialize [
+        " No state needed "
+    ]
+    
+    " Check if pattern matches text
+      pattern: Regular expression pattern
+      text: Text to match against
+      Returns boolean "
+    match: pattern text: text [
+        ^self regexMatch: pattern text: text
+    ]
+    
+    " Find all matches of pattern in text
+      pattern: Regular expression pattern
+      text: Text to search
+      Returns array of matches "
+    findAll: pattern text: text [
+        ^self regexFindAll: pattern text: text
+    ]
+    
+    " Replace all matches of pattern in text
+      pattern: Regular expression pattern
+      text: Text to search
+      replacement: Replacement string
+      Returns modified text "
+    replace: pattern text: text with: replacement [
+        ^self regexReplace: pattern text: text with: replacement
+    ]
+]

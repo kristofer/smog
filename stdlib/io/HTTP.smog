@@ -27,12 +27,9 @@ Object subclass: #HTTP [
 
     " Perform HTTP GET request
       Returns the response body as a string
-      Primitive implementation in VM "
+      Uses VM primitive httpGet: "
     get: url [
-        " This would call VM primitive httpGet: "
-        lastStatus := 200.
-        lastBody := 'HTTP response body'.
-        ^lastBody
+        ^self httpGet: url
     ]
 
     " Perform HTTP POST request
@@ -40,10 +37,7 @@ Object subclass: #HTTP [
       body: The request body content
       Returns the response body as a string "
     post: url body: body [
-        " This would call VM primitive httpPost:body: "
-        lastStatus := 200.
-        lastBody := 'POST response'.
-        ^lastBody
+        ^self httpPost: url body: body
     ]
 
     " Get the HTTP status code from last request "

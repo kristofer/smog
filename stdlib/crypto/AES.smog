@@ -35,9 +35,7 @@ Object subclass: #AES [
       key: The encryption key (must be 32 bytes for AES-256)
       Returns encrypted data as base64-encoded string "
     encrypt: data key: key [
-        " This would call VM primitive aesEncrypt:key: "
-        " For now, returns placeholder "
-        ^'<encrypted-data>'
+        ^self aesEncrypt: data key: key
     ]
 
     " Decrypt data using AES-256
@@ -45,15 +43,13 @@ Object subclass: #AES [
       key: The decryption key (must match encryption key)
       Returns decrypted plaintext string "
     decrypt: data key: key [
-        " This would call VM primitive aesDecrypt:key: "
-        ^'<decrypted-data>'
+        ^self aesDecrypt: data key: key
     ]
 
     " Generate a random 32-byte key for AES-256
       Returns base64-encoded key string "
     generateKey [
-        " This would call VM primitive aesGenerateKey "
-        ^'<random-32-byte-key>'
+        ^self aesGenerateKey
     ]
 
     " Validate key length (must be 16, 24, or 32 bytes) "
@@ -73,22 +69,19 @@ Object subclass: #Hash [
     " Compute SHA-256 hash of data
       Returns hex-encoded hash string "
     sha256: data [
-        " This would call VM primitive sha256: "
-        ^'<sha256-hash>'
+        ^self sha256: data
     ]
 
     " Compute SHA-512 hash of data
       Returns hex-encoded hash string "
     sha512: data [
-        " This would call VM primitive sha512: "
-        ^'<sha512-hash>'
+        ^self sha512: data
     ]
 
     " Compute MD5 hash of data (deprecated, use SHA-256 instead)
       Returns hex-encoded hash string "
     md5: data [
-        " This would call VM primitive md5: "
-        ^'<md5-hash>'
+        ^self md5: data
     ]
 ]
 
@@ -102,13 +95,11 @@ Object subclass: #Base64 [
 
     " Encode data to base64 string "
     encode: data [
-        " This would call VM primitive base64Encode: "
-        ^'<base64-encoded>'
+        ^self base64Encode: data
     ]
 
     " Decode base64 string to original data "
     decode: encodedData [
-        " This would call VM primitive base64Decode: "
-        ^'<decoded-data>'
+        ^self base64Decode: encodedData
     ]
 ]

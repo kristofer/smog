@@ -29,16 +29,14 @@ Object subclass: #ZIP [
       data: The string to compress
       Returns compressed data as binary string "
     compress: data [
-        " This would call VM primitive zipCompress: "
-        ^'<compressed-data>'
+        ^self zipCompress: data
     ]
 
     " Decompress ZIP-compressed data
       data: The compressed data
       Returns decompressed string "
     decompress: data [
-        " This would call VM primitive zipDecompress: "
-        ^'<decompressed-data>'
+        ^self zipDecompress: data
     ]
 ]
 
@@ -113,15 +111,13 @@ Object subclass: #GZIP [
       data: The string to compress
       Returns compressed data as binary string "
     compress: data [
-        " This would call VM primitive gzipCompress: "
-        ^'<gzip-compressed>'
+        ^self gzipCompress: data
     ]
 
     " Decompress GZIP data
       data: The GZIP-compressed data
       Returns decompressed string "
     decompress: data [
-        " This would call VM primitive gzipDecompress: "
-        ^'<gzip-decompressed>'
+        ^self gzipDecompress: data
     ]
 ]
