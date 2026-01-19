@@ -429,7 +429,7 @@ func (vm *VM) randomInt(min int64, max int64) (int64, error) {
 	return n.Int64() + min, nil
 }
 
-// randomFloat generates a random float between 0.0 and 1.0 using crypto/rand
+// randomFloat generates a cryptographically secure random float in [0, 1) using crypto/rand
 func (vm *VM) randomFloat() (float64, error) {
 	// Generate 8 random bytes
 	bytes := make([]byte, 8)
