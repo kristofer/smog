@@ -1,0 +1,39 @@
+" JSON - JSON parsing and generation
+  
+  Provides JSON parsing and generation functionality.
+  Uses VM primitives for actual JSON operations.
+  
+  Key operations:
+  - parse: jsonString   - Parse JSON string to object
+  - generate: object    - Generate JSON string from object
+  
+  Example:
+    | json parsed generated |
+    json := JSON new.
+    parsed := json parse: '{\"name\":\"John\",\"age\":30}'.
+    parsed println.
+    
+    generated := json generate: parsed.
+    generated println.
+"
+
+Object subclass: #JSON [
+    
+    initialize [
+        " No state needed "
+    ]
+    
+    " Parse JSON string to object
+      jsonString: JSON string to parse
+      Returns parsed object (may be map, array, string, number, boolean, or nil) "
+    parse: jsonString [
+        ^self jsonParse: jsonString
+    ]
+    
+    " Generate JSON string from object
+      object: Object to convert to JSON (map, array, string, number, boolean, or nil)
+      Returns JSON string "
+    generate: object [
+        ^self jsonGenerate: object
+    ]
+]

@@ -294,10 +294,131 @@ decrypted := aes decrypt: encrypted key: key.
 
 ---
 
+## Date and Time
+
+### Date - Date and time handling
+
+**File:** `stdlib/core/Date.smog`
+
+**Methods:**
+- `now` - Get current Unix timestamp
+- `format: timestamp format: format` - Format timestamp to string
+- `parse: dateStr format: format` - Parse date string to timestamp
+- `year: timestamp` - Extract year from timestamp
+- `month: timestamp` - Extract month from timestamp (1-12)
+- `day: timestamp` - Extract day from timestamp (1-31)
+- `hour: timestamp` - Extract hour from timestamp (0-23)
+- `minute: timestamp` - Extract minute from timestamp (0-59)
+- `second: timestamp` - Extract second from timestamp (0-59)
+
+**Example:**
+```smog
+| date now formatted |
+date := Date new.
+now := date now.
+formatted := date format: now format: 'iso8601'.
+formatted println.
+```
+
+---
+
+### Time - Time utilities
+
+**File:** `stdlib/core/Date.smog`
+
+**Methods:**
+- `now` - Get current timestamp
+
+---
+
+## File I/O
+
+### File - File input/output
+
+**File:** `stdlib/io/File.smog`
+
+**Methods:**
+- `read: path` - Read entire file contents
+- `write: path content: content` - Write content to file
+- `exists: path` - Check if file exists
+- `delete: path` - Delete a file
+
+**Example:**
+```smog
+| file content |
+file := File new.
+file write: '/tmp/test.txt' content: 'Hello, World!'.
+content := file read: '/tmp/test.txt'.
+content println.
+```
+
+---
+
+## JSON
+
+### JSON - JSON parsing and generation
+
+**File:** `stdlib/io/JSON.smog`
+
+**Methods:**
+- `parse: jsonString` - Parse JSON string to object
+- `generate: object` - Generate JSON string from object
+
+**Example:**
+```smog
+| json parsed |
+json := JSON new.
+parsed := json parse: '{"name":"John","age":30}'.
+parsed println.
+```
+
+---
+
+## Regular Expressions
+
+### Regex - Regular expression support
+
+**File:** `stdlib/core/Regex.smog`
+
+**Methods:**
+- `match: pattern text: text` - Check if pattern matches text
+- `findAll: pattern text: text` - Find all matches (returns array)
+- `replace: pattern text: text with: replacement` - Replace all matches
+
+**Example:**
+```smog
+| regex matches |
+regex := Regex new.
+matches := regex findAll: '\d+' text: 'The numbers are 123, 456, and 789'.
+matches println.
+```
+
+---
+
+## Random Number Generation
+
+### Random - Cryptographically secure random numbers
+
+**File:** `stdlib/core/Random.smog`
+
+**Methods:**
+- `int: min max: max` - Generate random integer (inclusive)
+- `float` - Generate random float (0.0 to 1.0)
+- `bytes: length` - Generate random bytes (base64 encoded)
+
+**Example:**
+```smog
+| random num |
+random := Random new.
+num := random int: 1 max: 100.
+num println.
+```
+
+---
+
 ## Status Legend
 
-- ✅ **Fully Implemented** - Set, OrderedCollection, Bag, Math, Stream
-- ⚠️ **Interface Ready, Needs VM Primitives** - HTTP, AES, Hash, Base64, ZIP, GZIP, StringUtilities
+- ✅ **Fully Implemented** - Set, OrderedCollection, Bag, Math, Stream, HTTP, AES, Hash, Base64, ZIP, GZIP, Date, Time, File, JSON, Regex, Random
 
 ## Loading Standard Library Classes
 

@@ -1,0 +1,75 @@
+" Example demonstrating Crypto functionality "
+
+'=== Cryptography Example ===' println.
+'' println.
+
+| hash base64 aes key plaintext encrypted decrypted |
+hash := Hash new.
+base64 := Base64 new.
+aes := AES new.
+
+" Hash functions "
+'=== Hash Functions ===' println.
+| data |
+data := 'Hello, World!'.
+'Data: ' print.
+data println.
+'' println.
+
+'SHA-256: ' print.
+(hash sha256: data) println.
+
+'SHA-512: ' print.
+(hash sha512: data) println.
+
+'MD5: ' print.
+(hash md5: data) println.
+'' println.
+
+" Base64 encoding "
+'=== Base64 Encoding ===' println.
+| encoded decoded |
+data := 'Secret message'.
+'Original: ' print.
+data println.
+
+encoded := base64 encode: data.
+'Encoded: ' print.
+encoded println.
+
+decoded := base64 decode: encoded.
+'Decoded: ' print.
+decoded println.
+'' println.
+
+" AES encryption "
+'=== AES Encryption ===' println.
+aes initialize.
+
+key := '12345678901234567890123456789012'.  " 32 bytes for AES-256 "
+plaintext := 'This is a secret message that needs encryption!'.
+
+'Original: ' print.
+plaintext println.
+'Key: ' print.
+key println.
+'' println.
+
+encrypted := aes encrypt: plaintext key: key.
+'Encrypted: ' print.
+encrypted println.
+'' println.
+
+decrypted := aes decrypt: encrypted key: key.
+'Decrypted: ' print.
+decrypted println.
+'' println.
+
+" Generate a random key "
+'=== Generate Random Key ===' println.
+| generatedKey |
+generatedKey := aes generateKey.
+'Generated AES-256 key: ' print.
+generatedKey println.
+
+'Done!' println.
