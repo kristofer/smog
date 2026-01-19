@@ -1,9 +1,9 @@
 " Example demonstrating JSON functionality "
+| json jsonString parsed generated |
 
 '=== JSON Example ===' println.
 '' println.
 
-| json jsonString parsed generated |
 json := JSON new.
 
 " Parse JSON string "

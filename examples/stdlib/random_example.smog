@@ -1,9 +1,9 @@
 " Example demonstrating Random number generation "
+| random num flt bytes |
 
 '=== Random Number Generation Example ===' println.
 '' println.
 
-| random num flt bytes |
 random := Random new.
 
 " Generate random integers "

@@ -26,7 +26,7 @@ Object subclass: #BinarySearch [
 ]
 
 " Test binary search "
-| sortedArray target result |
+| sortedArray target result size i elem |
 
 'Binary Search Algorithm' println.
 '=======================' println.
@@ -35,7 +35,6 @@ Object subclass: #BinarySearch [
 sortedArray := #(1 3 5 7 9 11 13 15 17 19 21 23 25).
 
 'Searching in array: ' print.
-| size i elem |
 size := sortedArray size.
 '[' print.
 i := 1.

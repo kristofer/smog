@@ -76,6 +76,29 @@ city println.
 - Variables declared between pipes: `| var1 var2 |`
 - Assignment uses `:=`
 - Statements end with period `.`
+- **All variables must be declared in a single block at the beginning of each scope**
+
+**Important Scoping Limitation:**
+
+Due to the current implementation, you must declare all variables you will use in a single declaration block at the top of each scope. You cannot add new variable declarations after creating blocks or executing statements.
+
+```smog
+" ✅ CORRECT: All variables declared together "
+| x y result temp |
+x := 10.
+y := 20.
+[ temp := x * 2 ] value.
+result := temp + y.
+
+" ❌ INCORRECT: Multiple declaration blocks "
+| x y |
+x := 10.
+[ x + 5 ] value.
+| result |  " ERROR: Cannot declare here
+result := x.
+```
+
+**Best Practice:** Plan ahead and declare all variables you will need at the beginning of your code.
 
 ## Basic Concepts
 

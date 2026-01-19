@@ -1,9 +1,9 @@
 " Example demonstrating Crypto functionality "
+| hash base64 aes key plaintext encrypted decrypted |
 
 '=== Cryptography Example ===' println.
 '' println.
 
-| hash base64 aes key plaintext encrypted decrypted |
 hash := Hash new.
 base64 := Base64 new.
 aes := AES new.

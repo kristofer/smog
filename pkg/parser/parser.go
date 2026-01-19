@@ -75,6 +75,9 @@ import (
 //   - peekTok: The next token (lookahead)
 //   - peekTok2: Second lookahead token (for distinguishing unary vs keyword messages)
 //   - errors: Accumulated syntax errors
+//   - source: The original source code (for error reporting)
+//   - hasVarDecl: True if a variable declaration has been seen
+//   - hasNonVarStmt: True if a non-variable-declaration statement has been seen
 //
 // The parser is stateful and single-use: create a new parser for each
 // source file or code snippet.
@@ -82,11 +85,14 @@ import (
 // Note on lookahead: The parser uses two tokens of lookahead to distinguish
 // between unary messages (identifier) and keyword messages (identifier followed by colon).
 type Parser struct {
-	l        *lexer.Lexer    // Token source
-	curTok   lexer.Token     // Current token
-	peekTok  lexer.Token     // Next token (1st lookahead)
-	peekTok2 lexer.Token     // Token after next (2nd lookahead)
-	errors   []string        // Accumulated error messages
+	l             *lexer.Lexer    // Token source
+	curTok        lexer.Token     // Current token
+	peekTok       lexer.Token     // Next token (1st lookahead)
+	peekTok2      lexer.Token     // Token after next (2nd lookahead)
+	errors        []string        // Accumulated error messages
+	source        string          // Original source code (for error context)
+	hasVarDecl    bool            // True if we've seen a variable declaration
+	hasNonVarStmt bool            // True if we've seen a non-variable statement
 }
 
 // New creates a new parser for the given source code.
@@ -108,6 +114,7 @@ func New(input string) *Parser {
 	p := &Parser{
 		l:      lexer.New(input),
 		errors: []string{},
+		source: input,
 	}
 
 	// Read three tokens to populate curTok, peekTok, and peekTok2.
@@ -224,19 +231,54 @@ func (p *Parser) Parse() (*ast.Program, error) {
 func (p *Parser) parseStatement() ast.Statement {
 	// Check for variable declarations (start with |)
 	if p.curTok.Type == lexer.TokenPipe {
+		// Check if we're trying to declare variables after non-declaration statements
+		if p.hasNonVarStmt {
+			p.addErrorWithSuggestion(
+				"variable declarations must appear before all other statements",
+				"Move all variable declarations to the beginning of the scope. Example:\n"+
+					"  | x y z |  \" Declare all variables first\n"+
+					"  x := 1.\n"+
+					"  \" ... rest of code")
+			// Still parse the declaration to consume tokens and avoid cascading errors
+			p.parseVariableDeclaration()
+			return nil
+		}
+		
+		// Check if we already had a variable declaration
+		if p.hasVarDecl {
+			p.addErrorWithSuggestion(
+				"multiple variable declaration blocks are not allowed",
+				"Combine all variable declarations into a single block. Example:\n"+
+					"  | x y z |  \" All variables in one declaration\n"+
+					"  \" Instead of: | x | ... | y z |")
+			// Still parse the declaration to consume tokens and avoid cascading errors
+			p.parseVariableDeclaration()
+			return nil
+		}
+		
+		p.hasVarDecl = true
 		return p.parseVariableDeclaration()
 	}
 
 	// Check for return statements (start with ^)
 	if p.curTok.Type == lexer.TokenCaret {
+		// Mark that we've seen a non-variable statement
+		p.hasNonVarStmt = true
 		return p.parseReturnStatement()
 	}
 
 	// Check for class definitions (Identifier subclass: #ClassName [...])
 	// We need to check if it's specifically: identifier "subclass" ":"
+	// Note: Class definitions are parsed as declarations, not executable statements.
+	// They define types and don't execute sequentially like assignments or message sends.
+	// Therefore, they don't count as "non-var statements" for the scoping rule that
+	// requires variable declarations to come before executable statements.
 	if p.isClassDefinition() {
 		return p.parseClass()
 	}
+
+	// Mark that we've seen a non-variable statement (expression statements)
+	p.hasNonVarStmt = true
 
 	// Otherwise, treat it as an expression statement
 	expr := p.parseExpression()
@@ -288,7 +330,9 @@ func (p *Parser) parseVariableDeclaration() ast.Statement {
 
 	// Expect closing pipe
 	if p.curTok.Type != lexer.TokenPipe {
-		p.addError("expected closing | in variable declaration")
+		p.addErrorWithSuggestion(
+			"expected closing | in variable declaration",
+			"Variable declarations use the format: | varName1 varName2 |")
 		return nil
 	}
 
@@ -456,7 +500,9 @@ func (p *Parser) parseKeywordMessage() ast.Expression {
 		p.nextToken() // move to first token of argument
 		arg := p.parseBinaryMessage()
 		if arg == nil {
-			p.addError("expected argument after keyword")
+			p.addErrorWithSuggestion(
+				"expected argument after keyword",
+				"Keyword messages need arguments after each keyword. Example: at: 5 put: 'value'")
 			return nil
 		}
 		args = append(args, arg)
@@ -512,7 +558,9 @@ func (p *Parser) parseBinaryMessage() ast.Expression {
 		p.nextToken() // move to argument
 		arg := p.parseUnaryMessage()
 		if arg == nil {
-			p.addError("expected argument after binary operator")
+			p.addErrorWithSuggestion(
+				"expected argument after binary operator",
+				"Binary operators like +, -, *, / need an argument. Example: x + 5")
 			return nil
 		}
 		
@@ -923,18 +971,119 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 	return &ast.StringLiteral{Value: p.curTok.Literal}
 }
 
-// addError adds an error message to the error list.
+// addError adds an error message to the error list with source location context.
 //
 // The parser accumulates errors rather than stopping at the first one.
 // This allows reporting multiple syntax errors in a single pass.
 //
+// The error message includes:
+//   - Line and column number where the error occurred
+//   - The source line containing the error
+//   - A pointer (^) showing the exact position
+//   - A description of what went wrong
+//
 // Parameters:
 //   - msg: A human-readable error message
 //
-// Example:
-//   p.addError("expected closing | in variable declaration")
+// Example output:
+//   Line 3, Column 8:
+//     y := x +
+//            ^
+//   Error: expected argument after binary operator
 func (p *Parser) addError(msg string) {
-	p.errors = append(p.errors, msg)
+	line := p.curTok.Line
+	column := p.curTok.Column
+	
+	// Get the source line for context
+	sourceLine := p.getSourceLine(line)
+	
+	// Special handling for EOF errors - show the last line of source
+	if p.curTok.Type == lexer.TokenEOF && sourceLine == "" {
+		lines := splitLines(p.source)
+		if len(lines) > 0 {
+			line = len(lines)
+			sourceLine = lines[line-1]
+			// Point to end of line
+			column = len(sourceLine) + 1
+		}
+	}
+	
+	// Build formatted error message with context
+	var errorMsg string
+	if sourceLine != "" {
+		// Create a pointer to show exact error location
+		pointer := ""
+		if column > 0 {
+			pointer = fmt.Sprintf("%*s^", column-1, "")
+		}
+		
+		errorMsg = fmt.Sprintf("Line %d, Column %d:\n  %s\n  %s\nError: %s",
+			line, column, sourceLine, pointer, msg)
+	} else {
+		// Fallback if we can't get the source line
+		errorMsg = fmt.Sprintf("Line %d, Column %d: %s", line, column, msg)
+	}
+	
+	p.errors = append(p.errors, errorMsg)
+}
+
+// getSourceLine extracts a specific line from the source code.
+//
+// Parameters:
+//   - lineNum: The line number to extract (1-based)
+//
+// Returns:
+//   - The source line as a string, or empty string if line number is invalid
+func (p *Parser) getSourceLine(lineNum int) string {
+	if lineNum < 1 {
+		return ""
+	}
+	
+	lines := splitLines(p.source)
+	if lineNum > len(lines) {
+		return ""
+	}
+	
+	return lines[lineNum-1]
+}
+
+// splitLines splits source code into lines, preserving the original line breaks.
+func splitLines(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	
+	var lines []string
+	line := ""
+	
+	for _, ch := range s {
+		if ch == '\n' {
+			lines = append(lines, line)
+			line = ""
+		} else if ch != '\r' {
+			line += string(ch)
+		}
+	}
+	
+	// Add the last line if it's non-empty (since we only add complete lines in the loop above)
+	if line != "" {
+		lines = append(lines, line)
+	}
+	
+	return lines
+}
+
+// addErrorWithSuggestion adds an error message with a helpful suggestion.
+//
+// Parameters:
+//   - msg: The error message
+//   - suggestion: A helpful suggestion for fixing the error
+func (p *Parser) addErrorWithSuggestion(msg, suggestion string) {
+	fullMsg := msg
+	if suggestion != "" {
+		fullMsg = fmt.Sprintf("%s\nSuggestion: %s", msg, suggestion)
+	}
+	p.addError(fullMsg)
 }
 
 // parseBlockLiteral parses a block literal.
@@ -988,6 +1137,12 @@ func (p *Parser) parseBlockLiteral() ast.Expression {
 	}
 
 	// Parse block body (statements until ])
+	// Save parser state for this new scope
+	savedHasVarDecl := p.hasVarDecl
+	savedHasNonVarStmt := p.hasNonVarStmt
+	p.hasVarDecl = false
+	p.hasNonVarStmt = false
+	
 	var body []ast.Statement
 	for p.curTok.Type != lexer.TokenRBracket && p.curTok.Type != lexer.TokenEOF {
 		stmt := p.parseStatement()
@@ -1002,6 +1157,10 @@ func (p *Parser) parseBlockLiteral() ast.Expression {
 			p.nextToken()
 		}
 	}
+	
+	// Restore parser state
+	p.hasVarDecl = savedHasVarDecl
+	p.hasNonVarStmt = savedHasNonVarStmt
 
 	// Expect closing ]
 	if p.curTok.Type != lexer.TokenRBracket {
@@ -1396,6 +1555,12 @@ func (p *Parser) parseMethod() *ast.Method {
 	}
 	p.nextToken() // skip [
 	
+	// Save parser state for this new scope
+	savedHasVarDecl := p.hasVarDecl
+	savedHasNonVarStmt := p.hasNonVarStmt
+	p.hasVarDecl = false
+	p.hasNonVarStmt = false
+	
 	// Parse method body (statements until ])
 	var body []ast.Statement
 	for p.curTok.Type != lexer.TokenRBracket && p.curTok.Type != lexer.TokenEOF {
@@ -1405,6 +1570,10 @@ func (p *Parser) parseMethod() *ast.Method {
 		}
 		p.nextToken()
 	}
+	
+	// Restore parser state
+	p.hasVarDecl = savedHasVarDecl
+	p.hasNonVarStmt = savedHasNonVarStmt
 	
 	// Expect closing bracket
 	if p.curTok.Type != lexer.TokenRBracket {

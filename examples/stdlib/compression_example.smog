@@ -1,9 +1,9 @@
 " Example demonstrating Compression functionality "
+| zip gzip data compressed decompressed |
 
 '=== Compression Example ===' println.
 '' println.
 
-| zip gzip data compressed decompressed |
 zip := ZIP new.
 gzip := GZIP new.
 

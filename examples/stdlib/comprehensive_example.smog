@@ -272,10 +272,10 @@ Object subclass: #NumberAnalyzer [
 ]
 
 " Main program "
+| analyzer evens odds positives squares uniqueSet |
+
 '=== Number Analysis Demo ===' println.
 '' println.
-
-| analyzer evens odds positives squares uniqueSet |
 
 analyzer := NumberAnalyzer new.
 analyzer initialize.

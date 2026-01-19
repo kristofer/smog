@@ -124,8 +124,10 @@ func New() *Compiler {
 	return &Compiler{
 		instructions: make([]bytecode.Instruction, 0),
 		constants:    make([]interface{}, 0),
-		symbols:      make(map[string]int),
+		localVars:    make([]string, 0),
+		capturedVars: make([]bytecode.CapturedVar, 0),
 		localCount:   0,
+		parent:       nil,
 		fields:       make(map[string]int),
 		classVars:    make(map[string]int),
 		classes:      make(map[string]*bytecode.ClassDefinition),
@@ -195,15 +197,15 @@ func (c *Compiler) compileStatementWithContext(stmt ast.Statement, isLast bool) 
 	case *ast.VariableDeclaration:
 		// Variable declarations don't generate bytecode directly.
 		// They just reserve space in the local variable array and
-		// update the symbol table so future references can be resolved.
+		// add variables to the local scope.
 		//
 		// Example: | x y z |
-		//   -> symbols["x"] = 0, symbols["y"] = 1, symbols["z"] = 2
+		//   -> localVars = ["x", "y", "z"]
 		//   -> localCount = 3
 		//
 		// The variables are initialized to nil at runtime.
 		for _, name := range s.Names {
-			c.symbols[name] = c.localCount
+			c.localVars = append(c.localVars, name)
 			c.localCount++
 		}
 		return nil
@@ -390,7 +392,7 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 		if e.Name == "self" {
 			// Special case: self keyword
 			c.emit(bytecode.OpPushSelf, 0)
-		} else if idx, ok := c.symbols[e.Name]; ok {
+		} else if idx, ok := c.findLocalVar(e.Name); ok {
 			// It's a local variable
 			c.emit(bytecode.OpLoadLocal, idx)
 		} else if idx, ok := c.fields[e.Name]; ok {
@@ -428,7 +430,7 @@ func (c *Compiler) compileExpression(expr ast.Expression) error {
 
 		// Step 2: Store to the variable
 		// Check if it's local, field, class variable, or global
-		if idx, ok := c.symbols[e.Name]; ok {
+		if idx, ok := c.findLocalVar(e.Name); ok {
 			c.emit(bytecode.OpStoreLocal, idx)
 		} else if idx, ok := c.fields[e.Name]; ok {
 			// It's an instance variable (field)
@@ -670,21 +672,22 @@ func (c *Compiler) compileBlockLiteral(block *ast.BlockLiteral) error {
 	blockCompiler.classVars = c.classVars
 	blockCompiler.classes = c.classes
 	
-	// Copy parent's symbol table to support closures
+	// Copy parent's local variables to support closures
+	// NOTE: This is a temporary flat-copy approach that provides basic closure support
+	// but doesn't implement true lexical scoping with environment chains.
+	// See docs/LEXICAL_SCOPING_REVIEW.md for the full implementation plan.
 	// Blocks can access variables from enclosing scope
-	for name, slot := range c.symbols {
-		blockCompiler.symbols[name] = slot
-	}
+	blockCompiler.localVars = append([]string{}, c.localVars...)
 	blockCompiler.localCount = c.localCount
 	
-	// Capture parent's local count AFTER setting up symbol table
+	// Capture parent's local count AFTER setting up local variables
 	// This ensures consistency with the copied state
 	parentLocalCount := blockCompiler.localCount
 	
-	// Add block parameters to the symbol table
+	// Add block parameters to the local variables
 	// Parameters become local variables in the block, allocated after parent's locals
 	for _, param := range block.Parameters {
-		blockCompiler.symbols[param] = blockCompiler.localCount
+		blockCompiler.localVars = append(blockCompiler.localVars, param)
 		blockCompiler.localCount++
 	}
 	
@@ -927,9 +930,9 @@ func (c *Compiler) compileMethod(method *ast.Method, fields []string, classVars 
 	methodCompiler := New()
 
 	// Parameters become local variables (in order)
-	for i, param := range method.Parameters {
-		methodCompiler.symbols[param] = i
-		methodCompiler.localCount = i + 1
+	for _, param := range method.Parameters {
+		methodCompiler.localVars = append(methodCompiler.localVars, param)
+		methodCompiler.localCount++
 	}
 
 	// Build a map of field names to indices for field access
@@ -977,4 +980,15 @@ func (c *Compiler) compileMethod(method *ast.Method, fields []string, classVars 
 	}
 
 	return methodDef, nil
+}
+
+// findLocalVar searches for a local variable by name and returns its index.
+// Returns the index and true if found, -1 and false otherwise.
+func (c *Compiler) findLocalVar(name string) (int, bool) {
+	for i, varName := range c.localVars {
+		if varName == name {
+			return i, true
+		}
+	}
+	return -1, false
 }

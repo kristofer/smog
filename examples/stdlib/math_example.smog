@@ -175,9 +175,9 @@ result := math factorial: 10.
 result println.
 '' println.
 
+| i fib |
 '=== Fibonacci Sequence ===' println.
 'First 15 Fibonacci numbers:' println.
-| i fib |
 i := 0.
 [i <= 14] whileTrue: [
     'fib(' print.
