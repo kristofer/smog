@@ -1,13 +1,14 @@
 " Tower of Hanoi - Classic recursive algorithm "
 
 Object subclass: #TowerOfHanoi [
-    <| moveCount |>
+    | moveCount |
 
-    <initialize [
+    initialize [
         moveCount := 0.
-    ]>
+    ]
 
-    <solve: n from: source to: destination aux: auxiliary [
+    solve: n from: source to: destination aux: auxiliary [
+        " Base case: only one disk to move "
         (n = 1) ifTrue: [
             moveCount := moveCount + 1.
             'Move ' print.
@@ -16,40 +17,43 @@ Object subclass: #TowerOfHanoi [
             source print.
             ' to ' print.
             destination println.
-            ^self
+        ] ifFalse: [
+            " Recursive case: move n disks "
+
+            " Step 1: Move n-1 disks from source to auxiliary using destination "
+            self solve: (n - 1) from: source to: auxiliary aux: destination.
+
+            " Step 2: Move the nth disk from source to destination "
+            moveCount := moveCount + 1.
+            'Move ' print.
+            moveCount print.
+            ': Disk ' print.
+            n print.
+            ' from ' print.
+            source print.
+            ' to ' print.
+            destination println.
+
+            " Step 3: Move n-1 disks from auxiliary to destination using source "
+            self solve: (n - 1) from: auxiliary to: destination aux: source.
         ].
+    ]
 
-        " Move n-1 disks from source to auxiliary using destination "
-        TowerOfHanoi solve: (n - 1) from: source to: auxiliary aux: destination.
-
-        " Move the nth disk from source to destination "
-        moveCount := moveCount + 1.
-        'Move ' print.
-        moveCount print.
-        ': Disk ' print.
-        n print.
-        ' from ' print.
-        source print.
-        ' to ' print.
-        destination println.
-
-        " Move n-1 disks from auxiliary to destination using source "
-        TowerOfHanoi solve: (n - 1) from: auxiliary to: destination aux: source.
-    ]>
-
-    <getMoveCount [
+    getMoveCount [
         ^moveCount
-    ]>
+    ]
 ]
 
 " Solve Tower of Hanoi "
-| n totalMoves |
+| n totalMoves solver |
 
 'Tower of Hanoi' println.
 '==============' println.
 '' println.
 
-TowerOfHanoi initialize.
+" Create an instance of the solver "
+solver := TowerOfHanoi new.
+solver initialize.
 
 n := 3.
 'Solving Tower of Hanoi with ' print.
@@ -57,11 +61,11 @@ n print.
 ' disks...' println.
 '' println.
 
-TowerOfHanoi solve: n from: 'A' to: 'C' aux: 'B'.
+solver solve: n from: 'A' to: 'C' aux: 'B'.
 
 '' println.
 'Total moves: ' print.
-totalMoves := TowerOfHanoi getMoveCount.
+totalMoves := solver getMoveCount.
 totalMoves println.
 
 " Formula: 2^n - 1 "
