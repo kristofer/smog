@@ -1,0 +1,587 @@
+Building smog executable...
+go build -o smog ./cmd/smog
+✓ Built: smog
+Compiling stdlib files...
+  stdlib/collections/Bag.smog -> stdlib/collections/Bag.sg
+Parse error: parser errors: [Line 23, Column 57:
+      wordCount occurrencesOf: 'hello' println.  \" Prints: 2 \"
+                                                          ^
+Error: unexpected token: COLON Line 23, Column 61:
+      wordCount occurrencesOf: 'hello' println.  \" Prints: 2 \"
+                                                              ^
+Error: unexpected token: ILLEGAL]
+  stdlib/collections/OrderedCollection.smog -> stdlib/collections/OrderedCollection.sg
+Parse error: parser errors: [Line 31, Column 35:
+      list first println.  \" Prints: 10 \"
+                                    ^
+Error: unexpected token: COLON Line 31, Column 40:
+      list first println.  \" Prints: 10 \"
+                                         ^
+Error: unexpected token: ILLEGAL Line 32, Column 35:
+      list last println.   \" Prints: 30 \"
+                                    ^
+Error: unexpected token: COLON Line 32, Column 40:
+      list last println.   \" Prints: 30 \"
+                                         ^
+Error: unexpected token: ILLEGAL]
+  stdlib/collections/Set.smog -> stdlib/collections/Set.sg
+Parse error: parser errors: [Line 23, Column 48:
+      fruits add: 'apple'.  \" Duplicate ignored \"
+                                                 ^
+Error: unexpected token: ILLEGAL Line 24, Column 36:
+      fruits size println.  \" Prints: 2 \"
+                                     ^
+Error: unexpected token: COLON Line 24, Column 40:
+      fruits size println.  \" Prints: 2 \"
+                                         ^
+Error: unexpected token: ILLEGAL]
+  stdlib/compression/ZIP.smog -> stdlib/compression/ZIP.sg
+  stdlib/core/Date.smog -> stdlib/core/Date.sg
+  stdlib/core/Math.smog -> stdlib/core/Math.sg
+Parse error: parser errors: [Line 24, Column 31:
+      result println.  \" Prints: 42 \"
+                                ^
+Error: unexpected token: COLON Line 24, Column 36:
+      result println.  \" Prints: 42 \"
+                                     ^
+Error: unexpected token: ILLEGAL]
+  stdlib/core/Random.smog -> stdlib/core/Random.sg
+Parse error: parser errors: [Line 28, Column 18:
+  Object subclass: #Random [
+                   ^
+Error: unexpected token: HASH Line 28, Column 18:
+  Object subclass: #Random [
+                   ^
+Error: expected argument after keyword
+Suggestion: Keyword messages need arguments after each keyword. Example: at: 5 put: 'value' Line 54, Column 1:
+  ]
+  ^
+Error: unexpected token: RBRACKET]
+  stdlib/core/Regex.smog -> stdlib/core/Regex.sg
+Parse error: parser errors: [Line 27, Column 18:
+  Object subclass: #Regex [
+                   ^
+Error: unexpected token: HASH Line 27, Column 18:
+  Object subclass: #Regex [
+                   ^
+Error: expected argument after keyword
+Suggestion: Keyword messages need arguments after each keyword. Example: at: 5 put: 'value' Line 57, Column 1:
+  ]
+  ^
+Error: unexpected token: RBRACKET]
+  stdlib/core/Stream.smog -> stdlib/core/Stream.sg
+  stdlib/core/StringUtilities.smog -> stdlib/core/StringUtilities.sg
+Parse error: parser errors: [Line 21, Column 31:
+      result println.  \" Prints: true \"
+                                ^
+Error: unexpected token: COLON Line 21, Column 38:
+      result println.  \" Prints: true \"
+                                       ^
+Error: unexpected token: ILLEGAL]
+  stdlib/crypto/AES.smog -> stdlib/crypto/AES.sg
+  stdlib/io/File.smog -> stdlib/io/File.sg
+  stdlib/io/HTTP.smog -> stdlib/io/HTTP.sg
+  stdlib/io/JSON.smog -> stdlib/io/JSON.sg
+Parse error: parser errors: [Line 13, Column 35:
+      parsed := json parse: '{\"name\":\"John\",\"age\":30}'.
+                                    ^
+Error: unexpected token: ILLEGAL Line 13, Column 44:
+      parsed := json parse: '{\"name\":\"John\",\"age\":30}'.
+                                             ^
+Error: unexpected token: ILLEGAL Line 13, Column 52:
+      parsed := json parse: '{\"name\":\"John\",\"age\":30}'.
+                                                     ^
+Error: unexpected token: ILLEGAL]
+
+Stdlib compilation summary:
+  Successful: 6
+  Failed: 8
+
+  Failed files (may contain parser issues):
+    stdlib/collections/Bag.smog
+    stdlib/collections/OrderedCollection.smog
+    stdlib/collections/Set.smog
+    stdlib/core/Math.smog
+    stdlib/core/Random.smog
+    stdlib/core/Regex.smog
+    stdlib/core/StringUtilities.smog
+    stdlib/io/JSON.smog
+
+  Note: Some stdlib files may use syntax features not yet fully supported.
+  This does not affect the core smog functionality.
+✓ Stdlib compilation attempted
+Running Go tests...
+go test -v ./...
+?   	github.com/kristofer/smog/cmd/smog	[no test files]
+?   	github.com/kristofer/smog/pkg/ast	[no test files]
+=== RUN   TestEncodeDecodeSimpleBytecode
+--- PASS: TestEncodeDecodeSimpleBytecode (0.00s)
+=== RUN   TestEncodeDecodeAllConstantTypes
+--- PASS: TestEncodeDecodeAllConstantTypes (0.00s)
+=== RUN   TestEncodeDecodeAllOpcodes
+--- PASS: TestEncodeDecodeAllOpcodes (0.00s)
+=== RUN   TestEncodeDecodeNestedBytecode
+--- PASS: TestEncodeDecodeNestedBytecode (0.00s)
+=== RUN   TestEncodeDecodeClassDefinition
+--- PASS: TestEncodeDecodeClassDefinition (0.00s)
+=== RUN   TestInvalidMagicNumber
+--- PASS: TestInvalidMagicNumber (0.00s)
+=== RUN   TestUnsupportedVersion
+--- PASS: TestUnsupportedVersion (0.00s)
+=== RUN   TestEmptyBytecode
+--- PASS: TestEmptyBytecode (0.00s)
+=== RUN   TestLargeOperands
+--- PASS: TestLargeOperands (0.00s)
+=== RUN   TestUnicodeStrings
+--- PASS: TestUnicodeStrings (0.00s)
+PASS
+ok  	github.com/kristofer/smog/pkg/bytecode	(cached)
+=== RUN   TestCompileIntegerLiteral
+--- PASS: TestCompileIntegerLiteral (0.00s)
+=== RUN   TestCompileStringLiteral
+--- PASS: TestCompileStringLiteral (0.00s)
+=== RUN   TestCompileBooleanLiterals
+--- PASS: TestCompileBooleanLiterals (0.00s)
+=== RUN   TestCompileNilLiteral
+--- PASS: TestCompileNilLiteral (0.00s)
+=== RUN   TestCompileVariableDeclarationAndAssignment
+--- PASS: TestCompileVariableDeclarationAndAssignment (0.00s)
+=== RUN   TestCompileUnaryMessageSend
+--- PASS: TestCompileUnaryMessageSend (0.00s)
+=== RUN   TestCompileBinaryMessageSend
+--- PASS: TestCompileBinaryMessageSend (0.00s)
+=== RUN   TestCompileKeywordMessageSend
+--- PASS: TestCompileKeywordMessageSend (0.00s)
+=== RUN   TestCompileMultipleStatements
+--- PASS: TestCompileMultipleStatements (0.00s)
+=== RUN   TestCompileSimpleBlock
+--- PASS: TestCompileSimpleBlock (0.00s)
+=== RUN   TestCompileBlockWithParameter
+--- PASS: TestCompileBlockWithParameter (0.00s)
+=== RUN   TestCompileArrayLiteral
+--- PASS: TestCompileArrayLiteral (0.00s)
+=== RUN   TestCompileIncremental
+--- PASS: TestCompileIncremental (0.00s)
+=== RUN   TestCompileIncrementalMultipleVars
+--- PASS: TestCompileIncrementalMultipleVars (0.00s)
+PASS
+ok  	github.com/kristofer/smog/pkg/compiler	(cached)
+=== RUN   TestNextToken_BasicTokens
+--- PASS: TestNextToken_BasicTokens (0.00s)
+=== RUN   TestNextToken_Operators
+--- PASS: TestNextToken_Operators (0.00s)
+=== RUN   TestNextToken_Numbers
+--- PASS: TestNextToken_Numbers (0.00s)
+=== RUN   TestNextToken_Strings
+--- PASS: TestNextToken_Strings (0.00s)
+=== RUN   TestNextToken_Keywords
+--- PASS: TestNextToken_Keywords (0.00s)
+=== RUN   TestNextToken_Identifiers
+--- PASS: TestNextToken_Identifiers (0.00s)
+=== RUN   TestNextToken_Comments
+--- PASS: TestNextToken_Comments (0.00s)
+=== RUN   TestNextToken_HelloWorld
+--- PASS: TestNextToken_HelloWorld (0.00s)
+=== RUN   TestNextToken_VariableDeclaration
+--- PASS: TestNextToken_VariableDeclaration (0.00s)
+=== RUN   TestNextToken_Arithmetic
+--- PASS: TestNextToken_Arithmetic (0.00s)
+=== RUN   TestTokenize_ValidInput
+--- PASS: TestTokenize_ValidInput (0.00s)
+=== RUN   TestTokenize_IllegalToken
+--- PASS: TestTokenize_IllegalToken (0.00s)
+=== RUN   TestLineAndColumn_Tracking
+--- PASS: TestLineAndColumn_Tracking (0.00s)
+=== RUN   TestNextToken_MultilineComment
+--- PASS: TestNextToken_MultilineComment (0.00s)
+=== RUN   TestNextToken_NumberBeforePeriod
+--- PASS: TestNextToken_NumberBeforePeriod (0.00s)
+PASS
+ok  	github.com/kristofer/smog/pkg/lexer	(cached)
+=== RUN   TestParseIntegerLiteral
+--- PASS: TestParseIntegerLiteral (0.00s)
+=== RUN   TestParseFloatLiteral
+--- PASS: TestParseFloatLiteral (0.00s)
+=== RUN   TestParseStringLiteral
+--- PASS: TestParseStringLiteral (0.00s)
+=== RUN   TestParseBooleanLiterals
+--- PASS: TestParseBooleanLiterals (0.00s)
+=== RUN   TestParseNilLiteral
+--- PASS: TestParseNilLiteral (0.00s)
+=== RUN   TestParseIdentifier
+--- PASS: TestParseIdentifier (0.00s)
+=== RUN   TestParseMultipleStatements
+--- PASS: TestParseMultipleStatements (0.00s)
+=== RUN   TestParseNegativeNumber
+--- PASS: TestParseNegativeNumber (0.00s)
+=== RUN   TestParseWithComments
+--- PASS: TestParseWithComments (0.00s)
+=== RUN   TestParseVariableDeclaration
+--- PASS: TestParseVariableDeclaration (0.00s)
+=== RUN   TestParseAssignment
+--- PASS: TestParseAssignment (0.00s)
+=== RUN   TestParseUnaryMessageSend
+--- PASS: TestParseUnaryMessageSend (0.00s)
+=== RUN   TestParseBinaryMessageSend
+--- PASS: TestParseBinaryMessageSend (0.00s)
+=== RUN   TestParseKeywordMessageSend
+--- PASS: TestParseKeywordMessageSend (0.00s)
+=== RUN   TestParseSimpleBlockLiteral
+--- PASS: TestParseSimpleBlockLiteral (0.00s)
+=== RUN   TestParseBlockLiteralWithOneParameter
+--- PASS: TestParseBlockLiteralWithOneParameter (0.00s)
+=== RUN   TestParseBlockLiteralWithMultipleParameters
+--- PASS: TestParseBlockLiteralWithMultipleParameters (0.00s)
+=== RUN   TestParseReturnStatement
+--- PASS: TestParseReturnStatement (0.00s)
+=== RUN   TestParseArrayLiteral
+--- PASS: TestParseArrayLiteral (0.00s)
+=== RUN   TestParseSelfKeyword
+--- PASS: TestParseSelfKeyword (0.00s)
+=== RUN   TestParseSuperUnaryMessage
+--- PASS: TestParseSuperUnaryMessage (0.00s)
+=== RUN   TestParseSuperKeywordMessage
+--- PASS: TestParseSuperKeywordMessage (0.00s)
+=== RUN   TestParseSuperBinaryMessage
+--- PASS: TestParseSuperBinaryMessage (0.00s)
+=== RUN   TestParseDictionaryLiteral
+--- PASS: TestParseDictionaryLiteral (0.00s)
+=== RUN   TestParseEmptyDictionaryLiteral
+--- PASS: TestParseEmptyDictionaryLiteral (0.00s)
+=== RUN   TestParseCascadeExpression
+--- PASS: TestParseCascadeExpression (0.00s)
+=== RUN   TestParseCascadeWithUnaryMessages
+--- PASS: TestParseCascadeWithUnaryMessages (0.00s)
+=== RUN   TestParseSimpleClass
+--- PASS: TestParseSimpleClass (0.00s)
+=== RUN   TestParseClassWithMultipleInstanceVariables
+--- PASS: TestParseClassWithMultipleInstanceVariables (0.00s)
+=== RUN   TestParseClassWithClassVariables
+--- PASS: TestParseClassWithClassVariables (0.00s)
+=== RUN   TestParseClassWithKeywordMethod
+--- PASS: TestParseClassWithKeywordMethod (0.00s)
+=== RUN   TestParseClassWithBinaryMethod
+--- PASS: TestParseClassWithBinaryMethod (0.00s)
+=== RUN   TestParseClassWithClassMethod
+--- PASS: TestParseClassWithClassMethod (0.00s)
+=== RUN   TestParseClassWithMultipleMethods
+--- PASS: TestParseClassWithMultipleMethods (0.00s)
+=== RUN   TestParseCompleteClass
+--- PASS: TestParseCompleteClass (0.00s)
+=== RUN   TestParseUnaryBinaryPrecedence
+--- PASS: TestParseUnaryBinaryPrecedence (0.00s)
+=== RUN   TestParseBinaryChaining
+--- PASS: TestParseBinaryChaining (0.00s)
+=== RUN   TestParseUnaryChaining
+--- PASS: TestParseUnaryChaining (0.00s)
+=== RUN   TestParseKeywordWithBinaryArg
+--- PASS: TestParseKeywordWithBinaryArg (0.00s)
+=== RUN   TestParseComplexPrecedence
+--- PASS: TestParseComplexPrecedence (0.00s)
+PASS
+ok  	github.com/kristofer/smog/pkg/parser	(cached)
+=== RUN   TestNonLocalReturnInBlock
+--- PASS: TestNonLocalReturnInBlock (0.00s)
+=== RUN   TestNonLocalReturnInNestedBlocks
+--- PASS: TestNonLocalReturnInNestedBlocks (0.00s)
+=== RUN   TestLocalReturnInMethod
+--- PASS: TestLocalReturnInMethod (0.00s)
+=== RUN   TestNonLocalReturnInIfFalse
+--- PASS: TestNonLocalReturnInIfFalse (0.00s)
+=== RUN   TestNonLocalReturnDoesNotAffectOtherMethods
+--- PASS: TestNonLocalReturnDoesNotAffectOtherMethods (0.00s)
+=== RUN   TestPrimitivesViaSend
+=== RUN   TestPrimitivesViaSend/SHA256
+=== RUN   TestPrimitivesViaSend/Base64Encode
+=== RUN   TestPrimitivesViaSend/AESEncryptDecrypt
+=== RUN   TestPrimitivesViaSend/GzipCompress
+=== RUN   TestPrimitivesViaSend/FileIO
+=== RUN   TestPrimitivesViaSend/JSON
+=== RUN   TestPrimitivesViaSend/Regex
+=== RUN   TestPrimitivesViaSend/Random
+=== RUN   TestPrimitivesViaSend/DateTime
+--- PASS: TestPrimitivesViaSend (0.00s)
+    --- PASS: TestPrimitivesViaSend/SHA256 (0.00s)
+    --- PASS: TestPrimitivesViaSend/Base64Encode (0.00s)
+    --- PASS: TestPrimitivesViaSend/AESEncryptDecrypt (0.00s)
+    --- PASS: TestPrimitivesViaSend/GzipCompress (0.00s)
+    --- PASS: TestPrimitivesViaSend/FileIO (0.00s)
+    --- PASS: TestPrimitivesViaSend/JSON (0.00s)
+    --- PASS: TestPrimitivesViaSend/Regex (0.00s)
+    --- PASS: TestPrimitivesViaSend/Random (0.00s)
+    --- PASS: TestPrimitivesViaSend/DateTime (0.00s)
+=== RUN   TestPrimitivesInBytecode
+--- PASS: TestPrimitivesInBytecode (0.00s)
+=== RUN   TestCryptoPrimitives
+--- PASS: TestCryptoPrimitives (0.00s)
+=== RUN   TestCompressionPrimitives
+--- PASS: TestCompressionPrimitives (0.00s)
+=== RUN   TestJSONPrimitives
+--- PASS: TestJSONPrimitives (0.00s)
+=== RUN   TestRegexPrimitives
+--- PASS: TestRegexPrimitives (0.00s)
+=== RUN   TestRandomPrimitives
+--- PASS: TestRandomPrimitives (0.00s)
+=== RUN   TestDateTimePrimitives
+--- PASS: TestDateTimePrimitives (0.00s)
+=== RUN   TestFileIOPrimitives
+--- PASS: TestFileIOPrimitives (0.00s)
+=== RUN   TestStackTraceOnError
+    stack_trace_test.go:38: Error type: *vm.RuntimeError
+    stack_trace_test.go:39: Error value: &vm.RuntimeError{Message:"division by zero", StackTrace:[]vm.StackFrame{vm.StackFrame{Name:"main program", Selector:"", IP:8, SourceLine:0, SourceCol:0}}}
+--- PASS: TestStackTraceOnError (0.00s)
+=== RUN   TestStackTraceWithNestedCalls
+--- PASS: TestStackTraceWithNestedCalls (0.00s)
+=== RUN   TestNoStackTraceOnSuccess
+--- PASS: TestNoStackTraceOnSuccess (0.00s)
+=== RUN   TestVMIntegerLiteral
+--- PASS: TestVMIntegerLiteral (0.00s)
+=== RUN   TestVMStringLiteral
+--- PASS: TestVMStringLiteral (0.00s)
+=== RUN   TestVMBooleanLiterals
+--- PASS: TestVMBooleanLiterals (0.00s)
+=== RUN   TestVMNilLiteral
+--- PASS: TestVMNilLiteral (0.00s)
+=== RUN   TestVMArithmetic
+--- PASS: TestVMArithmetic (0.00s)
+=== RUN   TestVMComparison
+--- PASS: TestVMComparison (0.00s)
+=== RUN   TestVMVariableDeclarationAndAssignment
+--- PASS: TestVMVariableDeclarationAndAssignment (0.00s)
+=== RUN   TestVMMultipleStatements
+--- PASS: TestVMMultipleStatements (0.00s)
+=== RUN   TestVMSimpleBlock
+--- PASS: TestVMSimpleBlock (0.00s)
+=== RUN   TestVMBlockWithOneParameter
+--- PASS: TestVMBlockWithOneParameter (0.00s)
+=== RUN   TestVMBlockWithTwoParameters
+--- PASS: TestVMBlockWithTwoParameters (0.00s)
+=== RUN   TestVMArrayLiteral
+--- PASS: TestVMArrayLiteral (0.00s)
+=== RUN   TestVMArrayAt
+--- PASS: TestVMArrayAt (0.00s)
+=== RUN   TestVMIfTrue
+--- PASS: TestVMIfTrue (0.00s)
+=== RUN   TestVMIfFalse
+--- PASS: TestVMIfFalse (0.00s)
+=== RUN   TestVMTimesRepeat
+--- PASS: TestVMTimesRepeat (0.00s)
+=== RUN   TestVMArrayDo
+--- PASS: TestVMArrayDo (0.00s)
+PASS
+ok  	github.com/kristofer/smog/pkg/vm	(cached)
+=== RUN   TestClassMethod_SimpleClassMethod
+--- PASS: TestClassMethod_SimpleClassMethod (0.00s)
+=== RUN   TestClassVariable_SharedAcrossInstances
+--- PASS: TestClassVariable_SharedAcrossInstances (0.00s)
+=== RUN   TestClassMethod_WithParameters
+--- PASS: TestClassMethod_WithParameters (0.00s)
+=== RUN   TestClassVariable_AccessFromClassMethod
+--- PASS: TestClassVariable_AccessFromClassMethod (0.00s)
+=== RUN   TestBytecodeFileRoundTrip
+=== RUN   TestBytecodeFileRoundTrip/simple_integer
+=== RUN   TestBytecodeFileRoundTrip/string_literal
+=== RUN   TestBytecodeFileRoundTrip/arithmetic
+=== RUN   TestBytecodeFileRoundTrip/variable_assignment
+=== RUN   TestBytecodeFileRoundTrip/message_send
+test
+=== RUN   TestBytecodeFileRoundTrip/block_creation
+=== RUN   TestBytecodeFileRoundTrip/array_literal
+--- PASS: TestBytecodeFileRoundTrip (0.01s)
+    --- PASS: TestBytecodeFileRoundTrip/simple_integer (0.00s)
+    --- PASS: TestBytecodeFileRoundTrip/string_literal (0.00s)
+    --- PASS: TestBytecodeFileRoundTrip/arithmetic (0.00s)
+    --- PASS: TestBytecodeFileRoundTrip/variable_assignment (0.00s)
+    --- PASS: TestBytecodeFileRoundTrip/message_send (0.00s)
+    --- PASS: TestBytecodeFileRoundTrip/block_creation (0.00s)
+    --- PASS: TestBytecodeFileRoundTrip/array_literal (0.00s)
+=== RUN   TestMultipleCompilations
+--- PASS: TestMultipleCompilations (0.00s)
+=== RUN   TestClassDefinitionSerialization
+--- PASS: TestClassDefinitionSerialization (0.00s)
+=== RUN   TestNestedBlocksSerialization
+--- PASS: TestNestedBlocksSerialization (0.00s)
+=== RUN   TestLargeProgram
+--- PASS: TestLargeProgram (0.00s)
+=== RUN   TestFileCorruption
+--- PASS: TestFileCorruption (0.00s)
+=== RUN   TestEmptyFile
+--- PASS: TestEmptyFile (0.00s)
+=== RUN   TestChainedMessageSends
+1
+--- PASS: TestChainedMessageSends (0.00s)
+=== RUN   TestSimpleClassDefinition
+--- PASS: TestSimpleClassDefinition (0.00s)
+=== RUN   TestClassInstantiation
+--- PASS: TestClassInstantiation (0.00s)
+=== RUN   TestMethodCall
+--- PASS: TestMethodCall (0.00s)
+=== RUN   TestMethodWithModification
+--- PASS: TestMethodWithModification (0.00s)
+=== RUN   TestMethodWithParameters
+--- PASS: TestMethodWithParameters (0.00s)
+=== RUN   TestMultipleInstances
+--- PASS: TestMultipleInstances (0.00s)
+=== RUN   TestMultipleFields
+--- PASS: TestMultipleFields (0.00s)
+=== RUN   TestCompleteCounterWorkflow
+--- PASS: TestCompleteCounterWorkflow (0.00s)
+=== RUN   TestInheritance_MethodOverride
+--- PASS: TestInheritance_MethodOverride (0.00s)
+=== RUN   TestInheritance_InheritedMethod
+--- PASS: TestInheritance_InheritedMethod (0.00s)
+=== RUN   TestInheritance_SuperSend
+--- PASS: TestInheritance_SuperSend (0.00s)
+=== RUN   TestInheritance_ThreeLevelHierarchy
+--- PASS: TestInheritance_ThreeLevelHierarchy (0.00s)
+=== RUN   TestVersion0_1_0_Lexer
+=== RUN   TestVersion0_1_0_Lexer/TokenizesHelloWorld
+=== RUN   TestVersion0_1_0_Lexer/TokenizesNumbers
+=== RUN   TestVersion0_1_0_Lexer/SkipsComments
+--- PASS: TestVersion0_1_0_Lexer (0.00s)
+    --- PASS: TestVersion0_1_0_Lexer/TokenizesHelloWorld (0.00s)
+    --- PASS: TestVersion0_1_0_Lexer/TokenizesNumbers (0.00s)
+    --- PASS: TestVersion0_1_0_Lexer/SkipsComments (0.00s)
+=== RUN   TestVersion0_1_0_Parser
+=== RUN   TestVersion0_1_0_Parser/ParsesIntegerLiteral
+=== RUN   TestVersion0_1_0_Parser/ParsesStringLiteral
+=== RUN   TestVersion0_1_0_Parser/ParsesBooleanAndNil
+=== RUN   TestVersion0_1_0_Parser/ParsesMultipleStatements
+--- PASS: TestVersion0_1_0_Parser (0.00s)
+    --- PASS: TestVersion0_1_0_Parser/ParsesIntegerLiteral (0.00s)
+    --- PASS: TestVersion0_1_0_Parser/ParsesStringLiteral (0.00s)
+    --- PASS: TestVersion0_1_0_Parser/ParsesBooleanAndNil (0.00s)
+    --- PASS: TestVersion0_1_0_Parser/ParsesMultipleStatements (0.00s)
+=== RUN   TestVersion0_1_0_LexerAndParser
+=== RUN   TestVersion0_1_0_LexerAndParser/EndToEndParsing
+--- PASS: TestVersion0_1_0_LexerAndParser (0.00s)
+    --- PASS: TestVersion0_1_0_LexerAndParser/EndToEndParsing (0.00s)
+=== RUN   TestStandardLibrary_Set
+--- PASS: TestStandardLibrary_Set (0.10s)
+=== RUN   TestStandardLibrary_Math
+    stdlib_test.go:29: Failed to run examples/stdlib/math_example.smog: exit status 1
+        Output: Parse error: parser errors: [Line 178, Column 1:
+          | i fib |
+          ^
+        Error: variable declarations must appear before all other statements
+        Suggestion: Move all variable declarations to the beginning of the scope. Example:
+          | x y z |  " Declare all variables first
+          x := 1.
+          " ... rest of code]
+        exit status 1
+--- FAIL: TestStandardLibrary_Math (0.08s)
+=== RUN   TestStandardLibrary_OrderedCollection
+    stdlib_test.go:29: Failed to run examples/stdlib/ordered_collection_example.smog: exit status 1
+        Output: Parse error: parser errors: [Line 194, Column 1:
+          | squaredEvens evenNums |
+          ^
+        Error: variable declarations must appear before all other statements
+        Suggestion: Move all variable declarations to the beginning of the scope. Example:
+          | x y z |  " Declare all variables first
+          x := 1.
+          " ... rest of code]
+        exit status 1
+--- FAIL: TestStandardLibrary_OrderedCollection (0.08s)
+=== RUN   TestStandardLibrary_Comprehensive
+--- PASS: TestStandardLibrary_Comprehensive (0.08s)
+=== RUN   TestVersion0_2_0_Literals
+=== RUN   TestVersion0_2_0_Literals/Integer
+=== RUN   TestVersion0_2_0_Literals/Float
+=== RUN   TestVersion0_2_0_Literals/String
+=== RUN   TestVersion0_2_0_Literals/True
+=== RUN   TestVersion0_2_0_Literals/False
+=== RUN   TestVersion0_2_0_Literals/Nil
+=== RUN   TestVersion0_2_0_Literals/NegativeInteger
+--- PASS: TestVersion0_2_0_Literals (0.00s)
+    --- PASS: TestVersion0_2_0_Literals/Integer (0.00s)
+    --- PASS: TestVersion0_2_0_Literals/Float (0.00s)
+    --- PASS: TestVersion0_2_0_Literals/String (0.00s)
+    --- PASS: TestVersion0_2_0_Literals/True (0.00s)
+    --- PASS: TestVersion0_2_0_Literals/False (0.00s)
+    --- PASS: TestVersion0_2_0_Literals/Nil (0.00s)
+    --- PASS: TestVersion0_2_0_Literals/NegativeInteger (0.00s)
+=== RUN   TestVersion0_2_0_Variables
+=== RUN   TestVersion0_2_0_Variables/SimpleAssignment
+=== RUN   TestVersion0_2_0_Variables/MultipleVariables
+--- PASS: TestVersion0_2_0_Variables (0.00s)
+    --- PASS: TestVersion0_2_0_Variables/SimpleAssignment (0.00s)
+    --- PASS: TestVersion0_2_0_Variables/MultipleVariables (0.00s)
+=== RUN   TestVersion0_2_0_BinaryMessages
+=== RUN   TestVersion0_2_0_BinaryMessages/Addition
+=== RUN   TestVersion0_2_0_BinaryMessages/Subtraction
+=== RUN   TestVersion0_2_0_BinaryMessages/Multiplication
+=== RUN   TestVersion0_2_0_BinaryMessages/Division
+=== RUN   TestVersion0_2_0_BinaryMessages/LessThan
+=== RUN   TestVersion0_2_0_BinaryMessages/GreaterThan
+=== RUN   TestVersion0_2_0_BinaryMessages/LessOrEqual
+=== RUN   TestVersion0_2_0_BinaryMessages/GreaterOrEqual
+=== RUN   TestVersion0_2_0_BinaryMessages/Equal
+=== RUN   TestVersion0_2_0_BinaryMessages/NotEqual
+--- PASS: TestVersion0_2_0_BinaryMessages (0.00s)
+    --- PASS: TestVersion0_2_0_BinaryMessages/Addition (0.00s)
+    --- PASS: TestVersion0_2_0_BinaryMessages/Subtraction (0.00s)
+    --- PASS: TestVersion0_2_0_BinaryMessages/Multiplication (0.00s)
+    --- PASS: TestVersion0_2_0_BinaryMessages/Division (0.00s)
+    --- PASS: TestVersion0_2_0_BinaryMessages/LessThan (0.00s)
+    --- PASS: TestVersion0_2_0_BinaryMessages/GreaterThan (0.00s)
+    --- PASS: TestVersion0_2_0_BinaryMessages/LessOrEqual (0.00s)
+    --- PASS: TestVersion0_2_0_BinaryMessages/GreaterOrEqual (0.00s)
+    --- PASS: TestVersion0_2_0_BinaryMessages/Equal (0.00s)
+    --- PASS: TestVersion0_2_0_BinaryMessages/NotEqual (0.00s)
+=== RUN   TestVersion0_2_0_ComplexExpressions
+=== RUN   TestVersion0_2_0_ComplexExpressions/ArithmeticWithVariables
+=== RUN   TestVersion0_2_0_ComplexExpressions/ComparisonWithVariables
+=== RUN   TestVersion0_2_0_ComplexExpressions/MultipleStatements
+--- PASS: TestVersion0_2_0_ComplexExpressions (0.00s)
+    --- PASS: TestVersion0_2_0_ComplexExpressions/ArithmeticWithVariables (0.00s)
+    --- PASS: TestVersion0_2_0_ComplexExpressions/ComparisonWithVariables (0.00s)
+    --- PASS: TestVersion0_2_0_ComplexExpressions/MultipleStatements (0.00s)
+=== RUN   TestVersion0_2_0_EndToEnd
+--- PASS: TestVersion0_2_0_EndToEnd (0.00s)
+=== RUN   TestVersion0_4_0_SuperKeyword
+=== RUN   TestVersion0_4_0_SuperKeyword/ParseSuperUnaryMessage
+=== RUN   TestVersion0_4_0_SuperKeyword/ParseSuperKeywordMessage
+=== RUN   TestVersion0_4_0_SuperKeyword/CompileSuperMessage
+--- PASS: TestVersion0_4_0_SuperKeyword (0.00s)
+    --- PASS: TestVersion0_4_0_SuperKeyword/ParseSuperUnaryMessage (0.00s)
+    --- PASS: TestVersion0_4_0_SuperKeyword/ParseSuperKeywordMessage (0.00s)
+    --- PASS: TestVersion0_4_0_SuperKeyword/CompileSuperMessage (0.00s)
+=== RUN   TestVersion0_4_0_DictionaryLiterals
+=== RUN   TestVersion0_4_0_DictionaryLiterals/ParseDictionaryLiteral
+=== RUN   TestVersion0_4_0_DictionaryLiterals/ParseEmptyDictionary
+=== RUN   TestVersion0_4_0_DictionaryLiterals/CompileDictionaryLiteral
+--- PASS: TestVersion0_4_0_DictionaryLiterals (0.00s)
+    --- PASS: TestVersion0_4_0_DictionaryLiterals/ParseDictionaryLiteral (0.00s)
+    --- PASS: TestVersion0_4_0_DictionaryLiterals/ParseEmptyDictionary (0.00s)
+    --- PASS: TestVersion0_4_0_DictionaryLiterals/CompileDictionaryLiteral (0.00s)
+=== RUN   TestVersion0_4_0_CascadingMessages
+=== RUN   TestVersion0_4_0_CascadingMessages/ParseSimpleCascade
+=== RUN   TestVersion0_4_0_CascadingMessages/ParseUnaryCascade
+=== RUN   TestVersion0_4_0_CascadingMessages/CompileCascade
+--- PASS: TestVersion0_4_0_CascadingMessages (0.00s)
+    --- PASS: TestVersion0_4_0_CascadingMessages/ParseSimpleCascade (0.00s)
+    --- PASS: TestVersion0_4_0_CascadingMessages/ParseUnaryCascade (0.00s)
+    --- PASS: TestVersion0_4_0_CascadingMessages/CompileCascade (0.00s)
+=== RUN   TestVersion0_4_0_SelfKeyword
+=== RUN   TestVersion0_4_0_SelfKeyword/ParseSelf
+=== RUN   TestVersion0_4_0_SelfKeyword/ParseSelfMessageSend
+--- PASS: TestVersion0_4_0_SelfKeyword (0.00s)
+    --- PASS: TestVersion0_4_0_SelfKeyword/ParseSelf (0.00s)
+    --- PASS: TestVersion0_4_0_SelfKeyword/ParseSelfMessageSend (0.00s)
+=== RUN   TestVersion0_4_0_Integration
+=== RUN   TestVersion0_4_0_Integration/SelfWithCascade
+=== RUN   TestVersion0_4_0_Integration/DictionaryWithVariousTypes
+--- PASS: TestVersion0_4_0_Integration (0.00s)
+    --- PASS: TestVersion0_4_0_Integration/SelfWithCascade (0.00s)
+    --- PASS: TestVersion0_4_0_Integration/DictionaryWithVariousTypes (0.00s)
+=== RUN   TestVersion0_4_0_ClassParsing
+=== RUN   TestVersion0_4_0_ClassParsing/ParseSimpleClass
+=== RUN   TestVersion0_4_0_ClassParsing/ParseClassWithClassVariablesAndMethods
+=== RUN   TestVersion0_4_0_ClassParsing/ParseMultipleClasses
+--- PASS: TestVersion0_4_0_ClassParsing (0.00s)
+    --- PASS: TestVersion0_4_0_ClassParsing/ParseSimpleClass (0.00s)
+    --- PASS: TestVersion0_4_0_ClassParsing/ParseClassWithClassVariablesAndMethods (0.00s)
+    --- PASS: TestVersion0_4_0_ClassParsing/ParseMultipleClasses (0.00s)
+FAIL
+FAIL	github.com/kristofer/smog/test	0.589s
+FAIL
