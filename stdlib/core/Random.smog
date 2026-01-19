@@ -12,15 +12,15 @@
     | random num flt |
     random := Random new.
     
-    " Generate random integer between 1 and 100 "
+    Generate random integer between 1 and 100
     num := random int: 1 max: 100.
     num println.
     
-    " Generate random float between 0.0 and 1.0 "
+    Generate random float between 0.0 and 1.0
     flt := random float.
     flt println.
     
-    " Generate 16 random bytes "
+    Generate 16 random bytes
     bytes := random bytes: 16.
     bytes println.
 "

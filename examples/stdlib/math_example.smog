@@ -113,7 +113,7 @@ Object subclass: #Math [
 ]
 
 " Test the Math class "
-| math result |
+| math result i fib |
 
 math := Math new.
 
@@ -175,7 +175,6 @@ result := math factorial: 10.
 result println.
 '' println.
 
-| i fib |
 '=== Fibonacci Sequence ===' println.
 'First 15 Fibonacci numbers:' println.
 i := 0.

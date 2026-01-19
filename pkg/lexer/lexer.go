@@ -390,6 +390,18 @@ func (l *Lexer) skipWhitespace() {
 func (l *Lexer) skipComment() {
 	l.readChar() // skip opening quote
 	for l.ch != '"' && l.ch != 0 {
+		if l.ch == '\\' {
+			// Skip escape sequence
+			l.readChar()
+			if l.ch != 0 {
+				if l.ch == '\n' {
+					l.line++
+					l.column = 0
+				}
+				l.readChar()
+			}
+			continue
+		}
 		if l.ch == '\n' {
 			l.line++
 			l.column = 0

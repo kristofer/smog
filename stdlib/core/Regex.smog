@@ -12,14 +12,14 @@
     | regex matches replaced |
     regex := Regex new.
     
-    " Check if pattern matches "
+    Check if pattern matches
     (regex match: '\\d+' text: 'abc123def') println.
     
-    " Find all matches "
+    Find all matches
     matches := regex findAll: '\\d+' text: 'The numbers are 123, 456, and 789'.
     matches println.
     
-    " Replace all matches "
+    Replace all matches
     replaced := regex replace: '\\d+' text: 'Price: 100 dollars' with: 'XXX'.
     replaced println.
 "
