@@ -54,11 +54,35 @@ nil
 ### Variables
 
 #### Local Variables
+
+Local variables are declared using pipe symbols (`|`) and must be declared in a **single declaration block** at the beginning of a scope (method, block, or top-level).
+
 ```smog
 | x y |
 x := 10.
 y := 20.
 ```
+
+**Important Scoping Rule:** All local variables in a scope must be declared together in one declaration block. You cannot add new variable declarations after executing statements or creating blocks.
+
+**✅ Correct:**
+```smog
+| x y result |  " All variables declared together
+x := 10.
+y := 20.
+result := x + y.
+```
+
+**❌ Incorrect:**
+```smog
+| x y |
+x := 10.
+[ y := 20 ] value.
+| result |  " ERROR: Cannot declare variables after blocks
+result := x + y.
+```
+
+This limitation is due to the current variable scoping implementation. For the workaround, declare all variables you will need at the beginning of the scope.
 
 #### Instance Variables
 Defined in class declarations and accessed directly in methods.
