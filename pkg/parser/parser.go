@@ -75,6 +75,7 @@ import (
 //   - peekTok: The next token (lookahead)
 //   - peekTok2: Second lookahead token (for distinguishing unary vs keyword messages)
 //   - errors: Accumulated syntax errors
+//   - source: The original source code (for error reporting)
 //
 // The parser is stateful and single-use: create a new parser for each
 // source file or code snippet.
@@ -87,6 +88,7 @@ type Parser struct {
 	peekTok  lexer.Token     // Next token (1st lookahead)
 	peekTok2 lexer.Token     // Token after next (2nd lookahead)
 	errors   []string        // Accumulated error messages
+	source   string          // Original source code (for error context)
 }
 
 // New creates a new parser for the given source code.
@@ -108,6 +110,7 @@ func New(input string) *Parser {
 	p := &Parser{
 		l:      lexer.New(input),
 		errors: []string{},
+		source: input,
 	}
 
 	// Read three tokens to populate curTok, peekTok, and peekTok2.
@@ -923,18 +926,106 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 	return &ast.StringLiteral{Value: p.curTok.Literal}
 }
 
-// addError adds an error message to the error list.
+// addError adds an error message to the error list with source location context.
 //
 // The parser accumulates errors rather than stopping at the first one.
 // This allows reporting multiple syntax errors in a single pass.
 //
+// The error message includes:
+//   - Line and column number where the error occurred
+//   - The source line containing the error
+//   - A pointer (^) showing the exact position
+//   - A description of what went wrong
+//
 // Parameters:
 //   - msg: A human-readable error message
 //
-// Example:
-//   p.addError("expected closing | in variable declaration")
+// Example output:
+//   Line 3, Column 8:
+//     y := x +
+//            ^
+//   Error: expected argument after binary operator
 func (p *Parser) addError(msg string) {
-	p.errors = append(p.errors, msg)
+	line := p.curTok.Line
+	column := p.curTok.Column
+	
+	// Get the source line for context
+	sourceLine := p.getSourceLine(line)
+	
+	// Special handling for EOF errors - show the last line of source
+	if p.curTok.Type == lexer.TokenEOF && sourceLine == "" {
+		lines := splitLines(p.source)
+		if len(lines) > 0 {
+			line = len(lines)
+			sourceLine = lines[line-1]
+			// Point to end of line
+			column = len(sourceLine) + 1
+		}
+	}
+	
+	// Build formatted error message with context
+	var errorMsg string
+	if sourceLine != "" {
+		// Create a pointer to show exact error location
+		pointer := ""
+		if column > 0 {
+			pointer = fmt.Sprintf("%*s^", column-1, "")
+		}
+		
+		errorMsg = fmt.Sprintf("Line %d, Column %d:\n  %s\n  %s\nError: %s",
+			line, column, sourceLine, pointer, msg)
+	} else {
+		// Fallback if we can't get the source line
+		errorMsg = fmt.Sprintf("Line %d, Column %d: %s", line, column, msg)
+	}
+	
+	p.errors = append(p.errors, errorMsg)
+}
+
+// getSourceLine extracts a specific line from the source code.
+//
+// Parameters:
+//   - lineNum: The line number to extract (1-based)
+//
+// Returns:
+//   - The source line as a string, or empty string if line number is invalid
+func (p *Parser) getSourceLine(lineNum int) string {
+	if lineNum < 1 {
+		return ""
+	}
+	
+	lines := splitLines(p.source)
+	if lineNum > len(lines) {
+		return ""
+	}
+	
+	return lines[lineNum-1]
+}
+
+// splitLines splits source code into lines, preserving the original line breaks.
+func splitLines(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	
+	var lines []string
+	line := ""
+	
+	for _, ch := range s {
+		if ch == '\n' {
+			lines = append(lines, line)
+			line = ""
+		} else if ch != '\r' {
+			line += string(ch)
+		}
+	}
+	
+	// Add the last line only if it's not empty or doesn't end with newline
+	if line != "" {
+		lines = append(lines, line)
+	}
+	
+	return lines
 }
 
 // parseBlockLiteral parses a block literal.
