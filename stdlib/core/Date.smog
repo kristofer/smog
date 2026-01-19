@@ -92,10 +92,4 @@ Object subclass: #Time [
     now [
         ^self dateNow
     ]
-    
-    " Sleep for specified seconds (not implemented yet) "
-    sleep: seconds [
-        " Would call VM primitive for sleep "
-        ^self
-    ]
 ]

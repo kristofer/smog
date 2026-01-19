@@ -1335,7 +1335,7 @@ func (vm *VM) send(receiver interface{}, selector string, args []interface{}) (i
 		return vm.randomInt(min, max)
 
 	case "randomFloat":
-		return vm.randomFloat(), nil
+		return vm.randomFloat()
 
 	case "randomBytes:":
 		if len(args) != 1 {

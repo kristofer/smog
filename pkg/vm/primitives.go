@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	mathrand "math/rand"
 	"net/http"
 	"os"
 	"regexp"
@@ -48,7 +47,7 @@ func (vm *VM) httpGet(url string) (string, error) {
 
 // httpPost performs an HTTP POST request
 func (vm *VM) httpPost(url string, body string) (string, error) {
-	resp, err := http.Post(url, "application/json", strings.NewReader(body))
+	resp, err := http.Post(url, "text/plain", strings.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("HTTP POST failed: %v", err)
 	}
@@ -430,9 +429,21 @@ func (vm *VM) randomInt(min int64, max int64) (int64, error) {
 	return n.Int64() + min, nil
 }
 
-// randomFloat generates a random float between 0.0 and 1.0
-func (vm *VM) randomFloat() float64 {
-	return mathrand.Float64()
+// randomFloat generates a random float between 0.0 and 1.0 using crypto/rand
+func (vm *VM) randomFloat() (float64, error) {
+	// Generate 8 random bytes
+	bytes := make([]byte, 8)
+	if _, err := io.ReadFull(rand.Reader, bytes); err != nil {
+		return 0, fmt.Errorf("failed to generate random float: %v", err)
+	}
+	
+	// Convert to uint64 and then to float in range [0, 1)
+	// Use the high 53 bits for the mantissa
+	n := uint64(bytes[0])<<56 | uint64(bytes[1])<<48 | uint64(bytes[2])<<40 | uint64(bytes[3])<<32 |
+		uint64(bytes[4])<<24 | uint64(bytes[5])<<16 | uint64(bytes[6])<<8 | uint64(bytes[7])
+	
+	// Mask to 53 bits and convert to float in [0, 1)
+	return float64(n>>11) / float64(1<<53), nil
 }
 
 // randomBytes generates random bytes

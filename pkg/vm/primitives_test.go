@@ -206,7 +206,10 @@ func TestRandomPrimitives(t *testing.T) {
 
 	// Test random float
 	for i := 0; i < 10; i++ {
-		f := vm.randomFloat()
+		f, err := vm.randomFloat()
+		if err != nil {
+			t.Fatalf("Random float failed: %v", err)
+		}
 		if f < 0.0 || f > 1.0 {
 			t.Errorf("Random float out of range: got %f, want 0.0-1.0", f)
 		}
