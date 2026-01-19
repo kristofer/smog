@@ -76,6 +76,8 @@ import (
 //   - peekTok2: Second lookahead token (for distinguishing unary vs keyword messages)
 //   - errors: Accumulated syntax errors
 //   - source: The original source code (for error reporting)
+//   - hasVarDecl: True if a variable declaration has been seen
+//   - hasNonVarStmt: True if a non-variable-declaration statement has been seen
 //
 // The parser is stateful and single-use: create a new parser for each
 // source file or code snippet.
@@ -83,12 +85,14 @@ import (
 // Note on lookahead: The parser uses two tokens of lookahead to distinguish
 // between unary messages (identifier) and keyword messages (identifier followed by colon).
 type Parser struct {
-	l        *lexer.Lexer    // Token source
-	curTok   lexer.Token     // Current token
-	peekTok  lexer.Token     // Next token (1st lookahead)
-	peekTok2 lexer.Token     // Token after next (2nd lookahead)
-	errors   []string        // Accumulated error messages
-	source   string          // Original source code (for error context)
+	l             *lexer.Lexer    // Token source
+	curTok        lexer.Token     // Current token
+	peekTok       lexer.Token     // Next token (1st lookahead)
+	peekTok2      lexer.Token     // Token after next (2nd lookahead)
+	errors        []string        // Accumulated error messages
+	source        string          // Original source code (for error context)
+	hasVarDecl    bool            // True if we've seen a variable declaration
+	hasNonVarStmt bool            // True if we've seen a non-variable statement
 }
 
 // New creates a new parser for the given source code.
@@ -227,19 +231,51 @@ func (p *Parser) Parse() (*ast.Program, error) {
 func (p *Parser) parseStatement() ast.Statement {
 	// Check for variable declarations (start with |)
 	if p.curTok.Type == lexer.TokenPipe {
+		// Check if we're trying to declare variables after non-declaration statements
+		if p.hasNonVarStmt {
+			p.addErrorWithSuggestion(
+				"variable declarations must appear before all other statements",
+				"Move all variable declarations to the beginning of the scope. Example:\n"+
+					"  | x y z |  \" Declare all variables first\n"+
+					"  x := 1.\n"+
+					"  \" ... rest of code")
+			// Still parse the declaration to consume tokens and avoid cascading errors
+			p.parseVariableDeclaration()
+			return nil
+		}
+		
+		// Check if we already had a variable declaration
+		if p.hasVarDecl {
+			p.addErrorWithSuggestion(
+				"multiple variable declaration blocks are not allowed",
+				"Combine all variable declarations into a single block. Example:\n"+
+					"  | x y z |  \" All variables in one declaration\n"+
+					"  \" Instead of: | x | ... | y z |")
+			// Still parse the declaration to consume tokens and avoid cascading errors
+			p.parseVariableDeclaration()
+			return nil
+		}
+		
+		p.hasVarDecl = true
 		return p.parseVariableDeclaration()
 	}
 
 	// Check for return statements (start with ^)
 	if p.curTok.Type == lexer.TokenCaret {
+		// Mark that we've seen a non-variable statement
+		p.hasNonVarStmt = true
 		return p.parseReturnStatement()
 	}
 
 	// Check for class definitions (Identifier subclass: #ClassName [...])
 	// We need to check if it's specifically: identifier "subclass" ":"
+	// Note: Class definitions don't count as "non-var statements" for scoping
 	if p.isClassDefinition() {
 		return p.parseClass()
 	}
+
+	// Mark that we've seen a non-variable statement (expression statements)
+	p.hasNonVarStmt = true
 
 	// Otherwise, treat it as an expression statement
 	expr := p.parseExpression()
@@ -1098,6 +1134,12 @@ func (p *Parser) parseBlockLiteral() ast.Expression {
 	}
 
 	// Parse block body (statements until ])
+	// Save parser state for this new scope
+	savedHasVarDecl := p.hasVarDecl
+	savedHasNonVarStmt := p.hasNonVarStmt
+	p.hasVarDecl = false
+	p.hasNonVarStmt = false
+	
 	var body []ast.Statement
 	for p.curTok.Type != lexer.TokenRBracket && p.curTok.Type != lexer.TokenEOF {
 		stmt := p.parseStatement()
@@ -1112,6 +1154,10 @@ func (p *Parser) parseBlockLiteral() ast.Expression {
 			p.nextToken()
 		}
 	}
+	
+	// Restore parser state
+	p.hasVarDecl = savedHasVarDecl
+	p.hasNonVarStmt = savedHasNonVarStmt
 
 	// Expect closing ]
 	if p.curTok.Type != lexer.TokenRBracket {
@@ -1506,6 +1552,12 @@ func (p *Parser) parseMethod() *ast.Method {
 	}
 	p.nextToken() // skip [
 	
+	// Save parser state for this new scope
+	savedHasVarDecl := p.hasVarDecl
+	savedHasNonVarStmt := p.hasNonVarStmt
+	p.hasVarDecl = false
+	p.hasNonVarStmt = false
+	
 	// Parse method body (statements until ])
 	var body []ast.Statement
 	for p.curTok.Type != lexer.TokenRBracket && p.curTok.Type != lexer.TokenEOF {
@@ -1515,6 +1567,10 @@ func (p *Parser) parseMethod() *ast.Method {
 		}
 		p.nextToken()
 	}
+	
+	// Restore parser state
+	p.hasVarDecl = savedHasVarDecl
+	p.hasNonVarStmt = savedHasNonVarStmt
 	
 	// Expect closing bracket
 	if p.curTok.Type != lexer.TokenRBracket {

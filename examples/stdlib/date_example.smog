@@ -1,10 +1,10 @@
 " Example demonstrating Date and Time functionality "
+| date now formatted year month day |
 
 '=== Date and Time Example ===' println.
 '' println.
 
 " Create a Date instance "
-| date now formatted year month day |
 date := Date new.
 
 " Get current timestamp "

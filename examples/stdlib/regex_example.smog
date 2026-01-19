@@ -1,9 +1,9 @@
 " Example demonstrating Regular Expression functionality "
+| regex matched matches replaced |
 
 '=== Regular Expression Example ===' println.
 '' println.
 
-| regex matched matches replaced |
 regex := Regex new.
 
 " Test pattern matching "

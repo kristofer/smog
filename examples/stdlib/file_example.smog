@@ -1,9 +1,9 @@
 " Example demonstrating File I/O functionality "
+| file testPath content exists |
 
 '=== File I/O Example ===' println.
 '' println.
 
-| file testPath content exists |
 file := File new.
 testPath := '/tmp/smog_file_test.txt'.
 
