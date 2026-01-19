@@ -19,12 +19,12 @@ data := 'This is a test string for compression. This is a test string for compre
 
 " GZIP compression "
 '=== GZIP Compression ===' println.
-compressed := gzip zipCompress: data.
+compressed := gzip gzipCompress: data.
 'Compressed data (base64):' println.
 compressed println.
 '' println.
 
-decompressed := gzip zipDecompress: compressed.
+decompressed := gzip gzipDecompress: compressed.
 'Decompressed successfully!' println.
 'Decompressed length: ' print.
 280 println.
