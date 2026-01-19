@@ -2,11 +2,7 @@
 | regex matched matches replaced text |
 
 " Regex class definition "
-Object subclass: #Regex [
-    match: pattern text: text [ ^self regexMatch: pattern text: text ]
-    findAll: pattern text: text [ ^self regexFindAll: pattern text: text ]
-    replace: pattern text: text with: replacement [ ^self regexReplace: pattern text: text with: replacement ]
-]
+Object subclass: #Regex [ ]
 
 '=== Regular Expression Example ===' println.
 '' println.

@@ -2,10 +2,7 @@
 | json jsonString parsed generated |
 
 " JSON class definition "
-Object subclass: #JSON [
-    parse: jsonString [ ^self jsonParse: jsonString ]
-    generate: object [ ^self jsonGenerate: object ]
-]
+Object subclass: #JSON [ ]
 
 '=== JSON Example ===' println.
 '' println.

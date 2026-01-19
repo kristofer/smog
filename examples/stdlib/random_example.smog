@@ -2,11 +2,7 @@
 | random num flt bytes |
 
 " Random class definition "
-Object subclass: #Random [
-    int: min max: max [ ^self randomInt: min max: max ]
-    float [ ^self randomFloat ]
-    bytes: length [ ^self randomBytes: length ]
-]
+Object subclass: #Random [ ]
 
 '=== Random Number Generation Example ===' println.
 '' println.

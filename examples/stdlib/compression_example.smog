@@ -2,15 +2,8 @@
 | zip gzip data compressed decompressed |
 
 " Compression class definitions "
-Object subclass: #ZIP [
-    compress: data [ ^self zipCompress: data ]
-    decompress: data [ ^self zipDecompress: data ]
-]
-
-Object subclass: #GZIP [
-    compress: data [ ^self gzipCompress: data ]
-    decompress: data [ ^self gzipDecompress: data ]
-]
+Object subclass: #ZIP [ ]
+Object subclass: #GZIP [ ]
 
 '=== Compression Example ===' println.
 '' println.
@@ -19,10 +12,7 @@ zip := ZIP new.
 gzip := GZIP new.
 
 " Create test data "
-data := 'This is a test string for compression. '.
-data := data, data.  " Repeat to make it more compressible "
-data := data, data.
-data := data, data.
+data := 'This is a test string for compression. This is a test string for compression. This is a test string for compression. This is a test string for compression. This is a test string for compression. This is a test string for compression. This is a test string for compression. This is a test string for compression. '.
 
 'Original data length: ' print.
 (data size) println.

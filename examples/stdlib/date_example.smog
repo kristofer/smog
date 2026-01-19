@@ -2,17 +2,7 @@
 | date now formatted year month day parsed |
 
 " Date class definition "
-Object subclass: #Date [
-    now [ ^self dateNow ]
-    format: ts format: fmt [ ^self dateFormat: ts format: fmt ]
-    parse: dateStr format: fmt [ ^self dateParse: dateStr format: fmt ]
-    year: ts [ ^self timeYear: ts ]
-    month: ts [ ^self timeMonth: ts ]
-    day: ts [ ^self timeDay: ts ]
-    hour: ts [ ^self timeHour: ts ]
-    minute: ts [ ^self timeMinute: ts ]
-    second: ts [ ^self timeSecond: ts ]
-]
+Object subclass: #Date [ ]
 
 '=== Date and Time Example ===' println.
 '' println.

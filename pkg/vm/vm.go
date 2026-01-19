@@ -1504,6 +1504,471 @@ func (vm *VM) tryPrimitive(receiver interface{}, selector string, args []interfa
 		// Print the receiver without a newline
 		fmt.Print(receiver)
 		return receiver, nil
+	
+	// File I/O primitives
+	case "read:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		path, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("read: path must be a string")
+		}
+		return vm.fileRead(path)
+	
+	case "fileRead:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		path, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("fileRead: path must be a string")
+		}
+		return vm.fileRead(path)
+	
+	case "write:content:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		path, ok1 := args[0].(string)
+		content, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("write:content: arguments must be strings")
+		}
+		err := vm.fileWrite(path, content)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	
+	case "fileWrite:content:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		path, ok1 := args[0].(string)
+		content, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("fileWrite:content: arguments must be strings")
+		}
+		err := vm.fileWrite(path, content)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	
+	case "exists:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		path, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("exists: path must be a string")
+		}
+		return vm.fileExists(path), nil
+	
+	case "fileExists:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		path, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("fileExists: path must be a string")
+		}
+		return vm.fileExists(path), nil
+	
+	case "delete:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		path, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("delete: path must be a string")
+		}
+		err := vm.fileDelete(path)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	
+	case "fileDelete:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		path, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("fileDelete: path must be a string")
+		}
+		err := vm.fileDelete(path)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	
+	// JSON primitives
+	case "jsonParse:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("jsonParse: argument must be a string")
+		}
+		return vm.jsonParse(data)
+	
+	case "jsonGenerate:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		return vm.jsonGenerate(args[0])
+	
+	// Regex primitives
+	case "regexMatch:text:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		pattern, ok1 := args[0].(string)
+		text, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("regexMatch:text: arguments must be strings")
+		}
+		return vm.regexMatch(pattern, text)
+	
+	case "regexFindAll:text:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		pattern, ok1 := args[0].(string)
+		text, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("regexFindAll:text: arguments must be strings")
+		}
+		return vm.regexFindAll(pattern, text)
+	
+	case "regexReplace:text:with:":
+		if len(args) != 3 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		pattern, ok1 := args[0].(string)
+		text, ok2 := args[1].(string)
+		replacement, ok3 := args[2].(string)
+		if !ok1 || !ok2 || !ok3 {
+			return nil, fmt.Errorf("regexReplace:text:with: arguments must be strings")
+		}
+		return vm.regexReplace(pattern, text, replacement)
+	
+	// Random number generation primitives
+	case "randomInt:max:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		min, ok1 := args[0].(int64)
+		max, ok2 := args[1].(int64)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("randomInt:max: arguments must be integers")
+		}
+		return vm.randomInt(min, max)
+	
+	case "randomFloat":
+		return vm.randomFloat()
+	
+	case "randomBytes:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		length, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("randomBytes: argument must be an integer")
+		}
+		return vm.randomBytes(length)
+	
+	// Date/Time primitives
+	case "now":
+		return vm.dateNow(), nil
+	
+	case "dateNow":
+		return vm.dateNow(), nil
+	
+	case "format:format:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok1 := args[0].(int64)
+		format, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("format:format: arguments must be integer and string")
+		}
+		return vm.dateFormat(timestamp, format), nil
+	
+	case "dateFormat:format:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok1 := args[0].(int64)
+		format, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("dateFormat:format: arguments must be integer and string")
+		}
+		return vm.dateFormat(timestamp, format), nil
+	
+	case "parse:format:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		dateStr, ok1 := args[0].(string)
+		format, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("parse:format: arguments must be strings")
+		}
+		return vm.dateParse(dateStr, format)
+	
+	case "dateParse:format:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		dateStr, ok1 := args[0].(string)
+		format, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("dateParse:format: arguments must be strings")
+		}
+		return vm.dateParse(dateStr, format)
+	
+	case "year:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("year: argument must be an integer")
+		}
+		return vm.timeYear(timestamp), nil
+	
+	case "timeYear:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeYear: argument must be an integer")
+		}
+		return vm.timeYear(timestamp), nil
+	
+	case "month:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("month: argument must be an integer")
+		}
+		return vm.timeMonth(timestamp), nil
+	
+	case "timeMonth:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeMonth: argument must be an integer")
+		}
+		return vm.timeMonth(timestamp), nil
+	
+	case "day:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("day: argument must be an integer")
+		}
+		return vm.timeDay(timestamp), nil
+	
+	case "timeDay:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeDay: argument must be an integer")
+		}
+		return vm.timeDay(timestamp), nil
+	
+	case "hour:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("hour: argument must be an integer")
+		}
+		return vm.timeHour(timestamp), nil
+	
+	case "timeHour:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeHour: argument must be an integer")
+		}
+		return vm.timeHour(timestamp), nil
+	
+	case "minute:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("minute: argument must be an integer")
+		}
+		return vm.timeMinute(timestamp), nil
+	
+	case "timeMinute:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeMinute: argument must be an integer")
+		}
+		return vm.timeMinute(timestamp), nil
+	
+	case "second:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("second: argument must be an integer")
+		}
+		return vm.timeSecond(timestamp), nil
+	
+	case "timeSecond:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		timestamp, ok := args[0].(int64)
+		if !ok {
+			return nil, fmt.Errorf("timeSecond: argument must be an integer")
+		}
+		return vm.timeSecond(timestamp), nil
+	
+	// Crypto primitives
+	case "aesEncrypt:key:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok1 := args[0].(string)
+		key, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("aesEncrypt:key: arguments must be strings")
+		}
+		return vm.aesEncrypt(data, key)
+	
+	case "aesDecrypt:key:":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok1 := args[0].(string)
+		key, ok2 := args[1].(string)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("aesDecrypt:key: arguments must be strings")
+		}
+		return vm.aesDecrypt(data, key)
+	
+	case "aesGenerateKey":
+		return vm.aesGenerateKey()
+	
+	case "sha256:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("sha256: argument must be a string")
+		}
+		return vm.sha256Hash(data), nil
+	
+	case "sha512:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("sha512: argument must be a string")
+		}
+		return vm.sha512Hash(data), nil
+	
+	case "md5:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("md5: argument must be a string")
+		}
+		return vm.md5Hash(data), nil
+	
+	case "base64Encode:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("base64Encode: argument must be a string")
+		}
+		return vm.base64Encode(data), nil
+	
+	case "base64Decode:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("base64Decode: argument must be a string")
+		}
+		return vm.base64Decode(data)
+	
+	// Compression primitives
+	case "zipCompress:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("zipCompress: argument must be a string")
+		}
+		return vm.zipCompress(data)
+	
+	case "zipDecompress:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("zipDecompress: argument must be a string")
+		}
+		return vm.zipDecompress(data)
+	
+	case "gzipCompress:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("gzipCompress: argument must be a string")
+		}
+		return vm.gzipCompress(data)
+	
+	case "gzipDecompress:":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not a primitive")
+		}
+		data, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("gzipDecompress: argument must be a string")
+		}
+		return vm.gzipDecompress(data)
+
 	default:
 		// Not a basic primitive
 		return nil, fmt.Errorf("not a primitive")

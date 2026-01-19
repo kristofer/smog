@@ -2,23 +2,9 @@
 | hash base64 aes key plaintext encrypted decrypted data encoded decoded generatedKey |
 
 " Crypto class definitions "
-Object subclass: #Hash [
-    sha256: data [ ^self sha256: data ]
-    sha512: data [ ^self sha512: data ]
-    md5: data [ ^self md5: data ]
-]
-
-Object subclass: #Base64 [
-    encode: data [ ^self base64Encode: data ]
-    decode: encodedData [ ^self base64Decode: encodedData ]
-]
-
-Object subclass: #AES [
-    initialize [ " No state needed " ]
-    encrypt: data key: key [ ^self aesEncrypt: data key: key ]
-    decrypt: data key: key [ ^self aesDecrypt: data key: key ]
-    generateKey [ ^self aesGenerateKey ]
-]
+Object subclass: #Hash [ ]
+Object subclass: #Base64 [ ]
+Object subclass: #AES [ ]
 
 '=== Cryptography Example ===' println.
 '' println.
