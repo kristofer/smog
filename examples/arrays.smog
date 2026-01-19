@@ -1,7 +1,7 @@
 " Array and collection examples "
 
 " Simple array literal and iteration "
-| numbers |
+| numbers first second size |
 numbers := #(1 2 3 4 5).
 
 'Array elements:' println.
@@ -10,7 +10,6 @@ numbers do: [ :each |
 ].
 
 " Access array elements by index "
-| first second |
 'First element: ' print.
 first := numbers at: 1.
 first println.  " Should print: 1 "
@@ -20,7 +19,6 @@ second := numbers at: 2.
 second println.  " Should print: 2 "
 
 " Array size "
-| size |
 'Array size: ' print.
 size := numbers size.
 size println.  " Should print: 5 "

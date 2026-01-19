@@ -1,30 +1,25 @@
 " Block/closure examples "
 
 " Simple block "
-| greet |
+| greet square result add result2 applyTwice increment result3 |
 greet := [ 'Hello from a block!' println ].
 greet value.
 
 " Block with parameters "
-| square result |
 square := [ :x | x * x ].
 'Square of 5: ' print.
 result := square value: 5.
 result println.  " Should print: 25 "
 
 " Block with multiple parameters "
-| add result2 |
 add := [ :x :y | x + y ].
 '3 + 7 = ' print.
 result2 := add value: 3 value: 7.
 result2 println.  " Should print: 10 "
 
 " Blocks as higher-order functions "
-| applyTwice increment result3 |
 applyTwice := [ :fn :value |
-    | temp |
-    temp := fn value: value.
-    fn value: temp
+    fn value: (fn value: value)
 ].
 
 increment := [ :x | x + 1 ].

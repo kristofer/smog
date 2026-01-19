@@ -120,6 +120,35 @@ const (
 	// variable, then pushes the value back (assignments return values).
 	OpStoreLocal
 
+	// OpLoadCaptured loads a captured variable from a closure's environment.
+	// Operand (packed):
+	//   - Bits 0-15: index in the captured variables array
+	//   - Bits 16-31: depth (0 = parent, 1 = grandparent, etc.)
+	//
+	// Lexical Scoping: This opcode is used when a block accesses a variable
+	// from an outer scope. The variable's value is captured when the closure
+	// is created, allowing the block to access it even after the outer scope
+	// has exited.
+	//
+	// Example:
+	//   | x |
+	//   x := 10.
+	//   [ x println ]  ; x is a captured variable here
+	OpLoadCaptured
+
+	// OpStoreCaptured stores a value to a captured variable in a closure's environment.
+	// Operand: same format as OpLoadCaptured
+	//
+	// Lexical Scoping: This allows blocks to modify variables from outer scopes.
+	// The modification affects the shared captured variable, visible to all
+	// closures that captured it.
+	//
+	// Example:
+	//   | x |
+	//   x := 10.
+	//   [ x := 20 ]  ; Modifies the captured variable
+	OpStoreCaptured
+
 	// OpLoadField loads an instance variable from the current object.
 	// Operand: index of the field
 	//
@@ -246,14 +275,42 @@ const (
 	//
 	// These opcodes handle block (closure) creation and evaluation.
 
-	// OpMakeClosure creates a closure (block) object.
+	// OpMakeClosure creates a closure (block) object (legacy - pre-lexical scoping).
 	// Operand: packed value containing:
 	//   - High bits: index of block code in constant pool
 	//   - Low 8 bits: number of parameters
 	//
 	// A closure captures the current environment and can be executed later.
 	// The block code is stored as a separate bytecode object in the constants.
+	//
+	// NOTE: This is the legacy opcode. New code should use OpMakeClosureWithEnv
+	// for proper lexical scoping support.
 	OpMakeClosure
+
+	// OpMakeClosureWithEnv creates a closure with explicit environment capture.
+	// Operand (packed):
+	//   - Bits 0-7: number of parameters
+	//   - Bits 8-15: number of captured variables
+	//   - Bits 16-31: index of block bytecode in constant pool
+	//
+	// Lexical Scoping: This opcode implements proper closure semantics by
+	// explicitly capturing variables from the current environment. The captured
+	// variables are determined at compile time based on which outer-scope
+	// variables the block references.
+	//
+	// Stack before: [value1, value2, ..., valueN] where N = captured count
+	// Stack after:  [closure]
+	//
+	// Example:
+	//   | x y |
+	//   x := 10.
+	//   y := 20.
+	//   [ :z | x + y + z ]  ; Captures x and y from outer scope
+	//
+	// When creating the closure, the current values of x and y are captured
+	// into the closure's environment, allowing the block to access them even
+	// after the outer scope has exited.
+	OpMakeClosureWithEnv
 
 	// OpCallBlock calls a block with arguments.
 	// Operand: number of arguments
@@ -312,16 +369,25 @@ type Instruction struct {
 // A Bytecode contains everything needed to execute a piece of smog code:
 //   - Instructions: The sequence of operations to perform
 //   - Constants: The pool of literal values referenced by instructions
+//   - CapturedVars: Metadata about variables captured from outer scopes (for closures)
+//   - LocalCount: Number of local variables in this scope
 //
 // The constant pool stores:
 //   - Numbers (int64, float64)
 //   - Strings (for string literals and selectors)
 //   - Variable names (for global access)
+//   - Nested bytecode (for blocks/closures)
+//   - Class definitions
 //
 // Why use a constant pool?
 //   - Reduces bytecode size (reference by index instead of embedding)
 //   - Allows sharing of common values
 //   - Simplifies instruction format (fixed-size operands)
+//
+// Lexical Scoping:
+//   The CapturedVars field supports lexical scoping by tracking which variables
+//   from outer scopes are referenced by this code. When a closure is created,
+//   these captured variables are copied into the closure's environment.
 //
 // Example:
 //
@@ -335,11 +401,42 @@ type Instruction struct {
 //       {OpPush, 2},       ; Push constant[2] (42)
 //       {OpReturn, 0},     ; End
 //     ],
-//     Constants: ["Hello", "println", 42]
+//     Constants: ["Hello", "println", 42],
+//     CapturedVars: [],  ; Top-level code has no captured variables
+//     LocalCount: 0,     ; No local variables
 //   }
 type Bytecode struct {
-	Instructions []Instruction // Sequence of bytecode instructions
-	Constants    []interface{} // Pool of constant values
+	Instructions []Instruction  // Sequence of bytecode instructions
+	Constants    []interface{}  // Pool of constant values
+	CapturedVars []CapturedVar  // Variables captured from outer scopes
+	LocalCount   int            // Number of local variables in this scope
+}
+
+// CapturedVar represents a variable captured from an outer scope.
+//
+// When a block references a variable from an enclosing scope, that variable
+// must be captured so the block can access it even after the outer scope exits.
+//
+// Lexical Scoping: This structure enables proper lexical scoping by recording:
+//   - Which variable is being captured (Name)
+//   - Where it is in the parent scope (Index)
+//   - How many scope levels away it is (Depth: 0 = parent, 1 = grandparent)
+//
+// Example:
+//   | x |              ; x is local[0] in outer scope
+//   x := 10.
+//   [ :y |            ; Block that captures x
+//     [ :z |          ; Nested block that also uses x
+//       x + y + z     ; x is captured from grandparent (depth 1)
+//     ]               ; y is captured from parent (depth 0)
+//   ]
+//
+// For the innermost block, x would be:
+//   CapturedVar{Name: "x", Index: 0, Depth: 1}
+type CapturedVar struct {
+	Name  string // Name of the captured variable
+	Index int    // Index in the parent scope's local variables or captured variables
+	Depth int    // How many scope levels up (0 = direct parent, 1 = grandparent, etc.)
 }
 
 // Constants for encoding/decoding message send operands.
@@ -398,6 +495,10 @@ func (op Opcode) String() string {
 		return "LOAD_LOCAL"
 	case OpStoreLocal:
 		return "STORE_LOCAL"
+	case OpLoadCaptured:
+		return "LOAD_CAPTURED"
+	case OpStoreCaptured:
+		return "STORE_CAPTURED"
 	case OpLoadField:
 		return "LOAD_FIELD"
 	case OpStoreField:
@@ -432,6 +533,8 @@ func (op Opcode) String() string {
 		return "NEW_OBJECT"
 	case OpMakeClosure:
 		return "MAKE_CLOSURE"
+	case OpMakeClosureWithEnv:
+		return "MAKE_CLOSURE_WITH_ENV"
 	case OpCallBlock:
 		return "CALL_BLOCK"
 	case OpMakeArray:
