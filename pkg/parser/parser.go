@@ -269,7 +269,10 @@ func (p *Parser) parseStatement() ast.Statement {
 
 	// Check for class definitions (Identifier subclass: #ClassName [...])
 	// We need to check if it's specifically: identifier "subclass" ":"
-	// Note: Class definitions don't count as "non-var statements" for scoping
+	// Note: Class definitions are parsed as declarations, not executable statements.
+	// They define types and don't execute sequentially like assignments or message sends.
+	// Therefore, they don't count as "non-var statements" for the scoping rule that
+	// requires variable declarations to come before executable statements.
 	if p.isClassDefinition() {
 		return p.parseClass()
 	}
@@ -1062,7 +1065,7 @@ func splitLines(s string) []string {
 		}
 	}
 	
-	// Add the last line only if it's not empty or doesn't end with newline
+	// Add the last line if it's non-empty (since we only add complete lines in the loop above)
 	if line != "" {
 		lines = append(lines, line)
 	}

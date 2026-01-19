@@ -82,7 +82,7 @@ x := 10.
 result := x + y.
 ```
 
-This limitation is due to the current variable scoping implementation. For the workaround, declare all variables you will need at the beginning of the scope.
+This limitation is due to the current variable scoping implementation. As a workaround, declare all variables you will need at the beginning of the scope.
 
 #### Instance Variables
 Defined in class declarations and accessed directly in methods.

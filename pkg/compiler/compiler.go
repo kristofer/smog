@@ -673,6 +673,9 @@ func (c *Compiler) compileBlockLiteral(block *ast.BlockLiteral) error {
 	blockCompiler.classes = c.classes
 	
 	// Copy parent's local variables to support closures
+	// NOTE: This is a temporary flat-copy approach that provides basic closure support
+	// but doesn't implement true lexical scoping with environment chains.
+	// See docs/LEXICAL_SCOPING_REVIEW.md for the full implementation plan.
 	// Blocks can access variables from enclosing scope
 	blockCompiler.localVars = append([]string{}, c.localVars...)
 	blockCompiler.localCount = c.localCount
