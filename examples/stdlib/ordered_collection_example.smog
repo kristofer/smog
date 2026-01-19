@@ -124,7 +124,7 @@ Object subclass: #OrderedCollection [
 ]
 
 " Test OrderedCollection "
-| numbers doubled evens odds first big allBig anyBig |
+| numbers doubled evens odds first big allBig anyBig squaredEvens evenNums |
 
 'Creating ordered collection of numbers...' println.
 numbers := OrderedCollection new.
@@ -191,7 +191,6 @@ allBig := numbers allSatisfy: [ :n | n > 0 ].
 allBig println.
 '' println.
 
-| squaredEvens evenNums |
 '=== Complex Example: Squares of even numbers ===' println.
 evenNums := numbers select: [ :n | (n - ((n / 2) * 2)) = 0 ].
 squaredEvens := evenNums collect: [ :n | n * n ].
