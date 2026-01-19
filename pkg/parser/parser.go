@@ -291,7 +291,9 @@ func (p *Parser) parseVariableDeclaration() ast.Statement {
 
 	// Expect closing pipe
 	if p.curTok.Type != lexer.TokenPipe {
-		p.addError("expected closing | in variable declaration")
+		p.addErrorWithSuggestion(
+			"expected closing | in variable declaration",
+			"Variable declarations use the format: | varName1 varName2 |")
 		return nil
 	}
 
@@ -459,7 +461,9 @@ func (p *Parser) parseKeywordMessage() ast.Expression {
 		p.nextToken() // move to first token of argument
 		arg := p.parseBinaryMessage()
 		if arg == nil {
-			p.addError("expected argument after keyword")
+			p.addErrorWithSuggestion(
+				"expected argument after keyword",
+				"Keyword messages need arguments after each keyword. Example: at: 5 put: 'value'")
 			return nil
 		}
 		args = append(args, arg)
@@ -515,7 +519,9 @@ func (p *Parser) parseBinaryMessage() ast.Expression {
 		p.nextToken() // move to argument
 		arg := p.parseUnaryMessage()
 		if arg == nil {
-			p.addError("expected argument after binary operator")
+			p.addErrorWithSuggestion(
+				"expected argument after binary operator",
+				"Binary operators like +, -, *, / need an argument. Example: x + 5")
 			return nil
 		}
 		
@@ -1026,6 +1032,19 @@ func splitLines(s string) []string {
 	}
 	
 	return lines
+}
+
+// addErrorWithSuggestion adds an error message with a helpful suggestion.
+//
+// Parameters:
+//   - msg: The error message
+//   - suggestion: A helpful suggestion for fixing the error
+func (p *Parser) addErrorWithSuggestion(msg, suggestion string) {
+	fullMsg := msg
+	if suggestion != "" {
+		fullMsg = fmt.Sprintf("%s\nSuggestion: %s", msg, suggestion)
+	}
+	p.addError(fullMsg)
 }
 
 // parseBlockLiteral parses a block literal.
