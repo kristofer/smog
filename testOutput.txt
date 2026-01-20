@@ -3,112 +3,23 @@ go build -o smog ./cmd/smog
 ✓ Built: smog
 Compiling stdlib files...
   stdlib/collections/Bag.smog -> stdlib/collections/Bag.sg
-Parse error: parser errors: [Line 23, Column 57:
-      wordCount occurrencesOf: 'hello' println.  \" Prints: 2 \"
-                                                          ^
-Error: unexpected token: COLON Line 23, Column 61:
-      wordCount occurrencesOf: 'hello' println.  \" Prints: 2 \"
-                                                              ^
-Error: unexpected token: ILLEGAL]
   stdlib/collections/OrderedCollection.smog -> stdlib/collections/OrderedCollection.sg
-Parse error: parser errors: [Line 31, Column 35:
-      list first println.  \" Prints: 10 \"
-                                    ^
-Error: unexpected token: COLON Line 31, Column 40:
-      list first println.  \" Prints: 10 \"
-                                         ^
-Error: unexpected token: ILLEGAL Line 32, Column 35:
-      list last println.   \" Prints: 30 \"
-                                    ^
-Error: unexpected token: COLON Line 32, Column 40:
-      list last println.   \" Prints: 30 \"
-                                         ^
-Error: unexpected token: ILLEGAL]
   stdlib/collections/Set.smog -> stdlib/collections/Set.sg
-Parse error: parser errors: [Line 23, Column 48:
-      fruits add: 'apple'.  \" Duplicate ignored \"
-                                                 ^
-Error: unexpected token: ILLEGAL Line 24, Column 36:
-      fruits size println.  \" Prints: 2 \"
-                                     ^
-Error: unexpected token: COLON Line 24, Column 40:
-      fruits size println.  \" Prints: 2 \"
-                                         ^
-Error: unexpected token: ILLEGAL]
   stdlib/compression/ZIP.smog -> stdlib/compression/ZIP.sg
   stdlib/core/Date.smog -> stdlib/core/Date.sg
   stdlib/core/Math.smog -> stdlib/core/Math.sg
-Parse error: parser errors: [Line 24, Column 31:
-      result println.  \" Prints: 42 \"
-                                ^
-Error: unexpected token: COLON Line 24, Column 36:
-      result println.  \" Prints: 42 \"
-                                     ^
-Error: unexpected token: ILLEGAL]
   stdlib/core/Random.smog -> stdlib/core/Random.sg
-Parse error: parser errors: [Line 28, Column 18:
-  Object subclass: #Random [
-                   ^
-Error: unexpected token: HASH Line 28, Column 18:
-  Object subclass: #Random [
-                   ^
-Error: expected argument after keyword
-Suggestion: Keyword messages need arguments after each keyword. Example: at: 5 put: 'value' Line 54, Column 1:
-  ]
-  ^
-Error: unexpected token: RBRACKET]
   stdlib/core/Regex.smog -> stdlib/core/Regex.sg
-Parse error: parser errors: [Line 27, Column 18:
-  Object subclass: #Regex [
-                   ^
-Error: unexpected token: HASH Line 27, Column 18:
-  Object subclass: #Regex [
-                   ^
-Error: expected argument after keyword
-Suggestion: Keyword messages need arguments after each keyword. Example: at: 5 put: 'value' Line 57, Column 1:
-  ]
-  ^
-Error: unexpected token: RBRACKET]
   stdlib/core/Stream.smog -> stdlib/core/Stream.sg
   stdlib/core/StringUtilities.smog -> stdlib/core/StringUtilities.sg
-Parse error: parser errors: [Line 21, Column 31:
-      result println.  \" Prints: true \"
-                                ^
-Error: unexpected token: COLON Line 21, Column 38:
-      result println.  \" Prints: true \"
-                                       ^
-Error: unexpected token: ILLEGAL]
   stdlib/crypto/AES.smog -> stdlib/crypto/AES.sg
   stdlib/io/File.smog -> stdlib/io/File.sg
   stdlib/io/HTTP.smog -> stdlib/io/HTTP.sg
   stdlib/io/JSON.smog -> stdlib/io/JSON.sg
-Parse error: parser errors: [Line 13, Column 35:
-      parsed := json parse: '{\"name\":\"John\",\"age\":30}'.
-                                    ^
-Error: unexpected token: ILLEGAL Line 13, Column 44:
-      parsed := json parse: '{\"name\":\"John\",\"age\":30}'.
-                                             ^
-Error: unexpected token: ILLEGAL Line 13, Column 52:
-      parsed := json parse: '{\"name\":\"John\",\"age\":30}'.
-                                                     ^
-Error: unexpected token: ILLEGAL]
 
 Stdlib compilation summary:
-  Successful: 6
-  Failed: 8
-
-  Failed files (may contain parser issues):
-    stdlib/collections/Bag.smog
-    stdlib/collections/OrderedCollection.smog
-    stdlib/collections/Set.smog
-    stdlib/core/Math.smog
-    stdlib/core/Random.smog
-    stdlib/core/Regex.smog
-    stdlib/core/StringUtilities.smog
-    stdlib/io/JSON.smog
-
-  Note: Some stdlib files may use syntax features not yet fully supported.
-  This does not affect the core smog functionality.
+  Successful: 14
+  Failed: 0
 ✓ Stdlib compilation attempted
 Running Go tests...
 go test -v ./...
@@ -369,7 +280,7 @@ ok  	github.com/kristofer/smog/pkg/parser	(cached)
 === RUN   TestVMArrayDo
 --- PASS: TestVMArrayDo (0.00s)
 PASS
-ok  	github.com/kristofer/smog/pkg/vm	(cached)
+ok  	github.com/kristofer/smog/pkg/vm	0.311s
 === RUN   TestClassMethod_SimpleClassMethod
 --- PASS: TestClassMethod_SimpleClassMethod (0.00s)
 === RUN   TestClassVariable_SharedAcrossInstances
@@ -457,31 +368,11 @@ test
 --- PASS: TestVersion0_1_0_LexerAndParser (0.00s)
     --- PASS: TestVersion0_1_0_LexerAndParser/EndToEndParsing (0.00s)
 === RUN   TestStandardLibrary_Set
---- PASS: TestStandardLibrary_Set (0.10s)
+--- PASS: TestStandardLibrary_Set (0.46s)
 === RUN   TestStandardLibrary_Math
-    stdlib_test.go:29: Failed to run examples/stdlib/math_example.smog: exit status 1
-        Output: Parse error: parser errors: [Line 178, Column 1:
-          | i fib |
-          ^
-        Error: variable declarations must appear before all other statements
-        Suggestion: Move all variable declarations to the beginning of the scope. Example:
-          | x y z |  " Declare all variables first
-          x := 1.
-          " ... rest of code]
-        exit status 1
---- FAIL: TestStandardLibrary_Math (0.08s)
+--- PASS: TestStandardLibrary_Math (0.31s)
 === RUN   TestStandardLibrary_OrderedCollection
-    stdlib_test.go:29: Failed to run examples/stdlib/ordered_collection_example.smog: exit status 1
-        Output: Parse error: parser errors: [Line 194, Column 1:
-          | squaredEvens evenNums |
-          ^
-        Error: variable declarations must appear before all other statements
-        Suggestion: Move all variable declarations to the beginning of the scope. Example:
-          | x y z |  " Declare all variables first
-          x := 1.
-          " ... rest of code]
-        exit status 1
---- FAIL: TestStandardLibrary_OrderedCollection (0.08s)
+--- PASS: TestStandardLibrary_OrderedCollection (0.09s)
 === RUN   TestStandardLibrary_Comprehensive
 --- PASS: TestStandardLibrary_Comprehensive (0.08s)
 === RUN   TestVersion0_2_0_Literals
@@ -582,6 +473,715 @@ test
     --- PASS: TestVersion0_4_0_ClassParsing/ParseSimpleClass (0.00s)
     --- PASS: TestVersion0_4_0_ClassParsing/ParseClassWithClassVariablesAndMethods (0.00s)
     --- PASS: TestVersion0_4_0_ClassParsing/ParseMultipleClasses (0.00s)
-FAIL
-FAIL	github.com/kristofer/smog/test	0.589s
-FAIL
+PASS
+ok  	github.com/kristofer/smog/test	1.449s
+Running examples...
+=========================================
+Running: examples/animals.smog
+=========================================
+Dogs:
+I am a Buddy and I say: Woof!
+Cats:
+I am a Whiskers and I say: Meow!
+Cows:
+I am a Bessie and I say: Moo!
+✓ SUCCESS
+
+=========================================
+Running: examples/arrays.smog
+=========================================
+Array elements:
+1
+2
+3
+4
+5
+First element: 1
+Second element: 2
+Array size: 5
+✓ SUCCESS
+
+=========================================
+Running: examples/binary_search.smog
+=========================================
+Binary Search Algorithm
+=======================
+
+Searching in array: [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25]
+
+Searching for 13...
+Found at index: 7
+
+Searching for 7...
+Found at index: 4
+
+Searching for 99 (not in array)...
+Found at index: -1
+(-1 means not found)
+✓ SUCCESS
+
+=========================================
+Running: examples/blocks.smog
+=========================================
+Hello from a block!
+Square of 5: 25
+3 + 7 = 10
+Apply increment twice to 5: 7
+✓ SUCCESS
+
+=========================================
+Running: examples/bubblesort.smog
+=========================================
+Bubble Sort Algorithm
+=====================
+
+Original array: [64, 34, 25, 12, 22, 11, 90]
+Sorted array:   [11, 12, 22, 25, 34, 64, 90]
+✓ SUCCESS
+
+=========================================
+Running: examples/bytecode_demo.smog
+=========================================
+Hello, World!
+✓ SUCCESS
+
+=========================================
+Running: examples/counter.smog
+=========================================
+Initial value: 0
+After 3 increments: 3
+After 1 decrement: 2
+After reset: 0
+✓ SUCCESS
+
+=========================================
+Running: examples/fibonacci.smog
+=========================================
+Fibonacci sequence (first 10 numbers):
+
+Recursive approach:
+fib(0) = 0
+fib(1) = 1
+fib(2) = 1
+fib(3) = 2
+fib(4) = 3
+fib(5) = 5
+fib(6) = 8
+fib(7) = 13
+fib(8) = 21
+fib(9) = 34
+
+Iterative approach:
+fib(0) = 0
+fib(1) = 1
+fib(2) = 1
+fib(3) = 2
+fib(4) = 3
+fib(5) = 5
+fib(6) = 8
+fib(7) = 13
+fib(8) = 21
+fib(9) = 34
+✓ SUCCESS
+
+=========================================
+Running: examples/gcd.smog
+=========================================
+Greatest Common Divisor (Euclidean Algorithm)
+=============================================
+
+GCD(48, 18) = 6
+
+GCD(56, 98) using recursion = 14
+
+Least Common Multiple
+=====================
+LCM(12, 18) = 36
+✓ SUCCESS
+
+=========================================
+Running: examples/hello.smog
+=========================================
+Hello, World!
+✓ SUCCESS
+
+=========================================
+Running: examples/id_generator.smog
+=========================================
+Users created:
+User #1000: Alice
+User #1001: Bob
+User #1002: Charlie
+✓ SUCCESS
+
+=========================================
+Running: examples/linkedlist.smog
+=========================================
+Creating linked list...
+List is empty
+
+Adding elements: 5, 10, 15, 20
+List contents: 5 -> 10 -> 15 -> 20
+List size: 4
+
+Testing Node equality:
+node1 equals: node2 (both 42): true
+node1 equals: node3 (42 vs 99): false
+✓ SUCCESS
+
+=========================================
+Running: examples/loops.smog
+=========================================
+Example 1: Count from 1 to 5 using whileTrue:
+1
+2
+3
+4
+5
+
+Example 2: Count down from 5 to 1 using whileFalse:
+5
+4
+3
+2
+1
+
+Example 3: Sum numbers from 1 to 10
+Sum: 55
+
+Example 4: Find first power of 2 greater than 100
+Result: 128
+✓ SUCCESS
+
+=========================================
+Running: examples/point.smog
+=========================================
+Points created:
+Origin: (0, 0)
+Point 1: (3, 4)
+Point 2: (10, 20)
+
+Distances from origin (squared):
+Origin distance: 0
+Point 1 distance: 25
+Point 2 distance: 500
+✓ SUCCESS
+
+=========================================
+Running: examples/queue.smog
+=========================================
+Creating queue...
+Is empty: true
+
+Enqueuing customers: Alice, Bob, Carol...
+Queue size: 3
+Next customer (peek): 1
+
+Serving customers (dequeue):
+Served customer: 1
+Served customer: 2
+Remaining queue size: 1
+
+Adding more customers...
+Current queue size: 3
+✓ SUCCESS
+
+=========================================
+Running: examples/stack.smog
+=========================================
+Creating stack...
+Is empty: true
+
+Pushing elements 10, 20, 30...
+Stack size: 3
+Peek at top: 30
+
+Popping elements:
+Popped: 30
+Popped: 20
+Popped: 10
+
+Is empty: true
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/comprehensive_example.smog
+=========================================
+=== Number Analysis Demo ===
+
+Adding numbers: 5, -3, 8, 5, 12, -3, 7, 8...
+
+=== Basic Statistics ===
+Sum: 39
+Mean: 4
+Maximum: 12
+Minimum: -3
+
+=== Filtered Results ===
+Even numbers:
+  8
+  12
+  8
+Odd numbers:
+  5
+  -3
+  5
+  -3
+  7
+Positive numbers:
+  5
+  8
+  5
+  12
+  7
+  8
+
+=== Transformations ===
+Squares:
+  25
+  9
+  64
+  25
+  144
+  9
+  49
+  64
+
+=== Unique Values (using Set) ===
+Unique values:
+  5
+  -3
+  8
+  12
+  7
+Count of unique values: 5
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/compression_example.smog
+=========================================
+=== Compression Example ===
+
+Original data length: approximately 320 bytes
+
+=== GZIP Compression ===
+Compressed data (base64):
+H4sIAAAAAAAA/wrJyCxWyCxWSFQoSS0uUSguKcrMS1dIyy9SSM7PLShKLS7OzM/TUxhVhqYMEAAA///se92zOAEAAA==
+
+Decompressed successfully!
+Decompressed length: 280
+Match original: true
+
+=== ZIP Compression ===
+Compressed data (base64):
+UEsDBBQACAAIAAAAAAAAAAAAAAAAAAAAAAAEAAAAZGF0YQrJyCxWyCxWSFQoSS0uUSguKcrMS1dIyy9SSM7PLShKLS7OzM/TUxhVhqYMEAAA//9QSwcI7HvdszEAAAA4AQAAUEsBAhQAFAAIAAgAAAAAAOx73bMxAAAAOAEAAAQAAAAAAAAAAAAAAAAAAAAAAGRhdGFQSwUGAAAAAAEAAQAyAAAAYwAAAAAA
+
+Decompressed successfully!
+Decompressed length: 280
+Match original: true
+Done!
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/crypto_example.smog
+=========================================
+=== Cryptography Example ===
+
+=== Hash Functions ===
+Data: Hello, World!
+
+SHA-256: dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f
+SHA-512: 374d794a95cdcfd8b35993185fef9ba368f160d8daf432d08ba9f1ed1e5abe6cc69291e0fa2fe0006a52570ef18c19def4e617c33ce52ef0a6e5fbe318cb0387
+MD5: 65a8e27d8879283831b664bd8b7f0ad4
+
+=== Base64 Encoding ===
+Original: Secret message
+Encoded: U2VjcmV0IG1lc3NhZ2U=
+Decoded: Secret message
+
+=== AES Encryption ===
+Original: This is a secret message that needs encryption!
+Key: 12345678901234567890123456789012
+
+Encrypted: Or9OG6u5U5Nt9PR8jbmHW3jGvchTPMGWTLLUCKNUh8OYaETLz9XyPaZCct7J0BXdRTR6m6O6lMnKQimUUE+mxA==
+
+Decrypted: This is a secret message that needs encryption!
+
+=== Generate Random Key ===
+Generated AES-256 key: u7cGAxdffbYLRJ0Atn6pD2o1oDu8gJWIWRdRO+Hfngw=
+Done!
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/date_example.smog
+=========================================
+=== Date and Time Example ===
+
+Current timestamp: 1768875538
+
+=== Date Formatting ===
+ISO8601: 2026-01-19T21:18:58-05:00
+Date only: 2026-01-19
+Time only: 21:18:58
+Date and time: 2026-01-19 21:18:58
+
+=== Date Components ===
+Year: 2026
+Month: 1
+Day: 19
+Hour: 21
+Minute: 18
+Second: 58
+
+=== Date Parsing ===
+Parsed timestamp: 1705314600
+Formatted back: 2024-01-15T05:30:00-05:00
+Done!
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/file_example.smog
+=========================================
+=== File I/O Example ===
+
+Writing to file...
+File written successfully.
+
+File exists: true
+
+Reading from file...
+File content:
+---
+Hello from Smog!
+This is a test file.
+Line 3 of content.
+---
+
+Deleting file...
+File deleted.
+
+File exists after deletion: false
+Done!
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/json_example.smog
+=========================================
+=== JSON Example ===
+
+=== Parsing JSON ===
+Input JSON: {"name":"Alice","age":30,"active":true,"items":[1,2,3]}
+
+Parsed successfully!
+map[active:true age:30 items:0x1400000c150 name:Alice]
+
+=== Generating JSON ===
+Generated JSON: {"active":true,"age":30,"items":[1,2,3],"name":"Alice"}
+
+Done!
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/math_example.smog
+=========================================
+=== Mathematical Constants ===
+Pi: 3.14159265359
+e (Euler): 2.71828182846
+
+=== Basic Operations ===
+abs(-42): 42
+max(15, 23): 23
+min(15, 23): 15
+
+=== Powers and Roots ===
+2^8: 256
+3^4: 81
+sqrt(16): 4
+sqrt(25): 5
+sqrt(100): 10
+
+=== Factorial ===
+5!: 120
+7!: 5040
+10!: 3628800
+
+=== Fibonacci Sequence ===
+First 15 Fibonacci numbers:
+fib(0) = 0
+fib(1) = 1
+fib(2) = 1
+fib(3) = 2
+fib(4) = 3
+fib(5) = 5
+fib(6) = 8
+fib(7) = 13
+fib(8) = 21
+fib(9) = 34
+fib(10) = 55
+fib(11) = 89
+fib(12) = 144
+fib(13) = 233
+fib(14) = 377
+
+=== Greatest Common Divisor ===
+gcd(48, 18): 6
+gcd(100, 35): 5
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/ordered_collection_example.smog
+=========================================
+Creating ordered collection of numbers...
+Original collection:
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+
+Size: 10
+First: 1
+Last: 10
+
+=== Collect: Double each number ===
+2
+4
+6
+8
+10
+12
+14
+16
+18
+20
+
+=== Select: Even numbers ===
+2
+4
+6
+8
+10
+
+=== Select: Odd numbers ===
+1
+3
+5
+7
+9
+
+=== Detect: First number > 5 ===
+Found: 6
+
+=== Any/All Satisfy ===
+Any number > 8? true
+All numbers > 8? false
+All numbers > 0? true
+
+=== Complex Example: Squares of even numbers ===
+Squares of even numbers:
+4
+16
+36
+64
+100
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/random_example.smog
+=========================================
+=== Random Number Generation Example ===
+
+=== Random Integers ===
+Generating 5 random integers between 1 and 100:
+74
+79
+16
+6
+48
+
+=== Random Floats ===
+Generating 5 random randomFloats between 0.0 and 1.0:
+0.40234422455593977
+0.05487939896836824
+0.4743590889805066
+0.9172042179329901
+0.5687472139635624
+
+=== Random Bytes ===
+Generating 16 random bytes (base64 encoded):
+3JG+58N4cV7h1mADblY8pQ==
+
+Generating 32 random bytes for encryption key:
+5pHyoblnha1MQG+eESdkpVI/rKzsT3Zjdvrn2URX0yM=
+Done!
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/regex_example.smog
+=========================================
+=== Regular Expression Example ===
+
+=== Pattern Matching ===
+Pattern \d+ matches "abc123def": true
+Pattern \d+ matches "abcdef": false
+
+=== Find All Matches ===
+Text: The numbers are 123, 456, and 789
+Matches: &{[123 456 789]}
+
+=== Replace Matches ===
+Original: Price: 100 dollars, Discount: 20 dollars
+Replaced: Price: XXX dollars, Discount: XXX dollars
+
+Done!
+✓ SUCCESS
+
+=========================================
+Running: examples/stdlib/set_example.smog
+=========================================
+Creating Sets...
+
+Fruits set:
+  - apple
+  - banana
+  - orange
+Fruits size: 3
+
+Vegetables set:
+  - carrot
+  - broccoli
+  - tomato
+
+Testing includes:
+fruits includes apple: true
+fruits includes carrot: false
+
+Union of fruits and vegetables:
+  - apple
+  - banana
+  - orange
+  - carrot
+  - broccoli
+  - tomato
+Union size: 6
+
+Intersection of fruits and vegetables:
+  - tomato
+Intersection size: 1
+✓ SUCCESS
+
+=========================================
+Running: examples/tower_of_hanoi.smog
+=========================================
+Tower of Hanoi
+==============
+
+Solving Tower of Hanoi with 3 disks...
+
+Move 1: Disk 1 from A to C
+Move 2: Disk 2 from A to B
+Move 3: Disk 1 from C to B
+Move 4: Disk 3 from A to C
+Move 5: Disk 1 from B to A
+Move 6: Disk 2 from B to C
+Move 7: Disk 1 from A to C
+
+Total moves: 7
+Expected moves: 7
+✓ SUCCESS
+
+=========================================
+Running: examples/v0.2.0/arithmetic.smog
+=========================================
+✓ SUCCESS
+
+=========================================
+Running: examples/v0.2.0/comparison.smog
+=========================================
+true
+✓ SUCCESS
+
+=========================================
+Running: examples/v0.2.0/complex.smog
+=========================================
+✓ SUCCESS
+
+=========================================
+Running: examples/v0.2.0/literals.smog
+=========================================
+✓ SUCCESS
+
+=========================================
+Running: examples/v0.2.0/print.smog
+=========================================
+Hello from v0.2.0!
+✓ SUCCESS
+
+=========================================
+Running: examples/v0.2.0/test1.smog
+=========================================
+416
+✓ SUCCESS
+
+=========================================
+Running: examples/v0.2.0/variables.smog
+=========================================
+✓ SUCCESS
+
+=========================================
+Running: examples/v0.3.0/blocks_and_control_flow.smog
+=========================================
+Simple block:
+Hello from a block!
+Block with parameter (square of 7):
+Block with two parameters (3 + 4):
+Testing ifTrue:
+  Condition is true!
+Testing ifFalse:
+  Condition is false!
+Printing stars 5 times:
+* * * * * 
+Array elements (iterating with do:):
+1
+2
+3
+4
+5
+Array size: 3
+Element at index 2: 20
+✓ SUCCESS
+
+=========================================
+Running: examples/v0.4.0/dictionary_example.smog
+=========================================
+map[age:30 city:Wonderland name:Alice]
+✓ SUCCESS
+
+=========================================
+Running: examples/vehicles.smog
+=========================================
+Initial state:
+Car - Speed: 0
+Bicycle - Speed: 0
+
+After one acceleration:
+Car - Speed: 15
+Bicycle - Speed: 5
+
+After another acceleration:
+Car - Speed: 30
+Bicycle - Speed: 10
+✓ SUCCESS
+
+=========================================
+Summary
+=========================================
+Successful: 38
+Failed: 0
+
+✓ All examples completed!
