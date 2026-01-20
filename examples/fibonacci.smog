@@ -3,12 +3,11 @@
 " Recursive approach "
 Object subclass: #FibRecursive [
     <calculate: n [
-        | result |
+        | result fib1 fib2 |
         (n <= 1) ifTrue: [
             ^n
         ].
 
-        | fib1 fib2 |
         fib1 := FibRecursive calculate: (n - 1).
         fib2 := FibRecursive calculate: (n - 2).
         result := fib1 + fib2.

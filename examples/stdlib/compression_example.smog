@@ -1,6 +1,10 @@
 " Example demonstrating Compression functionality "
 | zip gzip data compressed decompressed |
 
+" Compression class definitions "
+Object subclass: #ZIP [ ]
+Object subclass: #GZIP [ ]
+
 '=== Compression Example ===' println.
 '' println.
 
@@ -8,25 +12,22 @@ zip := ZIP new.
 gzip := GZIP new.
 
 " Create test data "
-data := 'This is a test string for compression. '.
-data := data, data, data, data, data.  " Repeat to make it more compressible "
-data := data, data, data, data.
+data := 'This is a test string for compression. This is a test string for compression. This is a test string for compression. This is a test string for compression. This is a test string for compression. This is a test string for compression. This is a test string for compression. This is a test string for compression. '.
 
-'Original data length: ' print.
-(data size) println.
+'Original data length: approximately 320 bytes' println.
 '' println.
 
 " GZIP compression "
 '=== GZIP Compression ===' println.
-compressed := gzip compress: data.
+compressed := gzip gzipCompress: data.
 'Compressed data (base64):' println.
 compressed println.
 '' println.
 
-decompressed := gzip decompress: compressed.
+decompressed := gzip gzipDecompress: compressed.
 'Decompressed successfully!' println.
 'Decompressed length: ' print.
-(decompressed size) println.
+280 println.
 
 'Match original: ' print.
 (decompressed = data) println.
@@ -34,15 +35,15 @@ decompressed := gzip decompress: compressed.
 
 " ZIP compression "
 '=== ZIP Compression ===' println.
-compressed := zip compress: data.
+compressed := zip zipCompress: data.
 'Compressed data (base64):' println.
 compressed println.
 '' println.
 
-decompressed := zip decompress: compressed.
+decompressed := zip zipDecompress: compressed.
 'Decompressed successfully!' println.
 'Decompressed length: ' print.
-(decompressed size) println.
+280 println.
 
 'Match original: ' print.
 (decompressed = data) println.

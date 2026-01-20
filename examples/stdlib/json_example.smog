@@ -1,6 +1,9 @@
 " Example demonstrating JSON functionality "
 | json jsonString parsed generated |
 
+" JSON class definition "
+Object subclass: #JSON [ ]
+
 '=== JSON Example ===' println.
 '' println.
 
@@ -13,14 +16,14 @@ jsonString := '{"name":"Alice","age":30,"active":true,"items":[1,2,3]}'.
 jsonString println.
 '' println.
 
-parsed := json parse: jsonString.
+parsed := json jsonParse: jsonString.
 'Parsed successfully!' println.
 parsed println.
 '' println.
 
 " Generate JSON from object "
 '=== Generating JSON ===' println.
-generated := json generate: parsed.
+generated := json jsonGenerate: parsed.
 'Generated JSON: ' print.
 generated println.
 '' println.

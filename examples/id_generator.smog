@@ -1,4 +1,5 @@
 " Class methods and class variables example: ID Generator "
+| user1 user2 user3 |
 
 Object subclass: #IDGenerator [
     " Class variable to track next ID "
@@ -55,8 +56,6 @@ Object subclass: #User [
 IDGenerator initialize.
 
 " Create several users "
-| user1 user2 user3 |
-
 user1 := User createWithName: 'Alice'.
 user2 := User createWithName: 'Bob'.
 user3 := User createWithName: 'Charlie'.

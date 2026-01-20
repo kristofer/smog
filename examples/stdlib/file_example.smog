@@ -1,6 +1,9 @@
 " Example demonstrating File I/O functionality "
 | file testPath content exists |
 
+" File class definition "
+Object subclass: #File [ ]
+
 '=== File I/O Example ===' println.
 '' println.
 
@@ -9,21 +12,21 @@ testPath := '/tmp/smog_file_test.txt'.
 
 " Write to a file "
 'Writing to file...' println.
-file write: testPath content: 'Hello from Smog!
+file fileWrite: testPath content: 'Hello from Smog!
 This is a test file.
 Line 3 of content.'.
 'File written successfully.' println.
 '' println.
 
 " Check if file exists "
-exists := file exists: testPath.
+exists := file fileExists: testPath.
 'File exists: ' print.
 exists println.
 '' println.
 
 " Read from the file "
 'Reading from file...' println.
-content := file read: testPath.
+content := file fileRead: testPath.
 'File content:' println.
 '---' println.
 content println.
@@ -32,12 +35,12 @@ content println.
 
 " Delete the file "
 'Deleting file...' println.
-file delete: testPath.
+file fileDelete: testPath.
 'File deleted.' println.
 '' println.
 
 " Verify file was deleted "
-exists := file exists: testPath.
+exists := file fileExists: testPath.
 'File exists after deletion: ' print.
 exists println.
 
